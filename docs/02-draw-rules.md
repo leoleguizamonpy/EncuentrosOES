@@ -1,11 +1,11 @@
 # Reglas del motor de sorteos — Sistema de Sorteos OES
 
-> **Estado:** Borrador técnico 0.2.0  
+> **Estado:** Borrador técnico 0.3.0  
 > **Fecha:** 5 de agosto de 2026  
-> **Deriva de:** `FOUNDATION.md` 1.1.0 y `docs/01-domain-model.md` 0.2.0  
+> **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` 0.3.0  
 > **Versión del algoritmo:** `oes-draw-v1`  
 > **Autoridad:** Especificación normativa del motor de sorteos  
-> **Siguiente documento:** `docs/03-use-cases.md`
+> **Siguiente documento:** `docs/03-results-and-standings.md`
 
 ## 1. Propósito
 
@@ -341,7 +341,8 @@ El resultado es válido únicamente si:
 - no aparece ningún participante ajeno;
 - los lugares adicionales pertenecen a A, B, C y siguientes;
 - se reservan dos plazas conceptuales por grupo;
-- no se calcula quién clasifica.
+- no se calcula quién clasifica dentro del motor de sorteos;
+- al confirmar el sorteo, la capa competitiva genera exactamente un encuentro por par no ordenado dentro de cada grupo.
 
 ## 10. Algoritmo de eliminación directa
 
@@ -412,16 +413,17 @@ Los cruces reciben una posición consecutiva `1..M` en el orden producido. La or
 - el pase pertenece al conjunto de menor historial;
 - ningún cruce contiene dos veces al mismo participante;
 - no se generan rondas futuras.
+- al confirmar la ronda, la capa competitiva genera exactamente un encuentro por cruce; el pase libre no genera encuentro.
 
 ## 11. Re-sorteo y avance
 
 ### 11.1 Fase de grupos a eliminación
 
-Una autoridad registra exactamente dos clasificados por grupo. Otra autoridad confirma. La suma de seleccionados forma la entrada canónica de la primera ronda eliminatoria.
+La capa de resultados recalcula la tabla desde resultados confirmados y propone exactamente dos clasificados por grupo. Otra autoridad confirma la propuesta. La suma confirmada forma la entrada canónica de la primera ronda eliminatoria.
 
 El motor rechaza:
 
-- menos o más de dos por grupo;
+- una propuesta con menos o más de dos por grupo;
 - duplicados;
 - participantes que no pertenecen al grupo publicado;
 - un registro confirmado por su propio autor;
@@ -429,7 +431,7 @@ El motor rechaza:
 
 ### 11.2 Entre rondas eliminatorias
 
-Por cada cruce se registra exactamente un ganador. El pase libre avanza automáticamente y no se vuelve a seleccionar manualmente.
+Por cada cruce, el resultado confirmado determina exactamente un ganador conforme a la plantilla competitiva congelada. El pase libre avanza automáticamente y no se vuelve a seleccionar manualmente.
 
 Después de la confirmación:
 
@@ -804,6 +806,8 @@ La implementación debe:
 
 - separar claramente cliente web, capa de aplicación y motor de dominio;
 - ejecutar por servidor todas las mutaciones y validaciones autoritativas;
+- persistir configuración, compromiso, resultado y estados antes de responder éxito al cliente;
+- permitir restaurar una ejecución pendiente de confirmación sin volver a sortear;
 - usar transporte cifrado en producción;
 - mantener el motor como lógica pura cuando recibe configuración y semilla;
 - aislar generación y almacenamiento de secretos;
