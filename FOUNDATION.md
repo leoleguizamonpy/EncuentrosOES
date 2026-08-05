@@ -1,6 +1,6 @@
 # FOUNDATION — Sistema de Sorteos OES
 
-> **Estado:** Borrador fundacional 0.1.0  
+> **Estado:** Fundación estable 1.0.0  
 > **Fecha:** 5 de agosto de 2026  
 > **Autoridad:** Documento madre del producto  
 > **Nombre de trabajo:** Sistema de Sorteos OES
@@ -179,23 +179,32 @@ Un sorteo confirmado puede pasar a `ANULADO` únicamente mediante una acción au
 
 ### 9.2 Fase de grupos
 
-1. La cantidad de grupos y la regla de distribución deben quedar definidas antes del sorteo.
-2. La distribución debe ser lo más equilibrada posible; la diferencia entre el grupo más grande y el más pequeño no puede superar un participante.
-3. Cada participante se asigna exactamente a un grupo.
-4. No existen mejores terceros.
-5. La regla institucional inicial reserva dos plazas de clasificación por grupo.
-6. El sistema de esta versión representa esas plazas, pero no calcula quién clasifica porque no administra resultados ni tablas.
-7. Los clasificados reales serán cargados o confirmados por una autoridad para crear la siguiente ronda eliminatoria.
+1. El administrador selecciona manualmente la cantidad de grupos antes de bloquear la competencia.
+2. Cada grupo debe contener un mínimo de tres y un máximo de cuatro participantes.
+3. Para una cantidad de grupos `G` y una cantidad de participantes `N`, la configuración solo es válida cuando se cumple `3G ≤ N ≤ 4G`.
+4. La diferencia entre el grupo más grande y el más pequeño no puede superar un participante.
+5. Cuando existan lugares adicionales, se asignan automáticamente y en orden a los grupos A, B, C y siguientes hasta distribuirlos todos.
+6. El administrador no puede seleccionar qué grupos reciben los lugares adicionales.
+7. Cada participante se asigna aleatoriamente y exactamente a un grupo.
+8. No existen bombos, cabezas de serie ni restricciones entre instituciones: todos los participantes elegibles tienen la misma probabilidad.
+9. No existen mejores terceros.
+10. La regla institucional reserva dos plazas de clasificación por grupo.
+11. El sistema representa esas plazas, pero no calcula quién clasifica porque no administra resultados ni tablas.
+12. Un administrador registra manualmente los clasificados reales y una autoridad distinta debe confirmarlos antes de crear la siguiente ronda eliminatoria.
 
 ### 9.3 Eliminación directa
 
 1. Cada ronda se trata como una unidad de sorteo independiente.
 2. La primera ronda se sortea entre participantes habilitados.
-3. Las rondas posteriores se sortean entre ganadores o clasificados confirmados por una autoridad.
+3. Las rondas posteriores se sortean entre ganadores o clasificados registrados por un administrador y confirmados por una autoridad distinta.
 4. El sistema no deduce ganadores a partir de marcadores.
 5. Un participante puede integrar como máximo un emparejamiento por ronda.
-6. Cuando la cantidad no permita emparejamientos completos, los pases libres deben ser explícitos, limitados y auditables.
-7. El sistema no genera automáticamente una llave fija hasta la final: se respeta el re-sorteo en cada ronda.
+6. Cuando la cantidad no permita emparejamientos completos, se asigna un pase libre mediante sorteo entre quienes tengan la menor cantidad histórica de pases libres dentro de la competencia.
+7. Nadie recibe un segundo pase libre mientras exista otro participante activo que no haya recibido ninguno.
+8. Si todos los participantes elegibles acumulan la misma cantidad de pases libres, todos vuelven a participar en igualdad de condiciones.
+9. Cada pase libre es explícito, publicable y auditable.
+10. No existen bombos, cabezas de serie ni restricciones ocultas: todos los participantes elegibles tienen la misma probabilidad.
+11. El sistema no genera automáticamente una llave fija hasta la final: se respeta el re-sorteo en cada ronda.
 
 ## 10. Principios del producto
 
@@ -233,6 +242,7 @@ El producto no crecerá por acumulación de módulos. Solo se incorpora una capa
 
 - configura ediciones, eventos, deportes y modalidades;
 - administra usuarios y autoridades;
+- confirma sorteos, clasificados o ganadores registrados por un administrador distinto;
 - anula sorteos confirmados;
 - accede al historial completo.
 
@@ -241,8 +251,12 @@ El producto no crecerá por acumulación de módulos. Solo se incorpora una capa
 - crea competencias;
 - carga o habilita participantes;
 - configura y simula sorteos;
-- ejecuta, confirma y publica sorteos dentro de su autorización;
-- registra clasificados o ganadores habilitados para la siguiente ronda.
+- ejecuta sorteos oficiales dentro de su autorización;
+- registra clasificados o ganadores para la siguiente ronda;
+- confirma sorteos, clasificados o ganadores registrados por otro administrador;
+- publica únicamente información previamente confirmada;
+- no puede confirmar una operación crítica que él mismo haya ejecutado o registrado;
+- no puede anular sorteos confirmados.
 
 ### 11.3 Operador de presentación
 
@@ -254,7 +268,7 @@ El producto no crecerá por acumulación de módulos. Solo se incorpora una capa
 - consulta sorteos publicados, grupos, rondas y emparejamientos;
 - no accede a controles administrativos ni datos internos de auditoría.
 
-El modelo exacto de permisos se definirá en una especificación posterior. Ningún rol recibe autoridad implícita por interfaz.
+Una operación crítica requiere separación entre quien la ejecuta o registra y quien la confirma. El modelo técnico de permisos se detallará en una especificación posterior. Ningún rol recibe autoridad implícita por interfaz.
 
 ## 12. Flujo operacional principal
 
@@ -266,10 +280,12 @@ El modelo exacto de permisos se definirá en una especificación posterior. Ning
 6. Configurar las reglas aplicables.
 7. Bloquear la competencia.
 8. Ejecutar una o más simulaciones opcionales.
-9. Ejecutar el sorteo oficial.
-10. Revisar y confirmar el resultado.
+9. Un administrador ejecuta el sorteo oficial.
+10. Un administrador distinto o el superadministrador revisa y confirma el resultado.
 11. Publicar grupos o emparejamientos.
-12. Cuando corresponda, cargar clasificados o ganadores y abrir una nueva ronda eliminatoria.
+12. Cuando corresponda, un administrador registra clasificados o ganadores.
+13. Otro administrador o el superadministrador confirma ese registro.
+14. Abrir una nueva ronda eliminatoria exclusivamente con participantes confirmados.
 
 Ninguna animación o modo de presentación puede saltar validaciones de este flujo.
 
@@ -281,10 +297,28 @@ El sistema debe:
 - aplicar autorización en servidor, no solo ocultar botones;
 - validar nuevamente participantes y reglas al confirmar;
 - impedir confirmaciones simultáneas incompatibles;
+- impedir que el mismo usuario ejecute o registre y confirme una operación crítica;
 - registrar actor, acción, fecha, entidad afectada y motivo cuando corresponda;
 - evitar que una repetición de la misma solicitud cree dos sorteos oficiales;
 - no exponer información interna sensible en la vista pública;
 - mantener copias de seguridad y un procedimiento probado de restauración antes de uso oficial.
+
+### 13.1 Evidencia pública del sorteo
+
+Cada sorteo oficial publicado debe incluir:
+
+- un identificador único e inmutable;
+- fecha y hora oficial;
+- competencia y ronda;
+- lista congelada de participantes;
+- configuración y reglas aplicadas;
+- resultado completo;
+- acta descargable;
+- versión exacta del algoritmo;
+- semilla del sorteo, revelada únicamente después de la confirmación;
+- código de verificación SHA-256 calculado sobre la representación canónica de los datos anteriores.
+
+El verificador debe detectar cualquier alteración posterior del acta, la configuración, los participantes o el resultado. Las simulaciones no generan evidencia confundible con la de un sorteo oficial.
 
 ## 14. Criterios de éxito
 
@@ -293,15 +327,18 @@ La primera versión se considera funcionalmente exitosa cuando puede demostrar q
 1. Colegiales y Universitarios nunca se mezclan.
 2. Una competencia queda delimitada por edición, evento, deporte y modalidad.
 3. No se puede sortear oficialmente con participantes o reglas sin cerrar.
-4. La fase de grupos distribuye a todos los participantes sin duplicados y de forma equilibrada.
-5. La eliminación directa produce cruces válidos y pases libres explícitos cuando sean necesarios.
-6. Cada ronda eliminatoria puede re-sortear únicamente a sus clasificados confirmados.
-7. Una simulación no altera el estado oficial.
-8. Un sorteo confirmado permanece inmutable.
-9. Una anulación deja evidencia y no borra la historia.
-10. El resultado publicado coincide exactamente con el resultado confirmado.
-11. Las reglas del motor están cubiertas por pruebas automatizadas.
-12. El flujo completo puede ensayarse antes del sorteo oficial sin datos manualmente manipulados.
+4. La fase de grupos acepta solo configuraciones de tres o cuatro participantes por grupo y distribuye a todos sin duplicados.
+5. Los lugares adicionales se asignan automáticamente a los grupos A, B, C y siguientes.
+6. La eliminación directa produce cruces válidos y pases libres explícitos, aleatorios y sin repetición evitable.
+7. Cada ronda eliminatoria puede re-sortear únicamente a sus clasificados confirmados.
+8. Ningún usuario puede registrar o ejecutar y confirmar la misma operación crítica.
+9. Una simulación no altera el estado oficial.
+10. Un sorteo confirmado permanece inmutable.
+11. Una anulación deja evidencia y no borra la historia.
+12. El resultado publicado coincide exactamente con el resultado confirmado.
+13. El identificador, acta y código SHA-256 permiten verificar la evidencia pública.
+14. Las reglas del motor están cubiertas por pruebas automatizadas.
+15. El flujo completo puede ensayarse antes del sorteo oficial sin datos manualmente manipulados.
 
 ## 15. Criterios de fracaso
 
@@ -346,19 +383,20 @@ Una modificación de esta Foundation debe incluir:
 
 Cambios en ortografía o claridad que no alteren significado incrementan la versión de parche. Cambios de reglas o alcance incrementan la versión menor. Cambios que redefinan la identidad del producto incrementan la versión mayor.
 
-## 18. Decisiones pendientes antes de cerrar la versión 1.0
+## 18. Decisiones fundacionales cerradas para la versión 1.0
 
-Estas decisiones no deben resolverse de forma implícita durante la programación:
+| Tema | Decisión vinculante |
+| --- | --- |
+| Cantidad de grupos | El administrador la selecciona manualmente y el sistema la valida. |
+| Tamaño de grupos | Cada grupo contiene tres o cuatro participantes; debe cumplirse `3G ≤ N ≤ 4G`. |
+| Distribución desigual | Los lugares adicionales se asignan automáticamente a los grupos A, B, C y siguientes. |
+| Pases libres | Se sortean entre quienes tengan la menor cantidad histórica dentro de la competencia. |
+| Bombos y cabezas de serie | No existen; todos los participantes elegibles compiten en igualdad. |
+| Clasificados y ganadores | Un administrador registra y una autoridad distinta confirma. |
+| Autoridad | Otro administrador o el superadministrador confirma; solo el superadministrador anula. |
+| Evidencia pública | Identificador, acta descargable, algoritmo, semilla revelada y código SHA-256. |
 
-1. Regla exacta para determinar cantidad de grupos según número de participantes.
-2. Política de pases libres: sorteo puro, siembra o restricción por antecedentes.
-3. Existencia de bombos, cabezas de serie o restricciones entre instituciones relacionadas.
-4. Método de incorporación y validación de clasificados o ganadores, dado que no se cargarán resultados.
-5. Autoridad final que confirma y la autoridad excepcional que anula un sorteo.
-6. Evidencia pública del sorteo: identificador, acta exportable, semilla verificable o combinación de estas opciones.
-7. Si un empate en cantidad de participantes entre grupos permite elección manual o exige una regla automática única.
-
-Hasta resolverlas, cualquier implementación relacionada se considera provisional y no apta para operación oficial.
+Estas decisiones son invariantes de la versión 1.0. No pueden convertirse en opciones configurables sin una modificación formal de esta Foundation.
 
 ## 19. Declaración fundacional
 
