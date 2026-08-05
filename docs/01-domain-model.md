@@ -1,8 +1,8 @@
 # Modelo de dominio — Sistema de Sorteos OES
 
-> **Estado:** Borrador técnico 0.1.0  
+> **Estado:** Borrador técnico 0.2.0  
 > **Fecha:** 5 de agosto de 2026  
-> **Deriva de:** `FOUNDATION.md` 1.0.0  
+> **Deriva de:** `FOUNDATION.md` 1.1.0  
 > **Autoridad:** Especificación conceptual del dominio  
 > **Siguiente documento:** `docs/02-draw-rules.md`
 
@@ -16,6 +16,7 @@ No define tablas, endpoints, componentes visuales ni tecnologías. Esas decision
 
 El dominio cubre exclusivamente:
 
+- acceso mediante una aplicación web responsive;
 - configuración institucional mínima;
 - creación de competencias;
 - habilitación de participantes;
@@ -28,6 +29,8 @@ El dominio cubre exclusivamente:
 - evidencia verificable y auditoría.
 
 Quedan fuera deportistas, planteles, calendarios, encuentros disputados, marcadores, puntos, tablas, estadísticas, sanciones, árbitros, sedes y pagos.
+
+La plataforma es web, pero el navegador no es una frontera autoritativa. Los comandos y las invariantes se ejecutan o revalidan en servidor. Una aplicación móvil nativa queda fuera de alcance.
 
 ## 3. Lenguaje ubicuo
 
@@ -484,6 +487,23 @@ Esta regla impide una repetición mientras exista otro participante con menos pa
 | Consultar auditoría completa | Sí | Limitada a su autorización | No | No |
 
 Los permisos se aplican en el dominio y en servidor. La interfaz no es una frontera de seguridad.
+
+### 11.1 Frontera del sistema web
+
+El sistema expone dos experiencias de navegador:
+
+- aplicación administrativa autenticada para configurar, ejecutar, confirmar y auditar;
+- aplicación pública de solo consulta para grupos, rondas, actas y verificación.
+
+Ambas son clientes del dominio autoritativo alojado en servidor. En consecuencia:
+
+- el navegador nunca confirma permisos por sí mismo;
+- toda entrada del cliente se considera no confiable;
+- ocultar un control visual no sustituye autorización;
+- el servidor vuelve a validar estado, versión, actor e invariantes;
+- una animación consume un resultado ya persistido y no lo genera;
+- refrescar, cerrar o reconectar el navegador no puede repetir una operación crítica;
+- el verificador público puede recalcular evidencia en el navegador, pero no modifica autoridad ni estado.
 
 ## 12. Comandos del dominio
 
