@@ -1,8 +1,8 @@
 # Reglas del motor de sorteos — Sistema de Sorteos OES
 
-> **Estado:** Borrador técnico 0.1.0  
+> **Estado:** Borrador técnico 0.2.0  
 > **Fecha:** 5 de agosto de 2026  
-> **Deriva de:** `FOUNDATION.md` 1.0.0 y `docs/01-domain-model.md` 0.1.0  
+> **Deriva de:** `FOUNDATION.md` 1.1.0 y `docs/01-domain-model.md` 0.2.0  
 > **Versión del algoritmo:** `oes-draw-v1`  
 > **Autoridad:** Especificación normativa del motor de sorteos  
 > **Siguiente documento:** `docs/03-use-cases.md`
@@ -19,6 +19,7 @@ Las palabras **DEBE**, **NO DEBE**, **REQUIERE** y **PROHÍBE** expresan reglas 
 
 El motor resuelve:
 
+- ejecución autoritativa detrás de una aplicación web;
 - validación de una configuración congelada;
 - generación y compromiso de semilla;
 - aleatoriedad determinista y sin sesgo modular;
@@ -38,16 +39,17 @@ El motor no resuelve marcadores, posiciones, desempates deportivos, ganadores, m
 
 1. Las reglas se validan antes de consumir aleatoriedad.
 2. El cliente y la animación nunca generan el resultado.
-3. Una configuración oficial congelada es inmutable.
-4. Una simulación nunca puede promoverse a sorteo oficial.
-5. Existe como máximo un sorteo oficial vigente por configuración.
-6. El algoritmo es determinista dada su entrada completa.
-7. La selección aleatoria no usa reducción modular sesgada.
-8. Los participantes se tratan en igualdad: no existen bombos ni cabezas de serie.
-9. Cada ronda eliminatoria se sortea de nuevo.
-10. Un resultado oficial requiere doble control.
-11. La semilla oficial queda habilitada para revelación después de confirmar y se hace pública al publicar, nunca antes.
-12. La evidencia publicada permite reproducir el resultado.
+3. El navegador se considera un cliente no confiable; toda operación oficial se ejecuta y revalida en servidor.
+4. Una configuración oficial congelada es inmutable.
+5. Una simulación nunca puede promoverse a sorteo oficial.
+6. Existe como máximo un sorteo oficial vigente por configuración.
+7. El algoritmo es determinista dada su entrada completa.
+8. La selección aleatoria no usa reducción modular sesgada.
+9. Los participantes se tratan en igualdad: no existen bombos ni cabezas de serie.
+10. Cada ronda eliminatoria se sortea de nuevo.
+11. Un resultado oficial requiere doble control.
+12. La semilla oficial queda habilitada para revelación después de confirmar y se hace pública al publicar, nunca antes.
+13. La evidencia publicada permite reproducir el resultado.
 
 ## 4. Perfil criptográfico `oes-draw-v1`
 
@@ -782,8 +784,27 @@ Se ejecutan fuera del gate unitario estricto con muestras suficientes para revis
 
 ## 21. Requisitos de implementación
 
+### 21.1 Frontera web
+
+El motor oficial se ejecuta en el servidor de la aplicación web. El navegador:
+
+- envía comandos autenticados;
+- muestra validaciones y estados devueltos por el servidor;
+- reproduce animaciones desde resultados ya persistidos;
+- puede verificar evidencia pública con la semilla revelada;
+- no recibe la semilla oficial sellada;
+- no decide permisos, estados, idempotencia ni concurrencia;
+- no genera ni confirma resultados oficiales localmente.
+
+Una pérdida de conexión, reintento HTTP o doble clic no puede duplicar el sorteo. La API de aplicación debe propagar claves idempotentes y versiones esperadas hasta el dominio.
+
+### 21.2 Requisitos generales
+
 La implementación debe:
 
+- separar claramente cliente web, capa de aplicación y motor de dominio;
+- ejecutar por servidor todas las mutaciones y validaciones autoritativas;
+- usar transporte cifrado en producción;
 - mantener el motor como lógica pura cuando recibe configuración y semilla;
 - aislar generación y almacenamiento de secretos;
 - usar comparaciones de hash apropiadas para datos criptográficos;
