@@ -1,6 +1,6 @@
 # FOUNDATION — Sistema de Sorteos OES
 
-> **Estado:** Fundación estable 1.0.0  
+> **Estado:** Fundación estable 1.1.0  
 > **Fecha:** 5 de agosto de 2026  
 > **Autoridad:** Documento madre del producto  
 > **Nombre de trabajo:** Sistema de Sorteos OES
@@ -15,7 +15,7 @@ Si un requerimiento, documento o implementación contradice esta Foundation, pre
 
 ## 2. Identidad del producto
 
-El Sistema de Sorteos OES es una aplicación especializada para preparar, ejecutar, validar y publicar sorteos deportivos de las Olimpiadas Estudiantiles Sanjuaninas.
+El Sistema de Sorteos OES es un sistema web especializado para preparar, ejecutar, validar y publicar sorteos deportivos de las Olimpiadas Estudiantiles Sanjuaninas.
 
 El producto admite exactamente dos formatos de competencia:
 
@@ -64,6 +64,7 @@ El sistema debe permitir:
 
 ### 5.1 Incluido en la primera versión
 
+- Aplicación web responsive para navegadores modernos de escritorio, tablet y móvil.
 - Ediciones anuales de la OES.
 - Eventos OES Colegiales y OES Universitarios.
 - Instituciones y equipos participantes.
@@ -236,6 +237,12 @@ Las decisiones importantes deben mostrarse y confirmarse antes de sortear. El si
 
 El producto no crecerá por acumulación de módulos. Solo se incorpora una capacidad si mejora directamente la preparación, ejecución, validación o publicación de sorteos.
 
+### 10.8 Servidor autoritativo
+
+El navegador es una interfaz de acceso y presentación, no la autoridad del dominio. Toda validación crítica, generación aleatoria, ejecución oficial, confirmación, anulación y producción de evidencia debe realizarse o verificarse en el servidor.
+
+El cliente web puede representar una animación desde un resultado ya generado, pero no puede determinar, sustituir ni alterar ese resultado. La aplicación debe funcionar como sistema web responsive; una aplicación móvil nativa queda fuera de alcance.
+
 ## 11. Roles y autoridad
 
 ### 11.1 Superadministrador
@@ -293,8 +300,10 @@ Ninguna animación o modo de presentación puede saltar validaciones de este flu
 
 El sistema debe:
 
+- operar mediante conexiones web cifradas en producción;
 - exigir autenticación para toda operación administrativa;
 - aplicar autorización en servidor, no solo ocultar botones;
+- tratar toda entrada del navegador como no confiable y validarla nuevamente en servidor;
 - validar nuevamente participantes y reglas al confirmar;
 - impedir confirmaciones simultáneas incompatibles;
 - impedir que el mismo usuario ejecute o registre y confirme una operación crítica;
@@ -383,10 +392,11 @@ Una modificación de esta Foundation debe incluir:
 
 Cambios en ortografía o claridad que no alteren significado incrementan la versión de parche. Cambios de reglas o alcance incrementan la versión menor. Cambios que redefinan la identidad del producto incrementan la versión mayor.
 
-## 18. Decisiones fundacionales cerradas para la versión 1.0
+## 18. Decisiones fundacionales cerradas para la versión 1.1
 
 | Tema | Decisión vinculante |
 | --- | --- |
+| Plataforma | Sistema web responsive con servidor autoritativo y clientes de navegador no confiables. |
 | Cantidad de grupos | El administrador la selecciona manualmente y el sistema la valida. |
 | Tamaño de grupos | Cada grupo contiene tres o cuatro participantes; debe cumplirse `3G ≤ N ≤ 4G`. |
 | Distribución desigual | Los lugares adicionales se asignan automáticamente a los grupos A, B, C y siguientes. |
@@ -396,10 +406,10 @@ Cambios en ortografía o claridad que no alteren significado incrementan la vers
 | Autoridad | Otro administrador o el superadministrador confirma; solo el superadministrador anula. |
 | Evidencia pública | Identificador, acta descargable, algoritmo, semilla revelada y código SHA-256. |
 
-Estas decisiones son invariantes de la versión 1.0. No pueden convertirse en opciones configurables sin una modificación formal de esta Foundation.
+Estas decisiones son invariantes de la versión 1.1. No pueden convertirse en opciones configurables sin una modificación formal de esta Foundation.
 
 ## 19. Declaración fundacional
 
-El Sistema de Sorteos OES existe para que un sorteo oficial no dependa de improvisación, memoria ni manipulación manual. Su núcleo es pequeño por decisión: participantes válidos, reglas cerradas, azar controlado, resultados inmutables y evidencia verificable.
+El Sistema Web de Sorteos OES existe para que un sorteo oficial no dependa de improvisación, memoria ni manipulación manual. Su núcleo es pequeño por decisión: participantes válidos, reglas cerradas, azar controlado, resultados inmutables y evidencia verificable.
 
 La confianza pública no se obtiene con una animación convincente. Se obtiene cuando el sistema puede demostrar que el resultado publicado es exactamente el resultado producido bajo las reglas aprobadas.
