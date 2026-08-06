@@ -1,13 +1,13 @@
-# FOUNDATION — Sistema de Sorteos OES
+# FOUNDATION — Sistema Web de Competencias OES
 
-> **Estado:** Fundación estable 1.0.0  
+> **Estado:** Fundación estable 2.0.0  
 > **Fecha:** 5 de agosto de 2026  
 > **Autoridad:** Documento madre del producto  
-> **Nombre de trabajo:** Sistema de Sorteos OES
+> **Nombre de trabajo:** Sistema Web de Competencias OES
 
 ## 1. Función de este documento
 
-Este documento define la identidad, el propósito, el alcance, los principios y las reglas invariantes del Sistema de Sorteos OES. Toda decisión funcional, técnica, visual u operativa debe ser compatible con esta Foundation.
+Este documento define la identidad, el propósito, el alcance, los principios y las reglas invariantes del Sistema Web de Competencias OES. Toda decisión funcional, técnica, visual u operativa debe ser compatible con esta Foundation.
 
 La Foundation responde qué producto se construye y qué límites no deben cruzarse. No reemplaza las especificaciones detalladas, el modelo de datos, los contratos técnicos, el diseño de interfaz ni el plan de implementación.
 
@@ -15,18 +15,18 @@ Si un requerimiento, documento o implementación contradice esta Foundation, pre
 
 ## 2. Identidad del producto
 
-El Sistema de Sorteos OES es una aplicación especializada para preparar, ejecutar, validar y publicar sorteos deportivos de las Olimpiadas Estudiantiles Sanjuaninas.
+El Sistema Web de Competencias OES prepara, ejecuta y verifica sorteos; genera encuentros; registra resultados; calcula tablas y puntajes; propone clasificados; y conserva el estado completo de las Olimpiadas Estudiantiles Sanjuaninas.
 
 El producto admite exactamente dos formatos de competencia:
 
 1. Fase de grupos tipo FIFA, sin clasificación de mejores terceros.
 2. Eliminación directa con re-sorteo de los ganadores en cada ronda.
 
-No es un sistema integral de gestión deportiva. Su valor está en sustituir sorteos manuales, frágiles u opacos por un proceso reproducible, verificable, trazable y comprensible para organizadores, instituciones y público.
+No es un sistema integral de gestión del evento ni de deportistas. Su núcleo es la gestión competitiva: participantes, sorteos, encuentros, resultados, tablas, clasificación y continuidad operativa.
 
 ## 3. Problema que resuelve
 
-Los sorteos manuales generan riesgos operativos concretos:
+Los sorteos y seguimientos manuales generan riesgos operativos concretos:
 
 - mezcla accidental de eventos, deportes o modalidades;
 - inclusión de equipos no habilitados o duplicados;
@@ -36,14 +36,19 @@ Los sorteos manuales generan riesgos operativos concretos:
 - cambios posteriores sin registro ni autorización;
 - dificultad para explicar y demostrar cómo se obtuvo el resultado;
 - demora o inconsistencia al comunicar grupos y llaves.
+- pérdida del estado al cerrar una sesión o cambiar de dispositivo;
+- resultados cargados sin confirmación;
+- tablas y puntajes recalculados manualmente con errores;
+- clasificación inconsistente con las reglas del deporte;
+- imposibilidad de reconstruir por qué un equipo avanzó.
 
-El sistema debe transformar una lista validada de participantes y una configuración cerrada en un resultado de sorteo íntegro, auditable y publicable.
+El sistema debe transformar participantes y reglas cerradas en una competencia persistente, reanudable, auditable y publicable desde el sorteo hasta la confirmación de clasificados y ganadores.
 
 ## 4. Propósito
 
 ### 4.1 Propósito principal
 
-Garantizar que cada sorteo oficial de la OES se ejecute sobre participantes habilitados, con reglas conocidas antes de comenzar y con un resultado que pueda verificarse y comunicarse sin ambigüedad.
+Garantizar que cada competencia OES pueda sortearse, disputarse, registrarse y continuarse sobre datos persistentes y reglas congeladas, con resultados, tablas y avances verificables.
 
 ### 4.2 Resultados esperados
 
@@ -58,12 +63,20 @@ El sistema debe permitir:
 - visualizar el resultado como grupos o llave;
 - re-sortear únicamente cuando la regla de la ronda lo requiera o cuando una autoridad anule formalmente un sorteo;
 - publicar una versión de consulta sin herramientas administrativas;
+- generar automáticamente todos los encuentros de cada grupo y los encuentros de cada cruce eliminatorio;
+- registrar y confirmar resultados mediante doble control;
+- recalcular automáticamente tablas y puntajes desde resultados confirmados;
+- aplicar plantillas de puntuación y desempate configuradas por deporte y congeladas por competencia;
+- proponer automáticamente dos clasificados por grupo;
+- exigir confirmación de otra autoridad antes de habilitar la siguiente fase;
+- restaurar exactamente el estado persistido al volver a ingresar;
 - conservar evidencia suficiente para auditar quién hizo qué, cuándo y bajo qué configuración.
 
 ## 5. Alcance
 
 ### 5.1 Incluido en la primera versión
 
+- Aplicación web responsive para navegadores modernos de escritorio, tablet y móvil.
 - Ediciones anuales de la OES.
 - Eventos OES Colegiales y OES Universitarios.
 - Instituciones y equipos participantes.
@@ -78,6 +91,15 @@ El sistema debe permitir:
 - Simulación, confirmación, anulación autorizada y publicación del sorteo.
 - Historial y trazabilidad de operaciones críticas.
 - Vistas administrativas y vistas públicas de grupos y llaves.
+- Base de datos persistente como fuente operativa del estado.
+- Restauración de competencias, sorteos y operaciones pendientes.
+- Generación automática de encuentros todos contra todos dentro de cada grupo.
+- Generación automática de un encuentro por cruce eliminatorio; un pase libre no genera encuentro.
+- Carga, revisión, confirmación, anulación y reemplazo de resultados.
+- Plantillas configurables de puntuación por deporte, congeladas antes de competir.
+- Criterios ordenados de desempate por deporte, congelados antes de competir.
+- Tablas recalculadas automáticamente desde resultados confirmados.
+- Propuesta automática de clasificados y confirmación por una autoridad distinta.
 
 ### 5.2 Fuera de alcance
 
@@ -85,10 +107,8 @@ El sistema debe permitir:
 - control de matrículas, refuerzos o cupos de plantel;
 - generación completa del calendario de partidos;
 - asignación de fechas, horarios, sedes, canchas o árbitros;
-- carga de resultados deportivos;
-- cálculo de puntos, posiciones o desempates durante la competencia;
-- clasificación automática basada en resultados;
-- estadísticas deportivas;
+- estadísticas individuales de deportistas;
+- métricas avanzadas como posesión, asistencias o mapas de calor;
 - acreditaciones, pagos, sanciones o disciplina;
 - transmisión en vivo, mensajería y notificaciones;
 - gestión general del evento OES;
@@ -140,10 +160,15 @@ El núcleo del producto contiene solamente las siguientes entidades:
 | Grupo | Contiene participantes asignados en una fase de grupos. |
 | Ronda eliminatoria | Representa una etapa independiente que puede requerir un nuevo sorteo. |
 | Emparejamiento | Representa un cruce o un pase libre dentro de una ronda. |
+| Encuentro | Representa una disputa generada desde un grupo o cruce y preparada para recibir un resultado. |
+| Plantilla competitiva | Congela reglas de resultado, puntuación y desempate para un deporte y competencia. |
+| Resultado | Registra el marcador o detalle deportivo, su autor, confirmante y estado. |
+| Tabla | Proyección recalculable de puntajes y posiciones desde resultados confirmados. |
+| Propuesta de clasificación | Selección automática de los dos primeros de cada grupo pendiente de confirmación humana. |
 | Publicación | Expone una versión oficial del resultado para consulta. |
 | Registro de auditoría | Conserva cambios y acciones críticas. |
 
-No se crearán entidades de deportistas, encuentros disputados, resultados, puntajes o estadísticas en esta versión.
+No se crearán entidades de deportistas ni estadísticas individuales o avanzadas en esta versión.
 
 ## 8. Estados esenciales
 
@@ -161,6 +186,18 @@ No se crearán entidades de deportistas, encuentros disputados, resultados, punt
 `BORRADOR → SIMULADO → CONFIRMADO → PUBLICADO`
 
 Un sorteo confirmado puede pasar a `ANULADO` únicamente mediante una acción autorizada, con motivo obligatorio y registro de auditoría. No se edita un sorteo confirmado: se anula y se crea una nueva ejecución vinculada a la anterior.
+
+### 8.3 Encuentro
+
+`PROGRAMADO_LOGICO → PENDIENTE_RESULTADO → RESULTADO_PENDIENTE → RESULTADO_CONFIRMADO → CERRADO`
+
+Un encuentro puede pasar a `RESULTADO_ANULADO` cuando el superadministrador invalida un resultado confirmado. La anulación exige reemplazo o devolución a `PENDIENTE_RESULTADO` y provoca el recálculo completo de la tabla afectada.
+
+### 8.4 Propuesta de clasificación
+
+`NO_DISPONIBLE → CALCULADA → PENDIENTE_CONFIRMACION → CONFIRMADA`
+
+Una propuesta solo se calcula cuando todos los encuentros necesarios del grupo tienen resultados confirmados y ningún empate queda sin resolver.
 
 ## 9. Reglas invariantes del dominio
 
@@ -189,22 +226,39 @@ Un sorteo confirmado puede pasar a `ANULADO` únicamente mediante una acción au
 8. No existen bombos, cabezas de serie ni restricciones entre instituciones: todos los participantes elegibles tienen la misma probabilidad.
 9. No existen mejores terceros.
 10. La regla institucional reserva dos plazas de clasificación por grupo.
-11. El sistema representa esas plazas, pero no calcula quién clasifica porque no administra resultados ni tablas.
-12. Un administrador registra manualmente los clasificados reales y una autoridad distinta debe confirmarlos antes de crear la siguiente ronda eliminatoria.
+11. Al confirmar el sorteo, el sistema genera una vez cada encuentro todos contra todos dentro del grupo.
+12. Solo resultados confirmados modifican la tabla.
+13. La tabla se recalcula desde la totalidad de resultados confirmados y la plantilla congelada; no se corrigen totales manualmente.
+14. El sistema propone los dos primeros de cada grupo después de aplicar todos los criterios de desempate configurados.
+15. Una autoridad distinta debe confirmar la propuesta antes de crear la siguiente ronda eliminatoria.
 
 ### 9.3 Eliminación directa
 
 1. Cada ronda se trata como una unidad de sorteo independiente.
 2. La primera ronda se sortea entre participantes habilitados.
-3. Las rondas posteriores se sortean entre ganadores o clasificados registrados por un administrador y confirmados por una autoridad distinta.
-4. El sistema no deduce ganadores a partir de marcadores.
-5. Un participante puede integrar como máximo un emparejamiento por ronda.
-6. Cuando la cantidad no permita emparejamientos completos, se asigna un pase libre mediante sorteo entre quienes tengan la menor cantidad histórica de pases libres dentro de la competencia.
-7. Nadie recibe un segundo pase libre mientras exista otro participante activo que no haya recibido ninguno.
-8. Si todos los participantes elegibles acumulan la misma cantidad de pases libres, todos vuelven a participar en igualdad de condiciones.
-9. Cada pase libre es explícito, publicable y auditable.
-10. No existen bombos, cabezas de serie ni restricciones ocultas: todos los participantes elegibles tienen la misma probabilidad.
-11. El sistema no genera automáticamente una llave fija hasta la final: se respeta el re-sorteo en cada ronda.
+3. Las rondas posteriores se sortean entre ganadores derivados de resultados confirmados y avances confirmados por una autoridad distinta.
+4. Al confirmar cada sorteo eliminatorio, el sistema genera un encuentro por emparejamiento; el pase libre avanza sin generar encuentro.
+5. El ganador se deriva del resultado confirmado conforme a la plantilla competitiva.
+6. Un participante puede integrar como máximo un emparejamiento por ronda.
+7. Cuando la cantidad no permita emparejamientos completos, se asigna un pase libre mediante sorteo entre quienes tengan la menor cantidad histórica de pases libres dentro de la competencia.
+8. Nadie recibe un segundo pase libre mientras exista otro participante activo que no haya recibido ninguno.
+9. Si todos los participantes elegibles acumulan la misma cantidad de pases libres, todos vuelven a participar en igualdad de condiciones.
+10. Cada pase libre es explícito, publicable y auditable.
+11. No existen bombos, cabezas de serie ni restricciones ocultas: todos los participantes elegibles tienen la misma probabilidad.
+12. El sistema no genera automáticamente una llave fija hasta la final: se respeta el re-sorteo en cada ronda.
+
+### 9.4 Resultados, puntajes y tablas
+
+1. Toda competencia referencia una plantilla competitiva congelada antes de confirmar su primer sorteo.
+2. La plantilla define el esquema de resultado, los puntos por desenlace y los criterios ordenados de desempate.
+3. Un administrador registra el resultado y otro administrador o el superadministrador lo confirma.
+4. El mismo actor no puede registrar y confirmar.
+5. Los resultados pendientes no modifican tablas ni avances.
+6. Confirmar, anular o reemplazar un resultado recalcula atómicamente la tabla desde resultados confirmados.
+7. La tabla es una proyección derivada; no admite edición manual de puntos o posiciones.
+8. Si todos los criterios se agotan y el empate sigue vigente, la propuesta queda bloqueada hasta una resolución oficial registrada.
+9. Una propuesta automática no habilita una fase por sí sola: requiere confirmación de otra autoridad.
+10. Cada estado confirmado debe persistirse y poder restaurarse exactamente.
 
 ## 10. Principios del producto
 
@@ -234,7 +288,13 @@ Las decisiones importantes deben mostrarse y confirmarse antes de sortear. El si
 
 ### 10.7 Especialización deliberada
 
-El producto no crecerá por acumulación de módulos. Solo se incorpora una capacidad si mejora directamente la preparación, ejecución, validación o publicación de sorteos.
+El producto no crecerá por acumulación indiscriminada de módulos. Solo se incorpora una capacidad si pertenece al ciclo competitivo: preparación, sorteo, encuentros, resultados, tablas, clasificación, continuidad o publicación.
+
+### 10.8 Servidor autoritativo
+
+El navegador es una interfaz de acceso y presentación, no la autoridad del dominio. Toda validación crítica, generación aleatoria, ejecución oficial, confirmación, anulación y producción de evidencia debe realizarse o verificarse en el servidor.
+
+El cliente web puede representar una animación desde un resultado ya generado, pero no puede determinar, sustituir ni alterar ese resultado. La aplicación debe funcionar como sistema web responsive; una aplicación móvil nativa queda fuera de alcance.
 
 ## 11. Roles y autoridad
 
@@ -243,17 +303,19 @@ El producto no crecerá por acumulación de módulos. Solo se incorpora una capa
 - configura ediciones, eventos, deportes y modalidades;
 - administra usuarios y autoridades;
 - confirma sorteos, clasificados o ganadores registrados por un administrador distinto;
-- anula sorteos confirmados;
+- confirma resultados registrados por un administrador distinto;
+- anula sorteos, resultados o avances confirmados;
 - accede al historial completo.
 
-### 11.2 Administrador de sorteos
+### 11.2 Administrador
 
 - crea competencias;
 - carga o habilita participantes;
 - configura y simula sorteos;
 - ejecuta sorteos oficiales dentro de su autorización;
-- registra clasificados o ganadores para la siguiente ronda;
-- confirma sorteos, clasificados o ganadores registrados por otro administrador;
+- registra resultados;
+- confirma sorteos, resultados y avances registrados por otro administrador;
+- revisa tablas y propuestas de clasificación;
 - publica únicamente información previamente confirmada;
 - no puede confirmar una operación crítica que él mismo haya ejecutado o registrado;
 - no puede anular sorteos confirmados.
@@ -282,10 +344,15 @@ Una operación crítica requiere separación entre quien la ejecuta o registra y
 8. Ejecutar una o más simulaciones opcionales.
 9. Un administrador ejecuta el sorteo oficial.
 10. Un administrador distinto o el superadministrador revisa y confirma el resultado.
-11. Publicar grupos o emparejamientos.
-12. Cuando corresponda, un administrador registra clasificados o ganadores.
-13. Otro administrador o el superadministrador confirma ese registro.
-14. Abrir una nueva ronda eliminatoria exclusivamente con participantes confirmados.
+11. Generar automáticamente encuentros desde los grupos o emparejamientos confirmados.
+12. Persistir y publicar grupos, cruces y encuentros.
+13. Un administrador registra el resultado de un encuentro.
+14. Otro administrador o el superadministrador confirma el resultado.
+15. Recalcular atómicamente tabla, puntajes y estado competitivo.
+16. Cuando el grupo queda completo, generar una propuesta automática de dos clasificados.
+17. Otra autoridad confirma la propuesta de clasificación o el avance eliminatorio.
+18. Abrir una nueva ronda exclusivamente con participantes confirmados.
+19. Restaurar cualquiera de estos estados desde la base de datos sin repetir operaciones.
 
 Ninguna animación o modo de presentación puede saltar validaciones de este flujo.
 
@@ -293,15 +360,20 @@ Ninguna animación o modo de presentación puede saltar validaciones de este flu
 
 El sistema debe:
 
+- operar mediante conexiones web cifradas en producción;
 - exigir autenticación para toda operación administrativa;
 - aplicar autorización en servidor, no solo ocultar botones;
+- tratar toda entrada del navegador como no confiable y validarla nuevamente en servidor;
 - validar nuevamente participantes y reglas al confirmar;
 - impedir confirmaciones simultáneas incompatibles;
 - impedir que el mismo usuario ejecute o registre y confirme una operación crítica;
+- persistir sorteos, encuentros, resultados y recálculos relacionados dentro de transacciones coherentes;
+- usar control de concurrencia e idempotencia para resultados y recalculados;
 - registrar actor, acción, fecha, entidad afectada y motivo cuando corresponda;
 - evitar que una repetición de la misma solicitud cree dos sorteos oficiales;
 - no exponer información interna sensible en la vista pública;
 - mantener copias de seguridad y un procedimiento probado de restauración antes de uso oficial.
+- reconstruir tablas desde resultados confirmados, sin depender de contadores editados manualmente.
 
 ### 13.1 Evidencia pública del sorteo
 
@@ -339,6 +411,12 @@ La primera versión se considera funcionalmente exitosa cuando puede demostrar q
 13. El identificador, acta y código SHA-256 permiten verificar la evidencia pública.
 14. Las reglas del motor están cubiertas por pruebas automatizadas.
 15. El flujo completo puede ensayarse antes del sorteo oficial sin datos manualmente manipulados.
+16. Confirmar un sorteo genera exactamente una vez todos sus encuentros lógicos.
+17. Cerrar y reabrir la aplicación restaura el mismo estado operativo.
+18. Solo resultados confirmados afectan tablas y avances.
+19. Cada tabla puede reconstruirse desde resultados confirmados y la plantilla congelada.
+20. La propuesta de clasificados coincide con la tabla y requiere confirmación de otra autoridad.
+21. Anular o reemplazar un resultado recalcula sin dejar puntajes residuales.
 
 ## 15. Criterios de fracaso
 
@@ -351,6 +429,12 @@ El producto fracasa si ocurre cualquiera de estas condiciones:
 - depende de la animación o del cliente para determinar el resultado;
 - permite repetir accidentalmente una confirmación;
 - no puede explicar con qué participantes y reglas se generó un sorteo;
+- pierde el estado al reiniciar o reconectar;
+- genera encuentros duplicados al reintentar;
+- permite editar directamente puntos o posiciones;
+- usa resultados pendientes para modificar tablas;
+- avanza participantes sin una confirmación independiente;
+- mantiene una tabla incompatible con los resultados confirmados;
 - incorpora módulos ajenos antes de estabilizar y probar el motor de sorteos.
 
 ## 16. Jerarquía documental futura
@@ -360,13 +444,14 @@ Los documentos derivados se crearán en este orden:
 1. `FOUNDATION.md` — identidad, alcance e invariantes.
 2. `docs/01-domain-model.md` — entidades, relaciones, estados y vocabulario.
 3. `docs/02-draw-rules.md` — algoritmos y validaciones de ambos formatos.
-4. `docs/03-use-cases.md` — flujos normales, alternativos y errores.
-5. `docs/04-architecture.md` — arquitectura técnica y límites de componentes.
-6. `docs/05-data-model.md` — persistencia, restricciones e índices.
-7. `docs/06-security-and-audit.md` — permisos, amenazas y trazabilidad.
-8. `docs/07-ui-flows.md` — navegación, estados y presentación pública.
-9. `docs/08-test-strategy.md` — pruebas del dominio, integración y aceptación.
-10. `ROADMAP.md` — etapas de implementación y gates de salida.
+4. `docs/03-results-and-standings.md` — encuentros, resultados, puntajes, desempates y clasificación.
+5. `docs/04-use-cases.md` — flujos normales, alternativos y errores.
+6. `docs/05-architecture.md` — arquitectura web y límites de componentes.
+7. `docs/06-data-model.md` — persistencia, restricciones e índices.
+8. `docs/07-security-and-audit.md` — permisos, amenazas y trazabilidad.
+9. `docs/08-ui-flows.md` — navegación, estados y presentación pública.
+10. `docs/09-test-strategy.md` — pruebas del dominio, integración y aceptación.
+11. `ROADMAP.md` — etapas de implementación y gates de salida.
 
 La arquitectura y el stack se eligen después de cerrar el dominio; no deben imponer reglas al producto.
 
@@ -383,10 +468,18 @@ Una modificación de esta Foundation debe incluir:
 
 Cambios en ortografía o claridad que no alteren significado incrementan la versión de parche. Cambios de reglas o alcance incrementan la versión menor. Cambios que redefinan la identidad del producto incrementan la versión mayor.
 
-## 18. Decisiones fundacionales cerradas para la versión 1.0
+## 18. Decisiones fundacionales cerradas para la versión 2.0
 
 | Tema | Decisión vinculante |
 | --- | --- |
+| Plataforma | Sistema web responsive con servidor autoritativo y clientes de navegador no confiables. |
+| Persistencia | Base de datos obligatoria; el estado debe restaurarse exactamente y las operaciones críticas ser transaccionales. |
+| Encuentros | Se generan automáticamente: todos contra todos en cada grupo y uno por cruce eliminatorio. |
+| Resultados | Un administrador registra y otra autoridad confirma; solo los confirmados producen efectos. |
+| Puntajes | Plantillas configurables por deporte y congeladas antes de competir. |
+| Desempates | Criterios ordenados por deporte y congelados antes de competir. |
+| Tablas | Se recalculan desde resultados confirmados; puntos y posiciones no se editan manualmente. |
+| Clasificación | El sistema propone dos por grupo y otra autoridad confirma el avance. |
 | Cantidad de grupos | El administrador la selecciona manualmente y el sistema la valida. |
 | Tamaño de grupos | Cada grupo contiene tres o cuatro participantes; debe cumplirse `3G ≤ N ≤ 4G`. |
 | Distribución desigual | Los lugares adicionales se asignan automáticamente a los grupos A, B, C y siguientes. |
@@ -396,10 +489,10 @@ Cambios en ortografía o claridad que no alteren significado incrementan la vers
 | Autoridad | Otro administrador o el superadministrador confirma; solo el superadministrador anula. |
 | Evidencia pública | Identificador, acta descargable, algoritmo, semilla revelada y código SHA-256. |
 
-Estas decisiones son invariantes de la versión 1.0. No pueden convertirse en opciones configurables sin una modificación formal de esta Foundation.
+Estas decisiones son invariantes de la versión 2.0. No pueden modificarse durante una competencia ya bloqueada ni convertirse en excepciones ocultas.
 
 ## 19. Declaración fundacional
 
-El Sistema de Sorteos OES existe para que un sorteo oficial no dependa de improvisación, memoria ni manipulación manual. Su núcleo es pequeño por decisión: participantes válidos, reglas cerradas, azar controlado, resultados inmutables y evidencia verificable.
+El Sistema Web de Competencias OES existe para que una competencia no dependa de improvisación, memoria ni planillas desconectadas. Su núcleo combina participantes válidos, reglas congeladas, sorteos verificables, encuentros persistentes, resultados confirmados, tablas reconstruibles y avances auditados.
 
 La confianza pública no se obtiene con una animación convincente. Se obtiene cuando el sistema puede demostrar que el resultado publicado es exactamente el resultado producido bajo las reglas aprobadas.

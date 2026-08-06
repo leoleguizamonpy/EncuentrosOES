@@ -1,14 +1,14 @@
-# Modelo de dominio — Sistema de Sorteos OES
+# Modelo de dominio — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.0  
+> **Estado:** Borrador técnico 0.3.0  
 > **Fecha:** 5 de agosto de 2026  
-> **Deriva de:** `FOUNDATION.md` 1.0.0  
+> **Deriva de:** `FOUNDATION.md` 2.0.0  
 > **Autoridad:** Especificación conceptual del dominio  
 > **Siguiente documento:** `docs/02-draw-rules.md`
 
 ## 1. Propósito
 
-Este documento traduce la Foundation del Sistema de Sorteos OES a un modelo de dominio preciso. Define conceptos, identidades, agregados, relaciones, estados, transiciones, invariantes, comandos, eventos y límites de consistencia.
+Este documento traduce la Foundation del Sistema Web de Competencias OES a un modelo de dominio preciso. Define conceptos, identidades, agregados, relaciones, estados, transiciones, invariantes, comandos, eventos y límites de consistencia.
 
 No define tablas, endpoints, componentes visuales ni tecnologías. Esas decisiones deben implementar este modelo, no reemplazarlo.
 
@@ -16,6 +16,7 @@ No define tablas, endpoints, componentes visuales ni tecnologías. Esas decision
 
 El dominio cubre exclusivamente:
 
+- acceso mediante una aplicación web responsive;
 - configuración institucional mínima;
 - creación de competencias;
 - habilitación de participantes;
@@ -23,11 +24,18 @@ El dominio cubre exclusivamente:
 - fase de grupos;
 - rondas de eliminación directa con re-sorteo;
 - pases libres;
-- registro y confirmación de clasificados o ganadores;
+- generación automática de encuentros;
+- plantillas de puntuación y desempate;
+- registro y confirmación de resultados;
+- recálculo de tablas y puntajes;
+- propuesta y confirmación de clasificados o ganadores;
+- persistencia y restauración del estado;
 - confirmación, publicación y anulación de sorteos;
 - evidencia verificable y auditoría.
 
-Quedan fuera deportistas, planteles, calendarios, encuentros disputados, marcadores, puntos, tablas, estadísticas, sanciones, árbitros, sedes y pagos.
+Quedan fuera deportistas, planteles, calendarios con fechas y sedes, estadísticas individuales o avanzadas, sanciones, árbitros y pagos.
+
+La plataforma es web, pero el navegador no es una frontera autoritativa. Los comandos y las invariantes se ejecutan o revalidan en servidor. Una aplicación móvil nativa queda fuera de alcance.
 
 ## 3. Lenguaje ubicuo
 
@@ -46,7 +54,12 @@ Quedan fuera deportistas, planteles, calendarios, encuentros disputados, marcado
 | Ronda eliminatoria | Etapa independiente cuyos participantes confirmados se vuelven a sortear. |
 | Emparejamiento | Relación entre exactamente dos participantes de una ronda. |
 | Pase libre | Avance sin emparejamiento asignado mediante la política fundacional. |
-| Registro de avance | Declaración manual de clasificados o ganadores. |
+| Encuentro | Disputa lógica generada automáticamente desde un grupo o emparejamiento. |
+| Plantilla competitiva | Reglas congeladas de resultado, puntuación y desempate para una competencia. |
+| Resultado | Marcador o detalle deportivo registrado por un administrador y confirmado por otra autoridad. |
+| Tabla | Proyección reconstruible desde resultados confirmados y la plantilla competitiva. |
+| Propuesta de clasificación | Selección automática de dos participantes por grupo pendiente de confirmación. |
+| Registro de avance | Confirmación de clasificados, ganadores o pase libre para habilitar otra fase. |
 | Confirmación | Aprobación realizada por una autoridad distinta de quien ejecutó o registró. |
 | Anulación | Invalidación trazable realizada únicamente por el superadministrador. |
 | Publicación | Exposición pública de un sorteo confirmado y su evidencia. |
@@ -58,13 +71,14 @@ No se utilizará “institución” y “participante” como sinónimos. Una in
 
 ## 4. Mapa del dominio
 
-El sistema se divide en cuatro áreas conceptuales:
+El sistema se divide en cinco áreas conceptuales:
 
 | Área | Responsabilidad | Autoridad principal |
 | --- | --- | --- |
 | Catálogo institucional | Ediciones, eventos, instituciones, deportes y modalidades. | Superadministrador |
 | Gestión competitiva | Competencias, participantes y nóminas habilitadas. | Administrador |
 | Sorteos | Configuración, simulación, ejecución, grupos, rondas, cruces y pases libres. | Administrador con doble control |
+| Operación competitiva | Encuentros, resultados, plantillas, tablas y propuestas de clasificación. | Administrador con doble control |
 | Evidencia y control | Confirmación, publicación, actas, verificación y auditoría. | Autoridad confirmante / superadministrador |
 
 Estas áreas pueden convertirse después en módulos técnicos, pero no se presume que sean servicios desplegables independientes.
@@ -90,6 +104,11 @@ Toda entidad persistente usa un identificador opaco, estable y sin significado e
 | `RoundId` | Ronda eliminatoria |
 | `PairingId` | Emparejamiento |
 | `ByeId` | Pase libre |
+| `MatchId` | Encuentro |
+| `CompetitionRuleSetId` | Plantilla competitiva congelada |
+| `ResultId` | Resultado registrado |
+| `StandingSnapshotId` | Instantánea de tabla calculada |
+| `QualificationProposalId` | Propuesta de clasificación |
 | `AdvancementId` | Registro de avance |
 | `PublicationId` | Publicación |
 | `AuditEntryId` | Entrada de auditoría |
@@ -327,6 +346,79 @@ Cada operación crítica genera una entrada con:
 
 Las entradas no se editan ni eliminan desde la aplicación.
 
+### 6.9 Plantilla competitiva
+
+**Raíz:** `CompetitionRuleSet`
+
+Responsabilidades:
+
+- definir el esquema de resultado válido para el deporte;
+- mapear desenlaces a puntos de tabla;
+- ordenar criterios de desempate;
+- definir cómo se determina un ganador eliminatorio;
+- congelar una versión por competencia antes de confirmar el primer sorteo.
+
+Invariantes:
+
+1. Una competencia usa exactamente una revisión congelada.
+2. Una plantilla congelada no se edita; se reemplaza antes de iniciar mediante una nueva revisión.
+3. Los criterios de desempate poseen orden total explícito.
+4. Si los criterios no resuelven un empate relevante, el avance queda bloqueado.
+5. Los valores de puntos son enteros configurados, no ingresados por encuentro.
+
+### 6.10 Encuentro
+
+**Raíz:** `Match`
+
+Responsabilidades:
+
+- representar una disputa lógica entre dos participantes;
+- conservar origen de grupo o emparejamiento;
+- aceptar un resultado vigente;
+- impedir duplicados por reintento;
+- exponer estado para continuidad operativa.
+
+Invariantes:
+
+1. Contiene exactamente dos participantes distintos de la misma competencia.
+2. En grupos existe exactamente uno por par no ordenado de participantes.
+3. En eliminación existe exactamente uno por emparejamiento.
+4. Un pase libre no genera encuentro.
+5. Su identidad y origen permanecen estables aunque el resultado sea anulado.
+
+### 6.11 Resultado
+
+**Raíz:** `Result`
+
+Responsabilidades:
+
+- registrar los datos deportivos válidos para la plantilla;
+- exigir doble control;
+- derivar desenlace y ganador cuando corresponda;
+- conservar anulaciones y reemplazos.
+
+Invariantes:
+
+1. Pertenece a un único encuentro.
+2. El registrador no puede ser el confirmante.
+3. Solo un resultado confirmado vigente produce efectos.
+4. Un resultado confirmado no se edita; se anula y reemplaza.
+5. Solo el superadministrador anula.
+
+### 6.12 Tabla y propuesta de clasificación
+
+**Raíces lógicas:** `StandingSnapshot`, `QualificationProposal`
+
+Responsabilidades:
+
+- reconstruir posiciones desde resultados confirmados;
+- aplicar puntos y desempates de la plantilla congelada;
+- proponer exactamente dos clasificados por grupo;
+- bloquear propuestas con empates no resueltos;
+- exigir confirmación de una autoridad distinta antes del avance.
+
+La tabla es derivada e inmutable por revisión. No admite comandos para editar puntos, diferencias o posiciones.
+
 ## 7. Relaciones conceptuales
 
 | Origen | Relación | Destino |
@@ -340,12 +432,18 @@ Las entradas no se editan ni eliminan desde la aplicación.
 | Configuración | origina | Simulaciones o sorteo oficial |
 | Sorteo de grupos | contiene | Grupos y asignaciones |
 | Sorteo eliminatorio | contiene | Ronda, emparejamientos y posible pase libre |
-| Sorteo publicado | origina | Registro de avance |
+| Grupo confirmado | genera | Encuentros todos contra todos |
+| Emparejamiento confirmado | genera | Encuentro eliminatorio |
+| Encuentro | recibe | Resultados versionados |
+| Resultado confirmado | alimenta | Tabla o ganador eliminatorio |
+| Plantilla competitiva | gobierna | Resultado, puntos y desempates |
+| Tabla completa | origina | Propuesta de clasificación |
+| Propuesta confirmada | origina | Registro de avance |
 | Registro confirmado | habilita | Configuración de la siguiente ronda |
 | Sorteo confirmado | origina | Publicación |
 | Toda operación crítica | genera | Entrada de auditoría |
 
-No existe relación de dominio con deportistas, encuentros disputados, resultados numéricos o tablas.
+No existe relación de dominio con deportistas ni estadísticas individuales o avanzadas.
 
 ## 8. Estados y transiciones
 
@@ -400,6 +498,24 @@ El tipo de ejecución limita sus estados:
 | `ANNULLED` | Resultado invalidado, conservado con advertencia. |
 | `SUPERSEDED` | Resultado reemplazado por otro oficialmente vinculado. |
 
+### 8.6 Encuentro y resultado
+
+| Agregado | Estados válidos |
+| --- | --- |
+| Encuentro | `LOGICAL_SCHEDULED → AWAITING_RESULT → RESULT_PENDING → RESULT_CONFIRMED → CLOSED` |
+| Resultado | `DRAFT → PENDING_CONFIRMATION → CONFIRMED` |
+| Excepción de resultado | `CONFIRMED → ANNULLED → SUPERSEDED` |
+
+Anular un resultado confirmado devuelve el encuentro a `AWAITING_RESULT` hasta registrar el reemplazo y dispara un recálculo de la tabla.
+
+### 8.7 Tabla y propuesta
+
+| Agregado | Estados válidos |
+| --- | --- |
+| Tabla | `PARTIAL → COMPLETE → TIE_UNRESOLVED` o `COMPLETE → RANKED` |
+| Propuesta | `CALCULATED → PENDING_CONFIRMATION → CONFIRMED` |
+| Excepción de propuesta | `PENDING_CONFIRMATION → REJECTED`; `CONFIRMED → ANNULLED` |
+
 ## 9. Reglas de fase de grupos
 
 ### 9.1 Validación previa
@@ -435,9 +551,10 @@ Los tamaños son deterministas; la asignación de participantes es aleatoria y e
 
 - cada grupo reserva exactamente dos plazas;
 - no existen mejores terceros;
-- el sistema no calcula posiciones;
-- una autoridad registra los dos clasificados de cada grupo;
-- otra autoridad confirma el registro.
+- al confirmar el sorteo se genera exactamente un encuentro por par no ordenado del grupo;
+- la tabla se recalcula desde resultados confirmados y la plantilla congelada;
+- el sistema propone los dos primeros únicamente con tabla completa y desempates resueltos;
+- otra autoridad confirma la propuesta antes de habilitar el avance.
 
 ## 10. Reglas de eliminación directa
 
@@ -461,8 +578,9 @@ Esta regla impide una repetición mientras exista otro participante con menos pa
 ### 10.4 Avance
 
 - cada pase libre confirmado avanza automáticamente;
-- cada emparejamiento requiere un ganador registrado manualmente;
-- el registro completo requiere confirmación de otra autoridad;
+- cada emparejamiento genera exactamente un encuentro;
+- el ganador se deriva del resultado confirmado según la plantilla;
+- el conjunto de ganadores requiere confirmación de otra autoridad;
 - no se abre la siguiente ronda con un registro incompleto o pendiente.
 
 ## 11. Actores y permisos conceptuales
@@ -478,12 +596,33 @@ Esta regla impide una repetición mientras exista otro participante con menos pa
 | Confirmar operación ajena | Sí | Sí | No | No |
 | Confirmar operación propia | No | No | No | No |
 | Registrar avance | Sí | Sí | No | No |
+| Registrar resultado | Sí | Sí | No | No |
+| Confirmar resultado ajeno | Sí | Sí | No | No |
+| Editar puntos o posiciones | No | No | No | No |
+| Consultar encuentros y tablas | Sí | Sí | Sí | Sí |
 | Anular operación confirmada | Sí | No | No | No |
 | Operar presentación | Sí | Sí | Sí | No |
 | Consultar publicación | Sí | Sí | Sí | Sí |
 | Consultar auditoría completa | Sí | Limitada a su autorización | No | No |
 
 Los permisos se aplican en el dominio y en servidor. La interfaz no es una frontera de seguridad.
+
+### 11.1 Frontera del sistema web
+
+El sistema expone dos experiencias de navegador:
+
+- aplicación administrativa autenticada para configurar, ejecutar, confirmar y auditar;
+- aplicación pública de solo consulta para grupos, rondas, actas y verificación.
+
+Ambas son clientes del dominio autoritativo alojado en servidor. En consecuencia:
+
+- el navegador nunca confirma permisos por sí mismo;
+- toda entrada del cliente se considera no confiable;
+- ocultar un control visual no sustituye autorización;
+- el servidor vuelve a validar estado, versión, actor e invariantes;
+- una animación consume un resultado ya persistido y no lo genera;
+- refrescar, cerrar o reconectar el navegador no puede repetir una operación crítica;
+- el verificador público puede recalcular evidencia en el navegador, pero no modifica autoridad ni estado.
 
 ## 12. Comandos del dominio
 
@@ -525,6 +664,20 @@ Los comandos expresan intención y pueden rechazarse.
 - `RejectAdvancement`
 - `AnnulAdvancement`
 
+### 12.4 Encuentros, resultados y tablas
+
+- `FreezeCompetitionRuleSet`
+- `GenerateGroupMatches`
+- `GenerateKnockoutMatch`
+- `SubmitResult`
+- `ConfirmResult`
+- `AnnulResult`
+- `ReplaceResult`
+- `RecalculateStandings`
+- `CalculateQualificationProposal`
+- `ConfirmQualificationProposal`
+- `RejectQualificationProposal`
+
 Cada comando crítico recibe `actorId`, identificador de correlación y versión esperada del agregado.
 
 ## 13. Eventos del dominio
@@ -561,6 +714,19 @@ Los eventos describen hechos consumados y se nombran en pasado.
 - `ActGenerated`
 - `VerificationEvidencePublished`
 
+### 13.4 Encuentros, resultados y tablas
+
+- `CompetitionRuleSetFrozen`
+- `GroupMatchesGenerated`
+- `KnockoutMatchGenerated`
+- `ResultSubmitted`
+- `ResultConfirmed`
+- `ResultAnnulled`
+- `ResultSuperseded`
+- `StandingsRecalculated`
+- `QualificationProposed`
+- `QualificationConfirmed`
+
 Un evento no autoriza por sí solo una transición futura; el agregado receptor vuelve a validar sus invariantes.
 
 ## 14. Consistencia, concurrencia e idempotencia
@@ -589,7 +755,7 @@ Esto evita:
 
 ### 14.3 Idempotencia
 
-`ExecuteOfficialDraw`, `ConfirmOfficialDraw`, `PublishOfficialDraw`, `ConfirmAdvancement` y las anulaciones exigen una clave idempotente. Repetir la misma solicitud devuelve el resultado original; no crea una segunda operación.
+`ExecuteOfficialDraw`, `ConfirmOfficialDraw`, `GenerateGroupMatches`, `GenerateKnockoutMatch`, `SubmitResult`, `ConfirmResult`, `RecalculateStandings`, `ConfirmQualificationProposal`, `PublishOfficialDraw`, `ConfirmAdvancement` y las anulaciones exigen una clave idempotente. Repetir la misma solicitud devuelve el resultado original; no crea una segunda operación.
 
 Una clave reutilizada con parámetros diferentes se rechaza.
 
@@ -641,6 +807,15 @@ El acta representa la misma instantánea. No se calcula el hash sobre el PDF vis
 | `CONCURRENCY_CONFLICT` | La versión esperada no coincide. |
 | `IDEMPOTENCY_CONFLICT` | La clave fue usada con otros parámetros. |
 | `VERIFICATION_MISMATCH` | Los datos no producen el hash publicado. |
+| `RULE_SET_NOT_FROZEN` | La competencia no posee plantilla competitiva congelada. |
+| `MATCH_ALREADY_EXISTS` | El encuentro ya fue generado desde el mismo origen. |
+| `INVALID_RESULT_SCHEMA` | El resultado no cumple la plantilla del deporte. |
+| `RESULT_NOT_CONFIRMABLE` | Estado, actor o versión impide confirmar. |
+| `RESULT_ALREADY_CONFIRMED` | Ya existe un resultado confirmado vigente. |
+| `STANDINGS_NOT_RECALCULABLE` | Falta plantilla o existe inconsistencia de resultados. |
+| `STANDINGS_INCOMPLETE` | Aún faltan encuentros confirmados. |
+| `TIE_UNRESOLVED` | Los criterios congelados no resuelven un empate relevante. |
+| `QUALIFICATION_NOT_CONFIRMABLE` | La propuesta no está completa, vigente o separada por actor. |
 
 Los mensajes de interfaz se localizan aparte; los códigos permanecen estables.
 
@@ -656,6 +831,11 @@ Las vistas de consulta pueden desnormalizar datos sin adquirir autoridad de domi
 - grupos publicados;
 - llave o ronda publicada;
 - pases libres históricos;
+- encuentros pendientes y confirmados;
+- resultados pendientes, confirmados, anulados y reemplazados;
+- tabla parcial o completa por grupo;
+- plantilla competitiva congelada;
+- propuesta automática de clasificación;
 - avances pendientes y confirmados;
 - acta y verificación pública;
 - historial de anulaciones;
@@ -680,6 +860,13 @@ Las siguientes decisiones pertenecen al dominio y no pueden quedar únicamente e
 - inmutabilidad de confirmados;
 - idempotencia de operaciones críticas;
 - generación de evidencia canónica.
+- generación única de encuentros desde sorteos confirmados;
+- doble control de resultados;
+- recálculo de tablas desde resultados confirmados;
+- prohibición de editar puntos y posiciones;
+- plantillas congeladas de puntuación y desempate;
+- confirmación humana de propuestas automáticas;
+- persistencia transaccional y restauración del estado;
 
 La base de datos debe reforzar estas reglas cuando sea posible, pero no es su única implementación.
 
@@ -688,15 +875,19 @@ La base de datos debe reforzar estas reglas cuando sea posible, pero no es su ú
 El modelo queda aceptado cuando las especificaciones posteriores pueden demostrar que:
 
 1. Cada concepto posee un significado único.
-2. Ninguna entidad fuera de alcance es necesaria para ejecutar un sorteo.
+2. Ninguna entidad fuera de alcance es necesaria para completar el ciclo competitivo.
 3. Cada regla fundacional tiene un propietario de dominio.
 4. Las fronteras de agregados permiten confirmar y anular sin sobrescribir historia.
 5. Las simulaciones no pueden convertirse en oficiales.
 6. La fórmula de grupos y la política de pases libres son implementables sin interpretación adicional.
 7. La separación de actores se puede aplicar a toda operación crítica.
-8. Los sorteos y avances resisten duplicación y concurrencia.
+8. Sorteos, encuentros, resultados, tablas y avances resisten duplicación y concurrencia.
 9. La publicación puede verificarse desde una instantánea canónica.
 10. Los modelos de datos, API e interfaz pueden derivarse sin contradecir la Foundation.
+11. Cada sorteo confirmado genera exactamente los encuentros esperados.
+12. Cada tabla se reconstruye desde resultados confirmados y reglas congeladas.
+13. Una propuesta automática nunca habilita un avance sin doble control.
+14. El sistema puede restaurar cualquier estado persistido sin recomenzar el flujo.
 
 ## 20. Decisiones diferidas
 
@@ -707,7 +898,7 @@ Este documento deja para especificaciones posteriores:
 - formato visual del acta;
 - límites de longitud y normalización textual;
 - mecanismo concreto de autenticación;
-- persistencia, índices y restricciones físicas;
+- tecnología concreta de base de datos, índices y restricciones físicas;
 - contratos API;
 - diseño de pantallas;
 - tecnología y despliegue.
@@ -716,6 +907,6 @@ Estas decisiones pueden cambiar la implementación, pero no las reglas del domin
 
 ## 21. Declaración de cierre
 
-El núcleo del Sistema de Sorteos OES no es una pantalla que mueve nombres al azar. Es un conjunto de agregados que controla quién puede participar, bajo qué configuración se sortea, cómo se confirma, qué puede publicarse y qué evidencia demuestra el resultado.
+El núcleo del Sistema Web de Competencias OES no es una pantalla que mueve nombres ni una tabla editable. Es un conjunto de agregados que controla quién participa, cómo se sortea, qué encuentros existen, qué resultados tienen autoridad, cómo se reconstruyen las posiciones y quién puede avanzar.
 
 La implementación será correcta únicamente si preserva estas fronteras y rechaza estados inválidos aunque la interfaz o un operador intenten producirlos.
