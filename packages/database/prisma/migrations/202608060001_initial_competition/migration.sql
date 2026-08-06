@@ -1,5 +1,3 @@
-Loaded Prisma config from prisma.config.ts.
-
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -256,4 +254,3 @@ ALTER TABLE "competition_participants"
   ADD CONSTRAINT "competition_participants_display_name_check" CHECK (
     char_length(btrim("display_name")) BETWEEN 1 AND 120
   );
-
