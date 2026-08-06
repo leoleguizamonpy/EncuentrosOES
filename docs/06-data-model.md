@@ -1,6 +1,6 @@
 # Modelo de datos — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.1
+> **Estado:** Borrador técnico 0.2.0
 > **Fecha:** 6 de agosto de 2026
 > **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` a `docs/05-architecture.md`
 > **Autoridad:** Modelo relacional, integridad y persistencia
@@ -491,9 +491,10 @@ Restricciones:
 | `score_a`, `score_b` | integer | Solo `SCORE_BASED`, no negativos |
 | `derived_outcome_a`, `derived_outcome_b` | text | Solo tras confirmar |
 | `derived_winner_id` | uuid | Obligatorio en eliminación confirmada |
-| `status` | text | `PENDING_CONFIRMATION`, `CONFIRMED`, `ANNULLED`, `SUPERSEDED` |
+| `status` | text | `PENDING_CONFIRMATION`, `CONFIRMED`, `REJECTED`, `ANNULLED`, `SUPERSEDED` |
 | `submitted_at`, `submitted_by` | — | Obligatorios |
 | `confirmed_at`, `confirmed_by` | — | Condicionados |
+| `rejected_at`, `rejected_by`, `rejection_reason` | — | Condicionados |
 | `annulled_at`, `annulled_by`, `annulment_reason` | — | Condicionados |
 | `supersedes_result_id` | uuid | FK nullable |
 | `payload_hash` | char(64) | Integridad de revisión |
@@ -503,8 +504,9 @@ Restricciones:
 - única `(match_id, revision_number)`;
 - máximo un resultado `PENDING_CONFIRMATION` por encuentro;
 - máximo un resultado `CONFIRMED` vigente por encuentro mediante índices parciales;
-- `confirmed_by <> submitted_by`;
+- `confirmed_by <> submitted_by` y `rejected_by <> submitted_by`;
 - resultado confirmado exige campos derivados;
+- resultado rechazado exige revisor, instante y motivo no vacío, no contiene efectos derivados y libera el encuentro para una nueva revisión;
 - `SCORE_BASED` exige marcadores no negativos y no admite filas en `result_sets`;
 - `SET_BASED` exige marcadores simples nulos y al menos un set válido antes de confirmar;
 - `rule_set_id` y `derived_winner_id`, cuando exista, pertenecen a la misma competencia mediante FKs compuestas;
@@ -865,6 +867,7 @@ Los datos de demostración viven en seeds exclusivos de desarrollo y prueba.
 - rechazar encuentro duplicado;
 - rechazar dos resultados vigentes;
 - rechazar actualización de resultado confirmado;
+- permitir rechazo motivado de pendiente sin modificar tabla y luego una nueva revisión;
 - rechazar anulación sin motivo.
 
 ### Transacciones

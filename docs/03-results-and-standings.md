@@ -1,6 +1,6 @@
 # Encuentros, resultados y tablas — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.0  
+> **Estado:** Borrador técnico 0.2.0  
 > **Fecha:** 5 de agosto de 2026  
 > **Deriva de:** `FOUNDATION.md` 2.0.0, `docs/01-domain-model.md` 0.3.0 y `docs/02-draw-rules.md` 0.3.0  
 > **Autoridad:** Especificación normativa de operación competitiva  
@@ -205,7 +205,21 @@ Otro administrador o el superadministrador:
 - confirma con clave idempotente;
 - provoca recálculo competitivo dentro de la misma transacción lógica.
 
-### 9.3 Efectos
+### 9.3 Rechazo
+
+Otra autoridad puede rechazar la misma revisión pendiente cuando detecta datos incorrectos:
+
+- no puede ser el registrador;
+- declara un motivo obligatorio;
+- no modifica los datos presentados;
+- el resultado pasa a `REJECTED` y conserva su evidencia;
+- el encuentro vuelve a `AWAITING_RESULT`;
+- no se recalcula tabla, ganador ni avance;
+- el registrador puede presentar una nueva revisión.
+
+Un resultado rechazado nunca se publica ni se reutiliza como resultado vigente.
+
+### 9.4 Efectos
 
 Solo `CONFIRMED`:
 
@@ -441,6 +455,7 @@ Reenviar por doble clic, timeout o reconexión con la misma clave devuelve el re
 - `GenerateKnockoutMatch`
 - `SubmitResult`
 - `ConfirmResult`
+- `RejectResult`
 - `AnnulResult`
 - `ReplaceResult`
 - `RecalculateStandings`
@@ -455,6 +470,7 @@ Reenviar por doble clic, timeout o reconexión con la misma clave devuelve el re
 - `KnockoutMatchGenerated`
 - `ResultSubmitted`
 - `ResultConfirmed`
+- `ResultRejected`
 - `ResultAnnulled`
 - `ResultSuperseded`
 - `StandingsRecalculated`
@@ -472,6 +488,7 @@ Reenviar por doble clic, timeout o reconexión con la misma clave devuelve el re
 | `MATCH_ALREADY_EXISTS` | El encuentro ya fue generado. |
 | `INVALID_RESULT_SCHEMA` | Datos incompatibles con el perfil. |
 | `RESULT_NOT_CONFIRMABLE` | Estado, versión o actor inválidos. |
+| `RESULT_NOT_REJECTABLE` | El resultado no está pendiente, la revisión cambió o el actor es incompatible. |
 | `SELF_CONFIRMATION_FORBIDDEN` | Registrador intenta confirmar. |
 | `RESULT_ALREADY_CONFIRMED` | Ya existe uno vigente. |
 | `STANDINGS_INCOMPLETE` | Faltan resultados confirmados. |
@@ -517,6 +534,7 @@ La aplicación pública puede consultar:
 
 - perfiles válidos e inválidos;
 - auto-confirmación rechazada;
+- rechazo motivado sin efecto sobre tabla y nueva revisión permitida;
 - pendiente sin efecto;
 - confirmado con efecto único;
 - anulación y reemplazo trazables.
