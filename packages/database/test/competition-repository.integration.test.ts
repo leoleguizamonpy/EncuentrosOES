@@ -1,7 +1,15 @@
-import { Competition, type DomainError } from '@oes/domain';
+import {
+  Competition,
+  CompetitionRuleSet,
+  type DomainError,
+} from '@oes/domain';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createPrismaClient, PrismaCompetitionRepository } from '../src/index.js';
+import {
+  createPrismaClient,
+  PrismaCompetitionRepository,
+  PrismaCompetitionRuleSetRepository,
+} from '../src/index.js';
 
 const databaseUrl =
   process.env.DATABASE_URL ??
@@ -9,6 +17,7 @@ const databaseUrl =
 const integration = process.env.DATABASE_URL === undefined ? describe.skip : describe;
 const client = createPrismaClient(databaseUrl);
 const repository = new PrismaCompetitionRepository(client);
+const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
 
 const ids = {
   actor: '10000000-0000-4000-8000-000000000001',
@@ -22,6 +31,8 @@ const ids = {
   participantA: '70000000-0000-4000-8000-000000000001',
   participantB: '70000000-0000-4000-8000-000000000002',
   sport: '80000000-0000-4000-8000-000000000001',
+  ruleSetA: '90000000-0000-4000-8000-000000000001',
+  ruleSetB: '90000000-0000-4000-8000-000000000002',
 } as const;
 const occurredAt = new Date('2026-08-06T12:00:00.000Z');
 
@@ -33,7 +44,29 @@ function requireCompetition(value: Competition | null): Competition {
   return value;
 }
 
+function requireRuleSet(value: CompetitionRuleSet | null): CompetitionRuleSet {
+  if (value === null) throw new Error('Expected the rule set to exist');
+  return value;
+}
+
+const ruleSetConfiguration = {
+  knockoutResolutionCode: 'HIGHER_SCORE' as const,
+  metrics: ['PLAYED', 'WINS', 'DRAWS', 'LOSSES', 'TABLE_POINTS', 'SCORE_DIFFERENCE'] as const,
+  outcomes: [
+    { code: 'WIN', description: 'Victoria', tablePoints: 3 },
+    { code: 'DRAW', description: 'Empate', tablePoints: 1 },
+    { code: 'LOSS', description: 'Derrota', tablePoints: 0 },
+  ],
+  profileConfig: { allowDraws: true, profile: 'SCORE_BASED' as const },
+  resultProfile: 'SCORE_BASED' as const,
+  tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'] as const,
+};
+
 async function cleanDatabase(): Promise<void> {
+  await client.ruleSetTiebreak.deleteMany();
+  await client.ruleSetMetric.deleteMany();
+  await client.ruleSetOutcome.deleteMany();
+  await client.competitionRuleSet.deleteMany();
   await client.competitionParticipant.deleteMany();
   await client.competition.deleteMany();
   await client.eventSportModality.deleteMany();
@@ -119,6 +152,18 @@ function createCompetition(): Competition {
       sportId: ids.sport,
     },
     occurredAt,
+  });
+}
+
+function createRuleSet(id: string = ids.ruleSetA, revisionNumber = 1): CompetitionRuleSet {
+  return CompetitionRuleSet.create({
+    ...ruleSetConfiguration,
+    actorId: ids.actor,
+    competitionId: ids.competition,
+    id,
+    occurredAt,
+    revisionNumber,
+    schemaVersion: 1,
   });
 }
 
@@ -237,5 +282,71 @@ integration('PrismaCompetitionRepository', () => {
       }),
     ).rejects.toThrow();
     expect(await client.competitionParticipant.count()).toBe(1);
+  });
+
+  it('persists, updates and restores an ordered rule set', async () => {
+    await repository.insert(createCompetition());
+    await ruleSetRepository.insert(createRuleSet());
+    const restored = requireRuleSet(await ruleSetRepository.findById(ids.ruleSetA));
+
+    restored.update({
+      ...ruleSetConfiguration,
+      actorId: ids.actor,
+      expectedRevision: 1,
+      occurredAt,
+      outcomes: ruleSetConfiguration.outcomes.map((outcome) =>
+        outcome.code === 'WIN' ? { ...outcome, tablePoints: 2 } : outcome,
+      ),
+    });
+    await ruleSetRepository.save(restored, 1);
+
+    const snapshot = requireRuleSet(
+      await ruleSetRepository.findById(ids.ruleSetA),
+    ).toSnapshot();
+    expect(snapshot.outcomes).toContainEqual({
+      code: 'WIN',
+      description: 'Victoria',
+      tablePoints: 2,
+    });
+    expect(snapshot.revision).toBe(2);
+    expect(snapshot.tieBreakCriteria).toEqual([
+      'TABLE_POINTS',
+      'WINS',
+      'SCORE_DIFFERENCE',
+    ]);
+  });
+
+  it('freezes a rule set and enforces child immutability in PostgreSQL', async () => {
+    await repository.insert(createCompetition());
+    const ruleSet = createRuleSet();
+    await ruleSetRepository.insert(ruleSet);
+    ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.save(ruleSet, 1);
+
+    await expect(
+      client.ruleSetOutcome.update({
+        data: { tablePoints: 99 },
+        where: {
+          ruleSetId_outcomeCode: { outcomeCode: 'WIN', ruleSetId: ids.ruleSetA },
+        },
+      }),
+    ).rejects.toThrow();
+    const snapshot = requireRuleSet(
+      await ruleSetRepository.findById(ids.ruleSetA),
+    ).toSnapshot();
+    expect(snapshot.canonicalHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(snapshot.status).toBe('FROZEN');
+  });
+
+  it('allows only one frozen rule set per competition', async () => {
+    await repository.insert(createCompetition());
+    const first = createRuleSet();
+    first.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.insert(first);
+    const second = createRuleSet(ids.ruleSetB, 2);
+    second.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+
+    await expect(ruleSetRepository.insert(second)).rejects.toThrow();
+    expect(await client.competitionRuleSet.count()).toBe(1);
   });
 });
