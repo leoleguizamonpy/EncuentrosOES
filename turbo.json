@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../packages/config/**"],
+      "outputs": ["dist/**"]
+    },
+    "coverage": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../packages/config/**"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "../../eslint.config.mjs"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../packages/config/**"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../packages/config/**"],
+      "outputs": []
+    }
+  }
+}
