@@ -17,6 +17,22 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://oes:oes@localhost:5432/oes?schema=public
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: oes
+          POSTGRES_PASSWORD: oes
+          POSTGRES_USER: oes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oes -d oes"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
 
     steps:
       - name: Checkout
@@ -44,6 +60,15 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Validate database schema
+        run: pnpm db:validate
+
+      - name: Apply database migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Test PostgreSQL integration
+        run: pnpm test:integration
 
       - name: Test with coverage
         run: pnpm coverage

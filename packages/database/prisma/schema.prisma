@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  emailNormalized    String                   @unique(map: "users_email_normalized_key") @map("email_normalized")
+  displayName        String                   @map("display_name")
+  passwordHash       String                   @map("password_hash")
+  status             String
+  credentialVersion  Int                      @default(1) @map("credential_version")
+  lastLoginAt        DateTime?                @map("last_login_at") @db.Timestamptz(6)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  editionsCreated    Edition[]                @relation("EditionCreatedBy")
+  editionsUpdated    Edition[]                @relation("EditionUpdatedBy")
+  institutionsCreated Institution[]           @relation("InstitutionCreatedBy")
+  institutionsUpdated Institution[]           @relation("InstitutionUpdatedBy")
+  competitionsCreated Competition[]           @relation("CompetitionCreatedBy")
+  competitionsUpdated Competition[]           @relation("CompetitionUpdatedBy")
+  competitionsLocked Competition[]            @relation("CompetitionLockedBy")
+  competitionsFinalized Competition[]         @relation("CompetitionFinalizedBy")
+  participantsEnabled CompetitionParticipant[] @relation("ParticipantEnabledBy")
+
+  @@map("users")
+}
+
+model Edition {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  year        Int      @unique
+  name        String
+  status      String
+  revision    Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String   @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String   @map("updated_by") @db.Uuid
+  createdBy   User     @relation("EditionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy   User     @relation("EditionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  competitions Competition[]
+
+  @@map("editions")
+}
+
+model Event {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String               @unique
+  name         String
+  active       Boolean              @default(true)
+  institutions Institution[]
+  combinations EventSportModality[]
+
+  @@map("events")
+}
+
+model Institution {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId        String   @map("event_id") @db.Uuid
+  code           String
+  name           String
+  normalizedName String   @map("normalized_name")
+  active         Boolean  @default(true)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String   @map("created_by") @db.Uuid
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById    String   @map("updated_by") @db.Uuid
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  createdBy      User     @relation("InstitutionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy      User     @relation("InstitutionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  participants   CompetitionParticipant[]
+
+  @@unique([eventId, code])
+  @@unique([eventId, normalizedName])
+  @@unique([eventId, id])
+  @@map("institutions")
+}
+
+model Sport {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String               @unique
+  name         String
+  active       Boolean              @default(true)
+  combinations EventSportModality[]
+
+  @@map("sports")
+}
+
+model Modality {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String               @unique
+  name         String
+  active       Boolean              @default(true)
+  combinations EventSportModality[]
+
+  @@map("modalities")
+}
+
+model EventSportModality {
+  eventId     String        @map("event_id") @db.Uuid
+  sportId     String        @map("sport_id") @db.Uuid
+  modalityId  String        @map("modality_id") @db.Uuid
+  active      Boolean       @default(true)
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  sport       Sport         @relation(fields: [sportId], references: [id], onDelete: Restrict)
+  modality    Modality      @relation(fields: [modalityId], references: [id], onDelete: Restrict)
+  competitions Competition[]
+
+  @@id([eventId, sportId, modalityId])
+  @@map("event_sport_modalities")
+}
+
+model Competition {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  editionId     String    @map("edition_id") @db.Uuid
+  eventId       String    @map("event_id") @db.Uuid
+  sportId       String    @map("sport_id") @db.Uuid
+  modalityId    String    @map("modality_id") @db.Uuid
+  status        String    @default("DRAFT")
+  formatCode    String?   @map("format_code")
+  lockedAt      DateTime? @map("locked_at") @db.Timestamptz(6)
+  lockedById    String?   @map("locked_by") @db.Uuid
+  finalizedAt   DateTime? @map("finalized_at") @db.Timestamptz(6)
+  finalizedById String?   @map("finalized_by") @db.Uuid
+  revision      Int       @default(1)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String    @map("created_by") @db.Uuid
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String    @map("updated_by") @db.Uuid
+  edition       Edition   @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  combination   EventSportModality @relation(fields: [eventId, sportId, modalityId], references: [eventId, sportId, modalityId], onDelete: Restrict)
+  createdBy     User      @relation("CompetitionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy     User      @relation("CompetitionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  lockedBy      User?     @relation("CompetitionLockedBy", fields: [lockedById], references: [id], onDelete: Restrict)
+  finalizedBy   User?     @relation("CompetitionFinalizedBy", fields: [finalizedById], references: [id], onDelete: Restrict)
+  participants  CompetitionParticipant[]
+
+  @@unique([editionId, eventId, sportId, modalityId])
+  @@unique([eventId, id])
+  @@index([editionId, eventId, status])
+  @@map("competitions")
+}
+
+model CompetitionParticipant {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId String      @map("competition_id") @db.Uuid
+  eventId       String      @map("event_id") @db.Uuid
+  institutionId String      @map("institution_id") @db.Uuid
+  displayName   String      @map("display_name")
+  status        String      @default("ENABLED")
+  enabledAt     DateTime    @map("enabled_at") @db.Timestamptz(6)
+  enabledById   String      @map("enabled_by") @db.Uuid
+  revision      Int         @default(1)
+  competition   Competition @relation(fields: [eventId, competitionId], references: [eventId, id], onDelete: Restrict)
+  institution   Institution @relation(fields: [eventId, institutionId], references: [eventId, id], onDelete: Restrict)
+  enabledBy     User        @relation("ParticipantEnabledBy", fields: [enabledById], references: [id], onDelete: Restrict)
+
+  @@unique([competitionId, institutionId])
+  @@unique([competitionId, id])
+  @@map("competition_participants")
+}
