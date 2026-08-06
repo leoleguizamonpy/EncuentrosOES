@@ -1,6 +1,6 @@
 # Seguridad y auditoría — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.0
+> **Estado:** Borrador técnico 0.2.0
 > **Fecha:** 6 de agosto de 2026
 > **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` a `docs/06-data-model.md`
 > **Autoridad:** Controles de seguridad, permisos, amenazas y trazabilidad
@@ -116,6 +116,8 @@ Para sorteos y resultados:
 - una cuenta con dos roles sigue siendo una sola identidad;
 - el superadministrador tampoco confirma una acción propia;
 - la segunda confirmación acepta la revisión exacta y no modifica el contenido.
+
+Un revisor distinto también puede rechazar un resultado pendiente con motivo obligatorio. La revisión pasa a `REJECTED`, no produce efectos competitivos y permite una nueva carga sin borrar evidencia.
 
 Para avances, el confirmador debe ser compatible con las restricciones definidas y distinto del registrador del último resultado relevante.
 
@@ -353,7 +355,7 @@ Se auditan obligatoriamente:
 - creación y congelamiento de plantilla;
 - simulación relevante y sorteo oficial;
 - confirmación, publicación y anulación de sorteo;
-- registro, confirmación, anulación y reemplazo de resultado;
+- registro, confirmación, rechazo, anulación y reemplazo de resultado;
 - cálculo, confirmación, rechazo e invalidación de avance;
 - cambios de cuentas, roles y MFA;
 - recuperaciones de cuenta;
@@ -553,7 +555,8 @@ Después de la edición:
 
 - operador no ejecuta comandos;
 - administrador no gestiona roles ni anula;
-- superadministrador no confirma acto propio;
+- superadministrador no confirma ni rechaza un acto propio;
+- autoridad compatible puede rechazar con motivo una revisión ajena sin producir efectos competitivos;
 - actor no accede a auditoría fuera de permiso;
 - identificador de otra competencia no rompe aislamiento.
 
