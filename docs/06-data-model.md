@@ -1,10 +1,10 @@
 # Modelo de datos — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.0
+> **Estado:** Borrador técnico 0.1.1
 > **Fecha:** 6 de agosto de 2026
 > **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` a `docs/05-architecture.md`
 > **Autoridad:** Modelo relacional, integridad y persistencia
-> **Siguiente documento:** `docs/07-api-contracts.md`
+> **Siguiente documento:** `docs/07-security-and-audit.md`
 
 ## 1. Propósito
 
