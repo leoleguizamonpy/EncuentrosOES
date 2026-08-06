@@ -10,8 +10,13 @@
     "build": "turbo run build",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "coverage": "turbo run coverage",
+    "db:generate": "pnpm --filter @oes/database generate",
+    "db:migrate:deploy": "pnpm --filter @oes/database migrate:deploy",
+    "db:validate": "pnpm --filter @oes/database validate",
     "lint": "turbo run lint",
+    "postinstall": "pnpm db:generate",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

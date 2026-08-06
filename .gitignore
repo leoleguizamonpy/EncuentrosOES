@@ -6,6 +6,7 @@ dist/
 .env
 .env.*
 !.env.example
+packages/database/src/generated/
 *.log
 *.tsbuildinfo
 .DS_Store

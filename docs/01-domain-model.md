@@ -1,6 +1,6 @@
 # Modelo de dominio — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.3.1  
+> **Estado:** Borrador técnico 0.3.0  
 > **Fecha:** 5 de agosto de 2026  
 > **Deriva de:** `FOUNDATION.md` 2.0.0  
 > **Autoridad:** Especificación conceptual del dominio  
@@ -503,10 +503,10 @@ El tipo de ejecución limita sus estados:
 | Agregado | Estados válidos |
 | --- | --- |
 | Encuentro | `LOGICAL_SCHEDULED → AWAITING_RESULT → RESULT_PENDING → RESULT_CONFIRMED → CLOSED` |
-| Resultado | `DRAFT → PENDING_CONFIRMATION → CONFIRMED` o `PENDING_CONFIRMATION → REJECTED` |
+| Resultado | `DRAFT → PENDING_CONFIRMATION → CONFIRMED` |
 | Excepción de resultado | `CONFIRMED → ANNULLED → SUPERSEDED` |
 
-Rechazar un resultado pendiente devuelve el encuentro a `AWAITING_RESULT` sin afectar tabla ni publicación y permite registrar una nueva revisión. Anular un resultado confirmado también devuelve el encuentro a `AWAITING_RESULT` hasta registrar el reemplazo y dispara un recálculo de la tabla.
+Anular un resultado confirmado devuelve el encuentro a `AWAITING_RESULT` hasta registrar el reemplazo y dispara un recálculo de la tabla.
 
 ### 8.7 Tabla y propuesta
 
@@ -671,7 +671,6 @@ Los comandos expresan intención y pueden rechazarse.
 - `GenerateKnockoutMatch`
 - `SubmitResult`
 - `ConfirmResult`
-- `RejectResult`
 - `AnnulResult`
 - `ReplaceResult`
 - `RecalculateStandings`
@@ -722,7 +721,6 @@ Los eventos describen hechos consumados y se nombran en pasado.
 - `KnockoutMatchGenerated`
 - `ResultSubmitted`
 - `ResultConfirmed`
-- `ResultRejected`
 - `ResultAnnulled`
 - `ResultSuperseded`
 - `StandingsRecalculated`
@@ -757,7 +755,7 @@ Esto evita:
 
 ### 14.3 Idempotencia
 
-`ExecuteOfficialDraw`, `ConfirmOfficialDraw`, `GenerateGroupMatches`, `GenerateKnockoutMatch`, `SubmitResult`, `ConfirmResult`, `RejectResult`, `RecalculateStandings`, `ConfirmQualificationProposal`, `PublishOfficialDraw`, `ConfirmAdvancement` y las anulaciones exigen una clave idempotente. Repetir la misma solicitud devuelve el resultado original; no crea una segunda operación.
+`ExecuteOfficialDraw`, `ConfirmOfficialDraw`, `GenerateGroupMatches`, `GenerateKnockoutMatch`, `SubmitResult`, `ConfirmResult`, `RecalculateStandings`, `ConfirmQualificationProposal`, `PublishOfficialDraw`, `ConfirmAdvancement` y las anulaciones exigen una clave idempotente. Repetir la misma solicitud devuelve el resultado original; no crea una segunda operación.
 
 Una clave reutilizada con parámetros diferentes se rechaza.
 

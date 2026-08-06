@@ -1,6 +1,6 @@
 # Casos de uso — Sistema Web de Competencias OES
 
-> **Estado:** Borrador funcional 0.2.0
+> **Estado:** Borrador funcional 0.1.0
 > **Fecha:** 5 de agosto de 2026
 > **Deriva de:** `FOUNDATION.md` 2.0.0, `docs/01-domain-model.md` 0.3.0, `docs/02-draw-rules.md` 0.3.0 y `docs/03-results-and-standings.md` 0.1.0
 > **Autoridad:** Especificación funcional de interacción y autorización
@@ -336,12 +336,12 @@ En grupos, el retorno a sorteo ocurre después de confirmar los dos clasificados
 
 - La tabla, el ganador y el contenido público no cambian todavía.
 
-## 17. UC-11 — Confirmar o rechazar resultado
+## 17. UC-11 — Confirmar resultado
 
 **Actor principal:** Otro administrador o superadministrador distinto del registrador.
-**Objetivo:** Revisar independientemente un resultado pendiente sin editar su contenido.
+**Objetivo:** Convertir un resultado revisado en hecho competitivo oficial.
 
-### Flujo principal de confirmación
+### Flujo principal
 
 1. El confirmador consulta el resultado pendiente y su evidencia.
 2. Acepta la misma revisión sin editar valores.
@@ -355,26 +355,15 @@ En grupos, el retorno a sorteo ocurre después de confirmar los dos clasificados
    - registra auditoría.
 6. La lectura pública se actualiza desde el nuevo estado oficial.
 
-### Flujo alternativo de rechazo
-
-1. La autoridad detecta que la revisión contiene datos incorrectos.
-2. Rechaza la misma revisión e introduce un motivo obligatorio.
-3. El servidor valida identidad, estado y concurrencia.
-4. El resultado pasa a `REJECTED` y conserva registrador, revisor, motivo y momento.
-5. El encuentro vuelve a `AWAITING_RESULT`.
-6. No cambian tabla, ganador, avance ni contenido público.
-7. Puede registrarse una nueva revisión mediante UC-10.
-
 ### Excepciones
 
-- El registrador intenta confirmar o rechazar: `SELF_CONFIRMATION_FORBIDDEN`.
+- El registrador intenta confirmar: `SELF_CONFIRMATION_FORBIDDEN`.
 - La revisión cambió: `CONCURRENCY_CONFLICT`.
-- El resultado ya no está pendiente: `RESULT_NOT_CONFIRMABLE` o `RESULT_NOT_REJECTABLE`.
+- El resultado fue anulado o reemplazado: `RESULT_NOT_CONFIRMABLE`.
 
 ### Postcondiciones
 
-- Confirmar produce efectos derivados desde la plantilla congelada.
-- Rechazar no produce efectos competitivos y no borra la revisión.
+- Los puntos nunca se capturan manualmente; se derivan de la plantilla congelada.
 - Una tabla es una proyección reconstruible, no una fuente editable.
 
 ## 18. UC-12 — Consultar tabla y estado competitivo

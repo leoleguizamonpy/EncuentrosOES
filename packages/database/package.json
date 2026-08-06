@@ -1,0 +1,32 @@
+{
+  "name": "@oes/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm generate && tsc -p tsconfig.build.json",
+    "generate": "prisma generate --config prisma.config.ts",
+    "lint": "eslint src test prisma.config.ts vitest.integration.config.ts",
+    "migrate:deploy": "prisma migrate deploy --config prisma.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "pnpm generate && tsc -p tsconfig.json --noEmit",
+    "validate": "prisma validate --config prisma.config.ts"
+  },
+  "dependencies": {
+    "@oes/domain": "workspace:*",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
+    "pg": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.15.5",
+    "dotenv": "17.2.2",
+    "prisma": "7.9.1"
+  }
+}
