@@ -1,6 +1,6 @@
 # Arquitectura — Sistema Web de Competencias OES
 
-> **Estado:** Borrador técnico 0.1.0
+> **Estado:** Borrador técnico 0.1.1
 > **Fecha:** 6 de agosto de 2026
 > **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` a `docs/04-use-cases.md`
 > **Autoridad:** Arquitectura lógica, tecnológica y operativa del producto
@@ -200,7 +200,7 @@ POST /api/v1/advancements/{id}/confirm
 GET  /api/v1/public/verifications/{code}
 ```
 
-No son contratos finales; `docs/07-api-contracts.md` deberá fijarlos.
+No son contratos finales; el contrato OpenAPI se fijará como artefacto de implementación después de cerrar seguridad, interfaz, pruebas y roadmap.
 
 ### 11.2 Metadatos obligatorios
 
@@ -629,17 +629,17 @@ Los cambios de migración, autorización, sorteo, resultados o puntajes requiere
 ## 34. Secuencia de implementación
 
 1. Modelo físico y restricciones en `docs/06-data-model.md`.
-2. Contratos API y errores en `docs/07-api-contracts.md`.
-3. Estructura del monorepo y gates mínimos.
-4. Núcleo de identidad, sesiones y autorización.
-5. Catálogo, competencia, participantes y plantillas.
-6. Motor de sorteo y evidencia.
-7. Generación de encuentros.
-8. Resultados y tablas.
-9. Avances y nuevas rondas.
-10. Publicación, actas y verificación.
-11. Auditoría, backups, restauración y operación.
-12. Endurecimiento E2E y preparación de producción.
+2. Seguridad, permisos, amenazas y auditoría en `docs/07-security-and-audit.md`.
+3. Flujos de interfaz y presentación en `docs/08-ui-flows.md`.
+4. Estrategia integral de pruebas en `docs/09-test-strategy.md`.
+5. Roadmap y gates de implementación en `ROADMAP.md`.
+6. Contrato OpenAPI y paquetes de contratos.
+7. Estructura del monorepo y gates mínimos.
+8. Núcleo de identidad, sesiones y autorización.
+9. Catálogo, competencia, participantes y plantillas.
+10. Motor de sorteo, encuentros y evidencia.
+11. Resultados, tablas, avances y nuevas rondas.
+12. Publicación, auditoría, restauración y preparación de producción.
 
 No se debe construir primero una interfaz completa con datos ficticios y luego intentar encajar el dominio. El orden correcto establece datos, contratos y reglas autoritativas antes de cerrar la UI operativa.
 
