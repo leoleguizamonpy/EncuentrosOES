@@ -1,4 +1,6 @@
 import { DomainError } from '../errors/domain-error.js';
+import type { DrawConfigurationSnapshot, DrawFormatCode } from '../draw/draw-configuration.js';
+import type { CompetitionRuleSetSnapshot } from '../rules/competition-rule-set.js';
 
 export type CompetitionStatus = 'DRAFT' | 'FINALIZED' | 'LOCKED' | 'OPEN';
 export type ParticipantStatus = 'ENABLED' | 'WITHDRAWN';
@@ -25,7 +27,10 @@ export interface CompetitionSnapshot {
   readonly createdAt: Date;
   readonly createdBy: string;
   readonly id: string;
+  readonly formatCode: DrawFormatCode | null;
   readonly key: CompetitionKey;
+  readonly lockedAt: Date | null;
+  readonly lockedBy: string | null;
   readonly participants: readonly ParticipantSnapshot[];
   readonly revision: number;
   readonly status: CompetitionStatus;
@@ -56,6 +61,17 @@ export interface OpenCompetitionInput {
   readonly occurredAt: Date;
 }
 
+export interface LockCompetitionInput {
+  readonly actorId: string;
+  readonly drawConfiguration: Pick<
+    DrawConfigurationSnapshot,
+    'competitionId' | 'formatCode' | 'participantCount' | 'ruleSetId' | 'status'
+  >;
+  readonly expectedRevision: number;
+  readonly occurredAt: Date;
+  readonly ruleSet: Pick<CompetitionRuleSetSnapshot, 'competitionId' | 'id' | 'status'>;
+}
+
 function normalizeDisplayName(value: string): string {
   const normalized = value.trim().replaceAll(/\s+/g, ' ');
 
@@ -82,6 +98,9 @@ export class Competition {
   readonly #id: string;
   readonly #key: CompetitionKey;
   readonly #participants: ParticipantSnapshot[];
+  #formatCode: DrawFormatCode | null;
+  #lockedAt: Date | null;
+  #lockedBy: string | null;
   #revision: number;
   #status: CompetitionStatus;
   #updatedAt: Date;
@@ -91,6 +110,9 @@ export class Competition {
     this.#id = snapshot.id;
     this.#key = Object.freeze({ ...snapshot.key });
     this.#status = snapshot.status;
+    this.#formatCode = snapshot.formatCode;
+    this.#lockedAt = snapshot.lockedAt === null ? null : new Date(snapshot.lockedAt);
+    this.#lockedBy = snapshot.lockedBy;
     this.#revision = snapshot.revision;
     this.#participants = snapshot.participants.map(copyParticipant);
     this.#createdAt = new Date(snapshot.createdAt);
@@ -104,7 +126,10 @@ export class Competition {
       createdAt: input.occurredAt,
       createdBy: input.actorId,
       id: input.id,
+      formatCode: null,
       key: input.key,
+      lockedAt: null,
+      lockedBy: null,
       participants: [],
       revision: 1,
       status: 'DRAFT',
@@ -118,6 +143,16 @@ export class Competition {
       throw new DomainError(
         'CONCURRENCY_CONFLICT',
         'A persisted competition must have a positive revision.',
+      );
+    }
+
+    const locked = snapshot.status === 'LOCKED' || snapshot.status === 'FINALIZED';
+    const hasLockEvidence =
+      snapshot.lockedAt !== null && snapshot.lockedBy !== null && snapshot.formatCode !== null;
+    if (locked !== hasLockEvidence) {
+      throw new DomainError(
+        'INVALID_COMPETITION_STATE',
+        'Persisted lock evidence is inconsistent with competition status.',
       );
     }
 
@@ -195,12 +230,48 @@ export class Competition {
     this.#recordMutation(input.actorId, input.occurredAt);
   }
 
+  public lock(input: LockCompetitionInput): void {
+    this.#assertRevision(input.expectedRevision);
+    if (this.#status !== 'OPEN') {
+      throw new DomainError(
+        'INVALID_COMPETITION_STATE',
+        'Only an open competition can be locked.',
+      );
+    }
+
+    const enabledParticipantCount = this.#participants.filter(
+      ({ status }) => status === 'ENABLED',
+    ).length;
+    const valid =
+      input.ruleSet.competitionId === this.#id &&
+      input.ruleSet.status === 'FROZEN' &&
+      input.drawConfiguration.competitionId === this.#id &&
+      input.drawConfiguration.status === 'FROZEN' &&
+      input.drawConfiguration.ruleSetId === input.ruleSet.id &&
+      input.drawConfiguration.participantCount === enabledParticipantCount;
+    if (!valid) {
+      throw new DomainError(
+        'LOCK_PRECONDITION_FAILED',
+        'Participants, frozen rules and frozen draw configuration must match.',
+      );
+    }
+
+    this.#formatCode = input.drawConfiguration.formatCode;
+    this.#lockedAt = new Date(input.occurredAt);
+    this.#lockedBy = input.actorId;
+    this.#status = 'LOCKED';
+    this.#recordMutation(input.actorId, input.occurredAt);
+  }
+
   public toSnapshot(): CompetitionSnapshot {
     return Object.freeze({
       createdAt: new Date(this.#createdAt),
       createdBy: this.#createdBy,
+      formatCode: this.#formatCode,
       id: this.#id,
       key: Object.freeze({ ...this.#key }),
+      lockedAt: this.#lockedAt === null ? null : new Date(this.#lockedAt),
+      lockedBy: this.#lockedBy,
       participants: Object.freeze(this.#participants.map(copyParticipant)),
       revision: this.#revision,
       status: this.#status,

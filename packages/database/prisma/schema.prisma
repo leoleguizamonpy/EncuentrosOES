@@ -29,6 +29,9 @@ model User {
   ruleSetsCreated     CompetitionRuleSet[]      @relation("RuleSetCreatedBy")
   ruleSetsUpdated     CompetitionRuleSet[]      @relation("RuleSetUpdatedBy")
   ruleSetsFrozen      CompetitionRuleSet[]      @relation("RuleSetFrozenBy")
+  drawConfigurationsCreated DrawConfiguration[] @relation("DrawConfigurationCreatedBy")
+  drawConfigurationsUpdated DrawConfiguration[] @relation("DrawConfigurationUpdatedBy")
+  drawConfigurationsFrozen  DrawConfiguration[] @relation("DrawConfigurationFrozenBy")
 
   @@map("users")
 }
@@ -143,6 +146,7 @@ model Competition {
   finalizedBy   User?     @relation("CompetitionFinalizedBy", fields: [finalizedById], references: [id], onDelete: Restrict)
   participants  CompetitionParticipant[]
   ruleSets      CompetitionRuleSet[]
+  drawConfigurations DrawConfiguration[]
 
   @@unique([editionId, eventId, sportId, modalityId])
   @@unique([eventId, id])
@@ -193,6 +197,7 @@ model CompetitionRuleSet {
   outcomes                 RuleSetOutcome[]
   metrics                  RuleSetMetric[]
   tiebreaks                RuleSetTiebreak[]
+  drawConfigurations       DrawConfiguration[]
 
   @@unique([competitionId, revisionNumber])
   @@unique([competitionId, id])
@@ -231,4 +236,32 @@ model RuleSetTiebreak {
   @@id([ruleSetId, position])
   @@unique([ruleSetId, criterionCode])
   @@map("rule_set_tiebreaks")
+}
+
+model DrawConfiguration {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId      String             @map("competition_id") @db.Uuid
+  ruleSetId          String             @map("rule_set_id") @db.Uuid
+  roundNumber        Int                @map("round_number")
+  formatCode         String             @map("format_code")
+  groupCount         Int?               @map("group_count")
+  participantCount   Int                @map("participant_count")
+  algorithmVersion   String             @default("oes-draw-v1") @map("algorithm_version")
+  status             String             @default("DRAFT")
+  canonicalHash      String?            @map("canonical_hash") @db.Char(64)
+  frozenAt           DateTime?          @map("frozen_at") @db.Timestamptz(6)
+  frozenById         String?            @map("frozen_by") @db.Uuid
+  revision           Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String             @map("created_by") @db.Uuid
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String             @map("updated_by") @db.Uuid
+  competition        Competition        @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+  ruleSet            CompetitionRuleSet @relation(fields: [competitionId, ruleSetId], references: [competitionId, id], onDelete: Restrict)
+  createdBy          User               @relation("DrawConfigurationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy          User               @relation("DrawConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  frozenBy           User?              @relation("DrawConfigurationFrozenBy", fields: [frozenById], references: [id], onDelete: Restrict)
+
+  @@index([competitionId, roundNumber, status])
+  @@map("draw_configurations")
 }

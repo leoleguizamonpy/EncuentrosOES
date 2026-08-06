@@ -14,6 +14,7 @@ export {
   type CompetitionSnapshot,
   type CompetitionStatus,
   type CreateCompetitionInput,
+  type LockCompetitionInput,
   type OpenCompetitionInput,
   type ParticipantSnapshot,
   type ParticipantStatus,
@@ -36,3 +37,12 @@ export {
   type TieBreakCriterion,
   type UpdateCompetitionRuleSetInput,
 } from './rules/competition-rule-set.js';
+export {
+  DrawConfiguration,
+  type CreateDrawConfigurationInput,
+  type DrawConfigurationSnapshot,
+  type DrawConfigurationStatus,
+  type DrawFormatCode,
+  type FreezeDrawConfigurationInput,
+  type UpdateDrawConfigurationInput,
+} from './draw/draw-configuration.js';
