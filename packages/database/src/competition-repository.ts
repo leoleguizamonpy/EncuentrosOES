@@ -3,6 +3,7 @@ import {
   DomainError,
   type CompetitionSnapshot,
   type CompetitionStatus,
+  type DrawFormatCode,
   type ParticipantSnapshot,
   type ParticipantStatus,
 } from '@oes/domain';
@@ -16,6 +17,7 @@ const competitionStatuses = new Set<CompetitionStatus>([
   'FINALIZED',
 ]);
 const participantStatuses = new Set<ParticipantStatus>(['ENABLED', 'WITHDRAWN']);
+const drawFormats = new Set<DrawFormatCode>(['GROUP_STAGE', 'KNOCKOUT']);
 
 function parseCompetitionStatus(value: string): CompetitionStatus {
   if (competitionStatuses.has(value as CompetitionStatus)) {
@@ -39,6 +41,12 @@ function parseParticipantStatus(value: string): ParticipantStatus {
   );
 }
 
+function parseDrawFormat(value: string | null): DrawFormatCode | null {
+  if (value === null) return null;
+  if (drawFormats.has(value as DrawFormatCode)) return value as DrawFormatCode;
+  throw new DomainError('INVALID_COMPETITION_STATE', `Unknown draw format: ${value}.`);
+}
+
 export class PrismaCompetitionRepository {
   readonly #client: PrismaClient;
 
@@ -55,7 +63,10 @@ export class PrismaCompetitionRepository {
         createdById: snapshot.createdBy,
         editionId: snapshot.key.editionId,
         eventId: snapshot.key.eventId,
+        formatCode: snapshot.formatCode,
         id: snapshot.id,
+        lockedAt: snapshot.lockedAt,
+        lockedById: snapshot.lockedBy,
         modalityId: snapshot.key.modalityId,
         participants: {
           create: snapshot.participants.map((participant) => ({
@@ -102,12 +113,15 @@ export class PrismaCompetitionRepository {
       createdAt: record.createdAt,
       createdBy: record.createdById,
       id: record.id,
+      formatCode: parseDrawFormat(record.formatCode),
       key: {
         editionId: record.editionId,
         eventId: record.eventId,
         modalityId: record.modalityId,
         sportId: record.sportId,
       },
+      lockedAt: record.lockedAt,
+      lockedBy: record.lockedById,
       participants,
       revision: record.revision,
       status: parseCompetitionStatus(record.status),
@@ -127,6 +141,9 @@ export class PrismaCompetitionRepository {
     await this.#client.$transaction(async (transaction) => {
       const update = await transaction.competition.updateMany({
         data: {
+          formatCode: snapshot.formatCode,
+          lockedAt: snapshot.lockedAt,
+          lockedById: snapshot.lockedBy,
           revision: snapshot.revision,
           status: snapshot.status,
           updatedAt: snapshot.updatedAt,

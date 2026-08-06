@@ -169,6 +169,9 @@ describe('Competition', () => {
   it('rejects participant changes after locking', () => {
     const snapshot: CompetitionSnapshot = {
       ...createCompetition().toSnapshot(),
+      formatCode: 'GROUP_STAGE',
+      lockedAt: createdAt,
+      lockedBy: actorA,
       status: 'LOCKED',
     };
     const competition = Competition.rehydrate(snapshot);
@@ -228,6 +231,72 @@ describe('Competition', () => {
     expectDomainError(
       () => competition.open({ actorId: actorA, expectedRevision: 1, occurredAt: createdAt }),
       'INVALID_COMPETITION_STATE',
+    );
+  });
+
+  it('locks only when participants, frozen rules and frozen format match', () => {
+    const competition = createCompetition();
+    for (const [index, institutionId] of ['institution-1', 'institution-2', 'institution-3'].entries()) {
+      competition.addParticipant({
+        actorId: actorA,
+        displayName: `Equipo ${String(index + 1)}`,
+        eventId: key.eventId,
+        expectedRevision: index + 1,
+        id: `participant-${String(index + 1)}`,
+        institutionId,
+        occurredAt: createdAt,
+      });
+    }
+    competition.open({ actorId: actorA, expectedRevision: 4, occurredAt: createdAt });
+    competition.lock({
+      actorId: actorB,
+      drawConfiguration: {
+        competitionId: competition.toSnapshot().id,
+        formatCode: 'GROUP_STAGE',
+        participantCount: 3,
+        ruleSetId: 'rule-set-1',
+        status: 'FROZEN',
+      },
+      expectedRevision: 5,
+      occurredAt: createdAt,
+      ruleSet: {
+        competitionId: competition.toSnapshot().id,
+        id: 'rule-set-1',
+        status: 'FROZEN',
+      },
+    });
+
+    expect(competition.toSnapshot()).toMatchObject({
+      formatCode: 'GROUP_STAGE',
+      lockedBy: actorB,
+      revision: 6,
+      status: 'LOCKED',
+    });
+  });
+
+  it('rejects locking with a participant snapshot mismatch', () => {
+    const competition = createCompetition();
+    competition.open({ actorId: actorA, expectedRevision: 1, occurredAt: createdAt });
+    expectDomainError(
+      () =>
+        competition.lock({
+          actorId: actorA,
+          drawConfiguration: {
+            competitionId: competition.toSnapshot().id,
+            formatCode: 'KNOCKOUT',
+            participantCount: 2,
+            ruleSetId: 'rule-set-1',
+            status: 'FROZEN',
+          },
+          expectedRevision: 2,
+          occurredAt: createdAt,
+          ruleSet: {
+            competitionId: competition.toSnapshot().id,
+            id: 'rule-set-1',
+            status: 'FROZEN',
+          },
+        }),
+      'LOCK_PRECONDITION_FAILED',
     );
   });
 });

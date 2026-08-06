@@ -1,6 +1,7 @@
 import {
   Competition,
   CompetitionRuleSet,
+  DrawConfiguration,
   type DomainError,
 } from '@oes/domain';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -8,7 +9,9 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createPrismaClient,
   PrismaCompetitionRepository,
+  PrismaCompetitionLockService,
   PrismaCompetitionRuleSetRepository,
+  PrismaDrawConfigurationRepository,
 } from '../src/index.js';
 
 const databaseUrl =
@@ -17,7 +20,9 @@ const databaseUrl =
 const integration = process.env.DATABASE_URL === undefined ? describe.skip : describe;
 const client = createPrismaClient(databaseUrl);
 const repository = new PrismaCompetitionRepository(client);
+const lockService = new PrismaCompetitionLockService(client);
 const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
+const drawRepository = new PrismaDrawConfigurationRepository(client);
 
 const ids = {
   actor: '10000000-0000-4000-8000-000000000001',
@@ -27,12 +32,18 @@ const ids = {
   eventB: '40000000-0000-4000-8000-000000000002',
   institutionA: '50000000-0000-4000-8000-000000000001',
   institutionB: '50000000-0000-4000-8000-000000000002',
+  institutionC: '50000000-0000-4000-8000-000000000003',
+  institutionD: '50000000-0000-4000-8000-000000000004',
   modality: '60000000-0000-4000-8000-000000000001',
   participantA: '70000000-0000-4000-8000-000000000001',
   participantB: '70000000-0000-4000-8000-000000000002',
+  participantC: '70000000-0000-4000-8000-000000000003',
+  participantD: '70000000-0000-4000-8000-000000000004',
   sport: '80000000-0000-4000-8000-000000000001',
   ruleSetA: '90000000-0000-4000-8000-000000000001',
   ruleSetB: '90000000-0000-4000-8000-000000000002',
+  drawA: 'a0000000-0000-4000-8000-000000000001',
+  drawB: 'a0000000-0000-4000-8000-000000000002',
 } as const;
 const occurredAt = new Date('2026-08-06T12:00:00.000Z');
 
@@ -63,6 +74,7 @@ const ruleSetConfiguration = {
 };
 
 async function cleanDatabase(): Promise<void> {
+  await client.drawConfiguration.deleteMany();
   await client.ruleSetTiebreak.deleteMany();
   await client.ruleSetMetric.deleteMany();
   await client.ruleSetOutcome.deleteMany();
@@ -137,6 +149,24 @@ async function seedCatalog(): Promise<void> {
         normalizedName: 'universidad uno',
         updatedById: ids.actor,
       },
+      {
+        code: 'COL-2',
+        createdById: ids.actor,
+        eventId: ids.eventA,
+        id: ids.institutionC,
+        name: 'Colegio Dos',
+        normalizedName: 'colegio dos',
+        updatedById: ids.actor,
+      },
+      {
+        code: 'COL-3',
+        createdById: ids.actor,
+        eventId: ids.eventA,
+        id: ids.institutionD,
+        name: 'Colegio Tres',
+        normalizedName: 'colegio tres',
+        updatedById: ids.actor,
+      },
     ],
   });
 }
@@ -164,6 +194,20 @@ function createRuleSet(id: string = ids.ruleSetA, revisionNumber = 1): Competiti
     occurredAt,
     revisionNumber,
     schemaVersion: 1,
+  });
+}
+
+function createDraw(id: string = ids.drawA): DrawConfiguration {
+  return DrawConfiguration.create({
+    actorId: ids.actor,
+    competitionId: ids.competition,
+    formatCode: 'GROUP_STAGE',
+    groupCount: 1,
+    id,
+    occurredAt,
+    participantCount: 3,
+    roundNumber: 0,
+    ruleSetId: ids.ruleSetA,
   });
 }
 
@@ -348,5 +392,113 @@ integration('PrismaCompetitionRepository', () => {
 
     await expect(ruleSetRepository.insert(second)).rejects.toThrow();
     expect(await client.competitionRuleSet.count()).toBe(1);
+  });
+
+  it('persists and restores a frozen draw configuration', async () => {
+    await repository.insert(createCompetition());
+    const ruleSet = createRuleSet();
+    ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.insert(ruleSet);
+    const draw = createDraw();
+    await drawRepository.insert(draw);
+    draw.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await drawRepository.save(draw, 1);
+
+    const snapshot = (await drawRepository.findById(ids.drawA))?.toSnapshot();
+    expect(snapshot?.canonicalHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(snapshot).toMatchObject({
+      formatCode: 'GROUP_STAGE',
+      groupCount: 1,
+      participantCount: 3,
+      status: 'FROZEN',
+    });
+  });
+
+  it('allows only one frozen draw configuration per competition round', async () => {
+    await repository.insert(createCompetition());
+    const ruleSet = createRuleSet();
+    ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.insert(ruleSet);
+    const first = createDraw();
+    first.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await drawRepository.insert(first);
+    const second = createDraw(ids.drawB);
+    second.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+
+    await expect(drawRepository.insert(second)).rejects.toThrow();
+    expect(await client.drawConfiguration.count()).toBe(1);
+  });
+
+  it('persists a locked competition only with matching frozen dependencies', async () => {
+    const competition = createCompetition();
+    const participants = [
+      [ids.participantA, ids.institutionA, 'Colegio Uno'],
+      [ids.participantC, ids.institutionC, 'Colegio Dos'],
+      [ids.participantD, ids.institutionD, 'Colegio Tres'],
+    ] as const;
+    for (const [index, [id, institutionId, displayName]] of participants.entries()) {
+      competition.addParticipant({
+        actorId: ids.actor,
+        displayName,
+        eventId: ids.eventA,
+        expectedRevision: index + 1,
+        id,
+        institutionId,
+        occurredAt,
+      });
+    }
+    competition.open({ actorId: ids.actor, expectedRevision: 4, occurredAt });
+    await repository.insert(competition);
+    const ruleSet = createRuleSet();
+    ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.insert(ruleSet);
+    const draw = createDraw();
+    draw.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await drawRepository.insert(draw);
+
+    competition.lock({
+      actorId: ids.actor,
+      drawConfiguration: draw.toSnapshot(),
+      expectedRevision: 5,
+      occurredAt,
+      ruleSet: ruleSet.toSnapshot(),
+    });
+    await lockService.lock({
+      actorId: ids.actor,
+      competitionId: ids.competition,
+      drawConfigurationId: ids.drawA,
+      expectedRevision: 5,
+      occurredAt,
+      ruleSetId: ids.ruleSetA,
+    });
+
+    expect((await repository.findById(ids.competition))?.toSnapshot()).toMatchObject({
+      formatCode: 'GROUP_STAGE',
+      lockedBy: ids.actor,
+      revision: 6,
+      status: 'LOCKED',
+    });
+  });
+
+  it('rejects persisted locking when the frozen participant snapshot is stale', async () => {
+    await repository.insert(createCompetition());
+    const ruleSet = createRuleSet();
+    ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await ruleSetRepository.insert(ruleSet);
+    const draw = createDraw();
+    draw.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+    await drawRepository.insert(draw);
+
+    await expect(
+      lockService.lock({
+        actorId: ids.actor,
+        competitionId: ids.competition,
+        drawConfigurationId: ids.drawA,
+        expectedRevision: 1,
+        occurredAt,
+        ruleSetId: ids.ruleSetA,
+      }),
+    ).rejects.toMatchObject({ code: 'LOCK_PRECONDITION_FAILED' } satisfies Partial<DomainError>);
+    expect((await repository.findById(ids.competition))?.toSnapshot().status).toBe('DRAFT');
   });
 });
