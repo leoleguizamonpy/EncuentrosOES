@@ -6,7 +6,12 @@ export type DomainErrorCode =
   | 'INVALID_COMPETITION_STATE'
   | 'INVALID_DISPLAY_NAME'
   | 'INVALID_GROUP_COUNT'
-  | 'INVALID_PARTICIPANT_COUNT';
+  | 'INVALID_PARTICIPANT_COUNT'
+  | 'RULE_SET_FROZEN'
+  | 'RULE_SET_INCOMPLETE'
+  | 'RULE_SET_INCOMPATIBLE'
+  | 'RULE_SET_INTEGRITY_FAILURE'
+  | 'TIE_BREAK_CRITERION_UNSUPPORTED';
 
 export class DomainError extends Error {
   public readonly code: DomainErrorCode;

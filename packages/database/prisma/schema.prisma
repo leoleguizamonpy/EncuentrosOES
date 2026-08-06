@@ -26,6 +26,9 @@ model User {
   competitionsLocked Competition[]            @relation("CompetitionLockedBy")
   competitionsFinalized Competition[]         @relation("CompetitionFinalizedBy")
   participantsEnabled CompetitionParticipant[] @relation("ParticipantEnabledBy")
+  ruleSetsCreated     CompetitionRuleSet[]      @relation("RuleSetCreatedBy")
+  ruleSetsUpdated     CompetitionRuleSet[]      @relation("RuleSetUpdatedBy")
+  ruleSetsFrozen      CompetitionRuleSet[]      @relation("RuleSetFrozenBy")
 
   @@map("users")
 }
@@ -139,6 +142,7 @@ model Competition {
   lockedBy      User?     @relation("CompetitionLockedBy", fields: [lockedById], references: [id], onDelete: Restrict)
   finalizedBy   User?     @relation("CompetitionFinalizedBy", fields: [finalizedById], references: [id], onDelete: Restrict)
   participants  CompetitionParticipant[]
+  ruleSets      CompetitionRuleSet[]
 
   @@unique([editionId, eventId, sportId, modalityId])
   @@unique([eventId, id])
@@ -163,4 +167,68 @@ model CompetitionParticipant {
   @@unique([competitionId, institutionId])
   @@unique([competitionId, id])
   @@map("competition_participants")
+}
+
+model CompetitionRuleSet {
+  id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId            String                   @map("competition_id") @db.Uuid
+  schemaVersion            Int                      @map("schema_version")
+  revisionNumber           Int                      @map("revision_number")
+  resultProfile            String                   @map("result_profile")
+  profileConfig            Json                     @map("profile_config") @db.JsonB
+  knockoutResolutionCode   String                   @map("knockout_resolution_code")
+  status                   String                   @default("DRAFT")
+  canonicalHash            String?                  @map("canonical_hash") @db.Char(64)
+  frozenAt                 DateTime?                @map("frozen_at") @db.Timestamptz(6)
+  frozenById               String?                  @map("frozen_by") @db.Uuid
+  revision                 Int                      @default(1)
+  createdAt                DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById              String                   @map("created_by") @db.Uuid
+  updatedAt                DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById              String                   @map("updated_by") @db.Uuid
+  competition              Competition              @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+  createdBy                User                     @relation("RuleSetCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy                User                     @relation("RuleSetUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  frozenBy                 User?                    @relation("RuleSetFrozenBy", fields: [frozenById], references: [id], onDelete: Restrict)
+  outcomes                 RuleSetOutcome[]
+  metrics                  RuleSetMetric[]
+  tiebreaks                RuleSetTiebreak[]
+
+  @@unique([competitionId, revisionNumber])
+  @@unique([competitionId, id])
+  @@index([competitionId, status])
+  @@map("competition_rule_sets")
+}
+
+model RuleSetOutcome {
+  ruleSetId   String             @map("rule_set_id") @db.Uuid
+  outcomeCode String             @map("outcome_code")
+  tablePoints Int                @map("table_points")
+  description String
+  ruleSet     CompetitionRuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+
+  @@id([ruleSetId, outcomeCode])
+  @@map("rule_set_outcomes")
+}
+
+model RuleSetMetric {
+  ruleSetId  String             @map("rule_set_id") @db.Uuid
+  metricCode String             @map("metric_code")
+  enabled    Boolean            @default(true)
+  ruleSet    CompetitionRuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+
+  @@id([ruleSetId, metricCode])
+  @@map("rule_set_metrics")
+}
+
+model RuleSetTiebreak {
+  ruleSetId     String             @map("rule_set_id") @db.Uuid
+  position      Int
+  criterionCode String             @map("criterion_code")
+  config        Json?              @db.JsonB
+  ruleSet       CompetitionRuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Restrict)
+
+  @@id([ruleSetId, position])
+  @@unique([ruleSetId, criterionCode])
+  @@map("rule_set_tiebreaks")
 }
