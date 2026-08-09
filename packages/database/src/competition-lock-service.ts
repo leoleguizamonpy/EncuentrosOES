@@ -47,6 +47,18 @@ export class PrismaCompetitionLockService {
           WHERE participant."competition_id" = competition."id"
             AND participant."status" = 'ENABLED'
         )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "competition_participants" AS participant
+          WHERE participant."competition_id" = competition."id"
+            AND participant."status" = 'ENABLED'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "draw_configuration_participants" AS snapshot
+              WHERE snapshot."draw_configuration_id" = draw."id"
+                AND snapshot."competition_participant_id" = participant."id"
+            )
+        )
     `;
 
     if (changed !== 1) {

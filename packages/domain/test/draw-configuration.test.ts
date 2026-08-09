@@ -10,6 +10,14 @@ const common = {
   ruleSetId: '40000000-0000-4000-8000-000000000001',
 } as const;
 
+function participants(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    byeCount: 0,
+    displayName: `Equipo ${String(index + 1)}`,
+    id: `participant-${String(index + 1)}`,
+  }));
+}
+
 function expectCode(operation: () => unknown, code: DomainError['code']): void {
   try {
     operation();
@@ -27,7 +35,7 @@ describe('DrawConfiguration', () => {
         ...common,
         formatCode: 'GROUP_STAGE',
         groupCount: 2,
-        participantCount: 7,
+        participants: participants(7),
         roundNumber: 0,
       }).toSnapshot(),
     ).toMatchObject({ groupCount: 2, status: 'DRAFT' });
@@ -40,7 +48,7 @@ describe('DrawConfiguration', () => {
           ...common,
           formatCode: 'GROUP_STAGE',
           groupCount: 3,
-          participantCount: 7,
+          participants: participants(7),
           roundNumber: 0,
         }),
       'INVALID_GROUP_COUNT',
@@ -53,7 +61,7 @@ describe('DrawConfiguration', () => {
         ...common,
         formatCode: 'KNOCKOUT',
         groupCount: null,
-        participantCount: 5,
+        participants: participants(5),
         roundNumber: 1,
       }).toSnapshot(),
     ).toMatchObject({ formatCode: 'KNOCKOUT', groupCount: null, roundNumber: 1 });
@@ -66,19 +74,61 @@ describe('DrawConfiguration', () => {
           ...common,
           formatCode: 'KNOCKOUT',
           groupCount: null,
-          participantCount: 1,
+          participants: participants(1),
           roundNumber: 0,
         }),
       'DRAW_CONFIGURATION_INCOMPATIBLE',
     );
   });
 
+  it.each([
+    {
+      description: 'duplicate identifier',
+      participants: [
+        { byeCount: 0, displayName: 'Uno', id: 'same' },
+        { byeCount: 0, displayName: 'Dos', id: 'same' },
+        { byeCount: 0, displayName: 'Tres', id: 'third' },
+      ],
+    },
+    {
+      description: 'empty name',
+      participants: [
+        { byeCount: 0, displayName: '', id: 'one' },
+        { byeCount: 0, displayName: 'Dos', id: 'two' },
+        { byeCount: 0, displayName: 'Tres', id: 'three' },
+      ],
+    },
+    {
+      description: 'negative bye history',
+      participants: [
+        { byeCount: -1, displayName: 'Uno', id: 'one' },
+        { byeCount: 0, displayName: 'Dos', id: 'two' },
+        { byeCount: 0, displayName: 'Tres', id: 'three' },
+      ],
+    },
+  ] as const)(
+    'rejects participant snapshots with $description',
+    ({ participants: invalidParticipants }) => {
+      expectCode(
+        () =>
+          DrawConfiguration.create({
+            ...common,
+            formatCode: 'GROUP_STAGE',
+            groupCount: 1,
+            participants: invalidParticipants,
+            roundNumber: 0,
+          }),
+        'DRAW_CONFIGURATION_INCOMPATIBLE',
+      );
+    },
+  );
+
   it('updates a draft and freezes a verifiable canonical snapshot', () => {
     const configuration = DrawConfiguration.create({
       ...common,
       formatCode: 'GROUP_STAGE',
       groupCount: 2,
-      participantCount: 6,
+      participants: participants(6),
       roundNumber: 0,
     });
     configuration.update({
@@ -87,7 +137,7 @@ describe('DrawConfiguration', () => {
       formatCode: 'GROUP_STAGE',
       groupCount: 2,
       occurredAt: common.occurredAt,
-      participantCount: 7,
+      participants: participants(7),
       roundNumber: 0,
     });
     configuration.freeze({
@@ -108,7 +158,7 @@ describe('DrawConfiguration', () => {
           formatCode: 'GROUP_STAGE',
           groupCount: 2,
           occurredAt: common.occurredAt,
-          participantCount: 8,
+          participants: participants(8),
           roundNumber: 0,
         }),
       'DRAW_CONFIGURATION_FROZEN',
@@ -120,7 +170,7 @@ describe('DrawConfiguration', () => {
       ...common,
       formatCode: 'KNOCKOUT',
       groupCount: null,
-      participantCount: 4,
+      participants: participants(4),
       roundNumber: 1,
     });
     expectCode(
@@ -138,7 +188,12 @@ describe('DrawConfiguration', () => {
       occurredAt: common.occurredAt,
     });
     expectCode(
-      () => DrawConfiguration.rehydrate({ ...configuration.toSnapshot(), participantCount: 6 }),
+      () =>
+        DrawConfiguration.rehydrate({
+          ...configuration.toSnapshot(),
+          participantCount: 6,
+          participants: participants(6),
+        }),
       'DRAW_CONFIGURATION_INTEGRITY_FAILURE',
     );
   });

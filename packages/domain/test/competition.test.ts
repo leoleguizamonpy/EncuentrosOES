@@ -254,6 +254,11 @@ describe('Competition', () => {
         competitionId: competition.toSnapshot().id,
         formatCode: 'GROUP_STAGE',
         participantCount: 3,
+        participants: [
+          { byeCount: 0, displayName: 'Equipo 1', id: 'participant-1' },
+          { byeCount: 0, displayName: 'Equipo 2', id: 'participant-2' },
+          { byeCount: 0, displayName: 'Equipo 3', id: 'participant-3' },
+        ],
         ruleSetId: 'rule-set-1',
         status: 'FROZEN',
       },
@@ -285,6 +290,10 @@ describe('Competition', () => {
             competitionId: competition.toSnapshot().id,
             formatCode: 'KNOCKOUT',
             participantCount: 2,
+            participants: [
+              { byeCount: 0, displayName: 'Equipo 1', id: 'participant-1' },
+              { byeCount: 0, displayName: 'Equipo 2', id: 'participant-2' },
+            ],
             ruleSetId: 'rule-set-1',
             status: 'FROZEN',
           },

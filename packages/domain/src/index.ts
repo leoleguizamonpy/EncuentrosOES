@@ -43,6 +43,17 @@ export {
   type DrawConfigurationSnapshot,
   type DrawConfigurationStatus,
   type DrawFormatCode,
+  type DrawParticipantSnapshot,
   type FreezeDrawConfigurationInput,
   type UpdateDrawConfigurationInput,
 } from './draw/draw-configuration.js';
+export {
+  commitOfficialSeed,
+  executeOfficialDraw,
+  generateOfficialSeed,
+  verifyOfficialDraw,
+  type DrawEvidence,
+  type DrawResult,
+  type GroupDrawResult,
+  type KnockoutDrawResult,
+} from './draw/draw-engine.js';
