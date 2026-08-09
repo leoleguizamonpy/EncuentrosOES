@@ -13,6 +13,7 @@ model User {
   displayName        String                   @map("display_name")
   passwordHash       String                   @map("password_hash")
   status             String
+  role               String                   @default("ADMIN")
   credentialVersion  Int                      @default(1) @map("credential_version")
   lastLoginAt        DateTime?                @map("last_login_at") @db.Timestamptz(6)
   createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -32,6 +33,9 @@ model User {
   drawConfigurationsCreated DrawConfiguration[] @relation("DrawConfigurationCreatedBy")
   drawConfigurationsUpdated DrawConfiguration[] @relation("DrawConfigurationUpdatedBy")
   drawConfigurationsFrozen  DrawConfiguration[] @relation("DrawConfigurationFrozenBy")
+  officialDrawsExecuted OfficialDraw[]         @relation("OfficialDrawExecutedBy")
+  officialDrawsConfirmed OfficialDraw[]        @relation("OfficialDrawConfirmedBy")
+  officialDrawsAnnulled OfficialDraw[]          @relation("OfficialDrawAnnulledBy")
 
   @@map("users")
 }
@@ -147,6 +151,8 @@ model Competition {
   participants  CompetitionParticipant[]
   ruleSets      CompetitionRuleSet[]
   drawConfigurations DrawConfiguration[]
+  officialDraws OfficialDraw[]
+  matches       LogicalMatch[]
 
   @@unique([editionId, eventId, sportId, modalityId])
   @@unique([eventId, id])
@@ -168,6 +174,11 @@ model CompetitionParticipant {
   institution   Institution @relation(fields: [eventId, institutionId], references: [eventId, id], onDelete: Restrict)
   enabledBy     User        @relation("ParticipantEnabledBy", fields: [enabledById], references: [id], onDelete: Restrict)
   drawConfigurations DrawConfigurationParticipant[]
+  groupMemberships DrawGroupMember[]
+  pairingsAsA DrawPairing[] @relation("PairingParticipantA")
+  pairingsAsB DrawPairing[] @relation("PairingParticipantB")
+  matchesAsA LogicalMatch[] @relation("MatchParticipantA")
+  matchesAsB LogicalMatch[] @relation("MatchParticipantB")
 
   @@unique([competitionId, institutionId])
   @@unique([competitionId, id])
@@ -263,6 +274,7 @@ model DrawConfiguration {
   updatedBy          User               @relation("DrawConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
   frozenBy           User?              @relation("DrawConfigurationFrozenBy", fields: [frozenById], references: [id], onDelete: Restrict)
   participants       DrawConfigurationParticipant[]
+  executions         OfficialDraw[]
 
   @@unique([competitionId, id])
   @@index([competitionId, roundNumber, status])
@@ -282,4 +294,107 @@ model DrawConfigurationParticipant {
   @@id([drawConfigurationId, competitionParticipantId])
   @@unique([drawConfigurationId, canonicalOrder])
   @@map("draw_configuration_participants")
+}
+
+model OfficialDraw {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId      String            @map("competition_id") @db.Uuid
+  configurationId    String            @map("configuration_id") @db.Uuid
+  status             String            @default("PENDING_CONFIRMATION")
+  algorithmVersion   String            @map("algorithm_version")
+  evidenceJson       Json              @map("evidence_json") @db.JsonB
+  evidenceHash       String            @map("evidence_hash") @db.Char(64)
+  resultHash         String            @map("result_hash") @db.Char(64)
+  seedCommitment     String            @map("seed_commitment") @db.Char(64)
+  seedHex            String            @map("seed_hex") @db.Char(64)
+  executedAt         DateTime          @map("executed_at") @db.Timestamptz(6)
+  executedById       String            @map("executed_by") @db.Uuid
+  confirmedAt        DateTime?         @map("confirmed_at") @db.Timestamptz(6)
+  confirmedById      String?           @map("confirmed_by") @db.Uuid
+  annulledAt         DateTime?         @map("annulled_at") @db.Timestamptz(6)
+  annulledById       String?           @map("annulled_by") @db.Uuid
+  annulmentReason    String?           @map("annulment_reason")
+  revision           Int               @default(1)
+  competition        Competition       @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+  configuration      DrawConfiguration @relation(fields: [competitionId, configurationId], references: [competitionId, id], onDelete: Restrict)
+  executedBy         User              @relation("OfficialDrawExecutedBy", fields: [executedById], references: [id], onDelete: Restrict)
+  confirmedBy        User?             @relation("OfficialDrawConfirmedBy", fields: [confirmedById], references: [id], onDelete: Restrict)
+  annulledBy         User?             @relation("OfficialDrawAnnulledBy", fields: [annulledById], references: [id], onDelete: Restrict)
+  groups             DrawGroup[]
+  pairings           DrawPairing[]
+  matches            LogicalMatch[]
+
+  @@unique([competitionId, id])
+  @@index([competitionId, status])
+  @@map("official_draws")
+}
+
+model DrawGroup {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  executionId   String            @map("execution_id") @db.Uuid
+  competitionId String            @map("competition_id") @db.Uuid
+  ordinal       Int
+  label         String
+  execution     OfficialDraw      @relation(fields: [competitionId, executionId], references: [competitionId, id], onDelete: Restrict)
+  members       DrawGroupMember[]
+  matches       LogicalMatch[]
+
+  @@unique([competitionId, id])
+  @@unique([executionId, ordinal])
+  @@unique([executionId, label])
+  @@map("draw_groups")
+}
+
+model DrawGroupMember {
+  groupId       String                 @map("group_id") @db.Uuid
+  competitionId String                 @map("competition_id") @db.Uuid
+  participantId String                 @map("participant_id") @db.Uuid
+  memberOrdinal Int                    @map("member_ordinal")
+  group         DrawGroup              @relation(fields: [competitionId, groupId], references: [competitionId, id], onDelete: Restrict)
+  participant   CompetitionParticipant @relation(fields: [competitionId, participantId], references: [competitionId, id], onDelete: Restrict)
+
+  @@id([groupId, participantId])
+  @@unique([groupId, memberOrdinal])
+  @@map("draw_group_members")
+}
+
+model DrawPairing {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  executionId           String                  @map("execution_id") @db.Uuid
+  competitionId         String                  @map("competition_id") @db.Uuid
+  ordinal               Int
+  pairingType           String                  @map("pairing_type")
+  participantAId        String                  @map("participant_a_id") @db.Uuid
+  participantBId        String?                 @map("participant_b_id") @db.Uuid
+  priorByeCount         Int?                    @map("prior_bye_count")
+  execution             OfficialDraw            @relation(fields: [competitionId, executionId], references: [competitionId, id], onDelete: Restrict)
+  participantA          CompetitionParticipant  @relation("PairingParticipantA", fields: [competitionId, participantAId], references: [competitionId, id], onDelete: Restrict)
+  participantB          CompetitionParticipant? @relation("PairingParticipantB", fields: [competitionId, participantBId], references: [competitionId, id], onDelete: Restrict)
+  matches               LogicalMatch[]
+
+  @@unique([competitionId, id])
+  @@unique([executionId, ordinal])
+  @@map("draw_pairings")
+}
+
+model LogicalMatch {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId  String                 @map("competition_id") @db.Uuid
+  executionId    String                 @map("execution_id") @db.Uuid
+  roundNumber    Int                    @map("round_number")
+  groupId        String?                @map("group_id") @db.Uuid
+  pairingId      String?                @map("pairing_id") @db.Uuid
+  ordinal        Int
+  participantAId String                 @map("participant_a_id") @db.Uuid
+  participantBId String                 @map("participant_b_id") @db.Uuid
+  status         String                 @default("PENDING_RESULT")
+  competition    Competition            @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+  execution      OfficialDraw           @relation(fields: [competitionId, executionId], references: [competitionId, id], onDelete: Restrict)
+  group          DrawGroup?             @relation(fields: [competitionId, groupId], references: [competitionId, id], onDelete: Restrict)
+  pairing        DrawPairing?           @relation(fields: [competitionId, pairingId], references: [competitionId, id], onDelete: Restrict)
+  participantA   CompetitionParticipant @relation("MatchParticipantA", fields: [competitionId, participantAId], references: [competitionId, id], onDelete: Restrict)
+  participantB   CompetitionParticipant @relation("MatchParticipantB", fields: [competitionId, participantBId], references: [competitionId, id], onDelete: Restrict)
+
+  @@unique([executionId, ordinal])
+  @@map("matches")
 }
