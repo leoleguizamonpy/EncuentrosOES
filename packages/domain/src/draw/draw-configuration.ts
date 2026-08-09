@@ -2,9 +2,16 @@ import { createHash } from 'node:crypto';
 
 import { DomainError } from '../errors/domain-error.js';
 import { planGroupDistribution } from '../competition/group-distribution.js';
+import { canonicalize, type CanonicalJsonValue } from '../crypto/canonical-json.js';
 
 export type DrawFormatCode = 'GROUP_STAGE' | 'KNOCKOUT';
 export type DrawConfigurationStatus = 'DISCARDED' | 'DRAFT' | 'FROZEN';
+
+export interface DrawParticipantSnapshot {
+  readonly byeCount: number;
+  readonly displayName: string;
+  readonly id: string;
+}
 
 type DrawShape =
   | Readonly<{ formatCode: 'GROUP_STAGE'; groupCount: number; roundNumber: 0 }>
@@ -22,6 +29,7 @@ export interface DrawConfigurationSnapshot {
   readonly groupCount: number | null;
   readonly id: string;
   readonly participantCount: number;
+  readonly participants: readonly DrawParticipantSnapshot[];
   readonly revision: number;
   readonly roundNumber: number;
   readonly ruleSetId: string;
@@ -31,7 +39,7 @@ export interface DrawConfigurationSnapshot {
 }
 
 interface CommonConfigurationInput {
-  readonly participantCount: number;
+  readonly participants: readonly DrawParticipantSnapshot[];
 }
 
 export type CreateDrawConfigurationInput = CommonConfigurationInput &
@@ -57,17 +65,32 @@ export interface FreezeDrawConfigurationInput {
 }
 
 function validateShape(configuration: CommonConfigurationInput & DrawShape): void {
-  if (!Number.isSafeInteger(configuration.participantCount)) {
-    throw new DomainError('INVALID_PARTICIPANT_COUNT', 'Participant count must be an integer.');
+  const participantIds = new Set<string>();
+  for (const participant of configuration.participants) {
+    if (
+      participant.id.length === 0 ||
+      participantIds.has(participant.id) ||
+      participant.displayName.trim().length === 0 ||
+      !Number.isSafeInteger(participant.byeCount) ||
+      participant.byeCount < 0
+    ) {
+      throw new DomainError(
+        'DRAW_CONFIGURATION_INCOMPATIBLE',
+        'Participants must be unique, named and have a non-negative bye history.',
+      );
+    }
+    participantIds.add(participant.id);
   }
 
+  const participantCount = configuration.participants.length;
+
   if (configuration.formatCode === 'GROUP_STAGE') {
-    planGroupDistribution(configuration.participantCount, configuration.groupCount);
+    planGroupDistribution(participantCount, configuration.groupCount);
     return;
   }
 
   if (
-    configuration.participantCount < 2 ||
+    participantCount < 2 ||
     !Number.isSafeInteger(configuration.roundNumber) ||
     configuration.roundNumber <= 0
   ) {
@@ -78,18 +101,28 @@ function validateShape(configuration: CommonConfigurationInput & DrawShape): voi
   }
 }
 
+function canonicalParticipants(
+  participants: readonly DrawParticipantSnapshot[],
+): readonly DrawParticipantSnapshot[] {
+  return Object.freeze(
+    participants
+      .map((participant) => Object.freeze({ ...participant }))
+      .sort((left, right) => Buffer.from(left.id).compare(Buffer.from(right.id))),
+  );
+}
+
 function hash(snapshot: DrawConfigurationSnapshot): string {
   return createHash('sha256')
     .update(
-      JSON.stringify({
+      canonicalize({
         algorithmVersion: snapshot.algorithmVersion,
         competitionId: snapshot.competitionId,
         formatCode: snapshot.formatCode,
         groupCount: snapshot.groupCount,
-        participantCount: snapshot.participantCount,
+        participants: snapshot.participants,
         roundNumber: snapshot.roundNumber,
         ruleSetId: snapshot.ruleSetId,
-      }),
+      } as unknown as CanonicalJsonValue),
     )
     .digest('hex');
 }
@@ -102,6 +135,7 @@ export class DrawConfiguration {
       ...snapshot,
       createdAt: new Date(snapshot.createdAt),
       frozenAt: snapshot.frozenAt === null ? null : new Date(snapshot.frozenAt),
+      participants: canonicalParticipants(snapshot.participants),
       updatedAt: new Date(snapshot.updatedAt),
     };
   }
@@ -119,7 +153,8 @@ export class DrawConfiguration {
       frozenBy: null,
       groupCount: input.groupCount,
       id: input.id,
-      participantCount: input.participantCount,
+      participantCount: input.participants.length,
+      participants: canonicalParticipants(input.participants),
       revision: 1,
       roundNumber: input.roundNumber,
       ruleSetId: input.ruleSetId,
@@ -164,7 +199,8 @@ export class DrawConfiguration {
       ...this.#snapshot,
       formatCode: input.formatCode,
       groupCount: input.groupCount,
-      participantCount: input.participantCount,
+      participantCount: input.participants.length,
+      participants: canonicalParticipants(input.participants),
       revision: this.#snapshot.revision + 1,
       roundNumber: input.roundNumber,
       updatedAt: new Date(input.occurredAt),
@@ -194,6 +230,7 @@ export class DrawConfiguration {
       ...this.#snapshot,
       createdAt: new Date(this.#snapshot.createdAt),
       frozenAt: this.#snapshot.frozenAt === null ? null : new Date(this.#snapshot.frozenAt),
+      participants: canonicalParticipants(this.#snapshot.participants),
       updatedAt: new Date(this.#snapshot.updatedAt),
     });
   }

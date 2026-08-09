@@ -65,7 +65,12 @@ export interface LockCompetitionInput {
   readonly actorId: string;
   readonly drawConfiguration: Pick<
     DrawConfigurationSnapshot,
-    'competitionId' | 'formatCode' | 'participantCount' | 'ruleSetId' | 'status'
+    | 'competitionId'
+    | 'formatCode'
+    | 'participantCount'
+    | 'participants'
+    | 'ruleSetId'
+    | 'status'
   >;
   readonly expectedRevision: number;
   readonly occurredAt: Date;
@@ -242,13 +247,19 @@ export class Competition {
     const enabledParticipantCount = this.#participants.filter(
       ({ status }) => status === 'ENABLED',
     ).length;
+    const enabledParticipantIds = new Set(
+      this.#participants
+        .filter(({ status }) => status === 'ENABLED')
+        .map(({ id }) => id),
+    );
     const valid =
       input.ruleSet.competitionId === this.#id &&
       input.ruleSet.status === 'FROZEN' &&
       input.drawConfiguration.competitionId === this.#id &&
       input.drawConfiguration.status === 'FROZEN' &&
       input.drawConfiguration.ruleSetId === input.ruleSet.id &&
-      input.drawConfiguration.participantCount === enabledParticipantCount;
+      input.drawConfiguration.participantCount === enabledParticipantCount &&
+      input.drawConfiguration.participants.every(({ id }) => enabledParticipantIds.has(id));
     if (!valid) {
       throw new DomainError(
         'LOCK_PRECONDITION_FAILED',

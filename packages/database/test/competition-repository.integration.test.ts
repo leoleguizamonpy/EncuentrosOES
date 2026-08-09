@@ -74,6 +74,7 @@ const ruleSetConfiguration = {
 };
 
 async function cleanDatabase(): Promise<void> {
+  await client.drawConfigurationParticipant.deleteMany();
   await client.drawConfiguration.deleteMany();
   await client.ruleSetTiebreak.deleteMany();
   await client.ruleSetMetric.deleteMany();
@@ -185,6 +186,28 @@ function createCompetition(): Competition {
   });
 }
 
+function createCompetitionWithThreeParticipants(open = false): Competition {
+  const competition = createCompetition();
+  const participants = [
+    [ids.participantA, ids.institutionA, 'Colegio Uno'],
+    [ids.participantC, ids.institutionC, 'Colegio Dos'],
+    [ids.participantD, ids.institutionD, 'Colegio Tres'],
+  ] as const;
+  for (const [index, [id, institutionId, displayName]] of participants.entries()) {
+    competition.addParticipant({
+      actorId: ids.actor,
+      displayName,
+      eventId: ids.eventA,
+      expectedRevision: index + 1,
+      id,
+      institutionId,
+      occurredAt,
+    });
+  }
+  if (open) competition.open({ actorId: ids.actor, expectedRevision: 4, occurredAt });
+  return competition;
+}
+
 function createRuleSet(id: string = ids.ruleSetA, revisionNumber = 1): CompetitionRuleSet {
   return CompetitionRuleSet.create({
     ...ruleSetConfiguration,
@@ -205,7 +228,11 @@ function createDraw(id: string = ids.drawA): DrawConfiguration {
     groupCount: 1,
     id,
     occurredAt,
-    participantCount: 3,
+    participants: [
+      { byeCount: 0, displayName: 'Colegio Uno', id: ids.participantA },
+      { byeCount: 0, displayName: 'Colegio Dos', id: ids.participantC },
+      { byeCount: 0, displayName: 'Colegio Tres', id: ids.participantD },
+    ],
     roundNumber: 0,
     ruleSetId: ids.ruleSetA,
   });
@@ -395,7 +422,7 @@ integration('PrismaCompetitionRepository', () => {
   });
 
   it('persists and restores a frozen draw configuration', async () => {
-    await repository.insert(createCompetition());
+    await repository.insert(createCompetitionWithThreeParticipants());
     const ruleSet = createRuleSet();
     ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
     await ruleSetRepository.insert(ruleSet);
@@ -412,10 +439,26 @@ integration('PrismaCompetitionRepository', () => {
       participantCount: 3,
       status: 'FROZEN',
     });
+    expect(snapshot?.participants.map(({ id }) => id)).toEqual([
+      ids.participantA,
+      ids.participantC,
+      ids.participantD,
+    ]);
+    await expect(
+      client.drawConfigurationParticipant.update({
+        data: { byeCountSnapshot: 99 },
+        where: {
+          drawConfigurationId_competitionParticipantId: {
+            competitionParticipantId: ids.participantA,
+            drawConfigurationId: ids.drawA,
+          },
+        },
+      }),
+    ).rejects.toThrow();
   });
 
   it('allows only one frozen draw configuration per competition round', async () => {
-    await repository.insert(createCompetition());
+    await repository.insert(createCompetitionWithThreeParticipants());
     const ruleSet = createRuleSet();
     ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
     await ruleSetRepository.insert(ruleSet);
@@ -430,24 +473,7 @@ integration('PrismaCompetitionRepository', () => {
   });
 
   it('persists a locked competition only with matching frozen dependencies', async () => {
-    const competition = createCompetition();
-    const participants = [
-      [ids.participantA, ids.institutionA, 'Colegio Uno'],
-      [ids.participantC, ids.institutionC, 'Colegio Dos'],
-      [ids.participantD, ids.institutionD, 'Colegio Tres'],
-    ] as const;
-    for (const [index, [id, institutionId, displayName]] of participants.entries()) {
-      competition.addParticipant({
-        actorId: ids.actor,
-        displayName,
-        eventId: ids.eventA,
-        expectedRevision: index + 1,
-        id,
-        institutionId,
-        occurredAt,
-      });
-    }
-    competition.open({ actorId: ids.actor, expectedRevision: 4, occurredAt });
+    const competition = createCompetitionWithThreeParticipants(true);
     await repository.insert(competition);
     const ruleSet = createRuleSet();
     ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
@@ -480,8 +506,8 @@ integration('PrismaCompetitionRepository', () => {
     });
   });
 
-  it('rejects persisted locking when the frozen participant snapshot is stale', async () => {
-    await repository.insert(createCompetition());
+  it('rejects persisted locking while the competition is not open', async () => {
+    await repository.insert(createCompetitionWithThreeParticipants());
     const ruleSet = createRuleSet();
     ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
     await ruleSetRepository.insert(ruleSet);

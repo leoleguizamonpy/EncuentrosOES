@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { DomainError } from '../errors/domain-error.js';
+import { canonicalize, type CanonicalJsonValue } from '../crypto/canonical-json.js';
 
 export type ResultProfile = 'SCORE_BASED' | 'SET_BASED';
 export type RuleSetStatus = 'DRAFT' | 'FROZEN' | 'REPLACED';
@@ -237,7 +238,7 @@ function validateConfiguration(configuration: RuleSetConfiguration): void {
 }
 
 function canonicalHash(snapshot: CompetitionRuleSetSnapshot): string {
-  const canonical = JSON.stringify({
+  const canonical = canonicalize({
     competitionId: snapshot.competitionId,
     knockoutResolutionCode: snapshot.knockoutResolutionCode,
     metrics: [...snapshot.metrics].sort(),
@@ -249,7 +250,7 @@ function canonicalHash(snapshot: CompetitionRuleSetSnapshot): string {
     revisionNumber: snapshot.revisionNumber,
     schemaVersion: snapshot.schemaVersion,
     tieBreakCriteria: snapshot.tieBreakCriteria,
-  });
+  } as unknown as CanonicalJsonValue);
 
   return createHash('sha256').update(canonical).digest('hex');
 }

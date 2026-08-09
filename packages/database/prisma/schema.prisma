@@ -167,6 +167,7 @@ model CompetitionParticipant {
   competition   Competition @relation(fields: [eventId, competitionId], references: [eventId, id], onDelete: Restrict)
   institution   Institution @relation(fields: [eventId, institutionId], references: [eventId, id], onDelete: Restrict)
   enabledBy     User        @relation("ParticipantEnabledBy", fields: [enabledById], references: [id], onDelete: Restrict)
+  drawConfigurations DrawConfigurationParticipant[]
 
   @@unique([competitionId, institutionId])
   @@unique([competitionId, id])
@@ -261,7 +262,24 @@ model DrawConfiguration {
   createdBy          User               @relation("DrawConfigurationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy          User               @relation("DrawConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
   frozenBy           User?              @relation("DrawConfigurationFrozenBy", fields: [frozenById], references: [id], onDelete: Restrict)
+  participants       DrawConfigurationParticipant[]
 
+  @@unique([competitionId, id])
   @@index([competitionId, roundNumber, status])
   @@map("draw_configurations")
+}
+
+model DrawConfigurationParticipant {
+  drawConfigurationId     String                 @map("draw_configuration_id") @db.Uuid
+  competitionId           String                 @map("competition_id") @db.Uuid
+  competitionParticipantId String                @map("competition_participant_id") @db.Uuid
+  canonicalOrder          Int                    @map("canonical_order")
+  displayNameSnapshot     String                 @map("display_name_snapshot")
+  byeCountSnapshot        Int                    @map("bye_count_snapshot")
+  configuration           DrawConfiguration      @relation(fields: [competitionId, drawConfigurationId], references: [competitionId, id], onDelete: Restrict)
+  participant             CompetitionParticipant @relation(fields: [competitionId, competitionParticipantId], references: [competitionId, id], onDelete: Restrict)
+
+  @@id([drawConfigurationId, competitionParticipantId])
+  @@unique([drawConfigurationId, canonicalOrder])
+  @@map("draw_configuration_participants")
 }

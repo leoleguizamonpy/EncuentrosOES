@@ -41,6 +41,15 @@ export class PrismaDrawConfigurationRepository {
         groupCount: snapshot.groupCount,
         id: snapshot.id,
         participantCount: snapshot.participantCount,
+        participants: {
+          create: snapshot.participants.map((participant, index) => ({
+            byeCountSnapshot: participant.byeCount,
+            canonicalOrder: index + 1,
+            competitionId: snapshot.competitionId,
+            competitionParticipantId: participant.id,
+            displayNameSnapshot: participant.displayName,
+          })),
+        },
         revision: snapshot.revision,
         roundNumber: snapshot.roundNumber,
         ruleSetId: snapshot.ruleSetId,
@@ -52,7 +61,10 @@ export class PrismaDrawConfigurationRepository {
   }
 
   public async findById(id: string): Promise<DrawConfiguration | null> {
-    const record = await this.#client.drawConfiguration.findUnique({ where: { id } });
+    const record = await this.#client.drawConfiguration.findUnique({
+      include: { participants: { orderBy: { canonicalOrder: 'asc' } } },
+      where: { id },
+    });
     if (record === null) return null;
     if (record.algorithmVersion !== 'oes-draw-v1') {
       throw new DomainError(
@@ -72,6 +84,11 @@ export class PrismaDrawConfigurationRepository {
       groupCount: record.groupCount,
       id: record.id,
       participantCount: record.participantCount,
+      participants: record.participants.map((participant) => ({
+        byeCount: participant.byeCountSnapshot,
+        displayName: participant.displayNameSnapshot,
+        id: participant.competitionParticipantId,
+      })),
       revision: record.revision,
       roundNumber: record.roundNumber,
       ruleSetId: record.ruleSetId,
@@ -87,27 +104,52 @@ export class PrismaDrawConfigurationRepository {
     expectedRevision: number,
   ): Promise<void> {
     const snapshot = configuration.toSnapshot();
-    const update = await this.#client.drawConfiguration.updateMany({
-      data: {
-        canonicalHash: snapshot.canonicalHash,
-        formatCode: snapshot.formatCode,
-        frozenAt: snapshot.frozenAt,
-        frozenById: snapshot.frozenBy,
-        groupCount: snapshot.groupCount,
-        participantCount: snapshot.participantCount,
-        revision: snapshot.revision,
-        roundNumber: snapshot.roundNumber,
-        status: snapshot.status,
-        updatedAt: snapshot.updatedAt,
-        updatedById: snapshot.updatedBy,
-      },
-      where: { id: snapshot.id, revision: expectedRevision },
+    await this.#client.$transaction(async (transaction) => {
+      const current = await transaction.drawConfiguration.findFirst({
+        select: { id: true },
+        where: { id: snapshot.id, revision: expectedRevision },
+      });
+      if (current === null) {
+        throw new DomainError(
+          'CONCURRENCY_CONFLICT',
+          'The persisted draw revision no longer matches.',
+        );
+      }
+      await transaction.drawConfigurationParticipant.deleteMany({
+        where: { drawConfigurationId: snapshot.id },
+      });
+      await transaction.drawConfigurationParticipant.createMany({
+        data: snapshot.participants.map((participant, index) => ({
+          byeCountSnapshot: participant.byeCount,
+          canonicalOrder: index + 1,
+          competitionId: snapshot.competitionId,
+          competitionParticipantId: participant.id,
+          displayNameSnapshot: participant.displayName,
+          drawConfigurationId: snapshot.id,
+        })),
+      });
+      const update = await transaction.drawConfiguration.updateMany({
+        data: {
+          canonicalHash: snapshot.canonicalHash,
+          formatCode: snapshot.formatCode,
+          frozenAt: snapshot.frozenAt,
+          frozenById: snapshot.frozenBy,
+          groupCount: snapshot.groupCount,
+          participantCount: snapshot.participantCount,
+          revision: snapshot.revision,
+          roundNumber: snapshot.roundNumber,
+          status: snapshot.status,
+          updatedAt: snapshot.updatedAt,
+          updatedById: snapshot.updatedBy,
+        },
+        where: { id: snapshot.id, revision: expectedRevision },
+      });
+      if (update.count !== 1) {
+        throw new DomainError(
+          'CONCURRENCY_CONFLICT',
+          'The persisted draw revision no longer matches.',
+        );
+      }
     });
-    if (update.count !== 1) {
-      throw new DomainError(
-        'CONCURRENCY_CONFLICT',
-        'The persisted draw revision no longer matches.',
-      );
-    }
   }
 }
