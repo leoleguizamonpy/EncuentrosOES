@@ -12,6 +12,7 @@ import {
   PrismaCompetitionLockService,
   PrismaCompetitionRuleSetRepository,
   PrismaDrawConfigurationRepository,
+  PrismaOfficialDrawService,
 } from '../src/index.js';
 
 const databaseUrl =
@@ -23,9 +24,11 @@ const repository = new PrismaCompetitionRepository(client);
 const lockService = new PrismaCompetitionLockService(client);
 const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
 const drawRepository = new PrismaDrawConfigurationRepository(client);
+const officialDrawService = new PrismaOfficialDrawService(client);
 
 const ids = {
   actor: '10000000-0000-4000-8000-000000000001',
+  confirmer: '10000000-0000-4000-8000-000000000002',
   competition: '20000000-0000-4000-8000-000000000001',
   edition: '30000000-0000-4000-8000-000000000001',
   eventA: '40000000-0000-4000-8000-000000000001',
@@ -44,6 +47,7 @@ const ids = {
   ruleSetB: '90000000-0000-4000-8000-000000000002',
   drawA: 'a0000000-0000-4000-8000-000000000001',
   drawB: 'a0000000-0000-4000-8000-000000000002',
+  executionA: 'b0000000-0000-4000-8000-000000000001',
 } as const;
 const occurredAt = new Date('2026-08-06T12:00:00.000Z');
 
@@ -74,32 +78,31 @@ const ruleSetConfiguration = {
 };
 
 async function cleanDatabase(): Promise<void> {
-  await client.drawConfigurationParticipant.deleteMany();
-  await client.drawConfiguration.deleteMany();
-  await client.ruleSetTiebreak.deleteMany();
-  await client.ruleSetMetric.deleteMany();
-  await client.ruleSetOutcome.deleteMany();
-  await client.competitionRuleSet.deleteMany();
-  await client.competitionParticipant.deleteMany();
-  await client.competition.deleteMany();
-  await client.eventSportModality.deleteMany();
-  await client.institution.deleteMany();
-  await client.edition.deleteMany();
-  await client.event.deleteMany();
-  await client.sport.deleteMany();
-  await client.modality.deleteMany();
-  await client.user.deleteMany();
+  await client.$executeRawUnsafe(
+    'TRUNCATE TABLE "users", "events", "sports", "modalities" RESTART IDENTITY CASCADE',
+  );
 }
 
 async function seedCatalog(): Promise<void> {
-  await client.user.create({
-    data: {
-      displayName: 'Administrador de prueba',
-      emailNormalized: 'admin@example.test',
-      id: ids.actor,
-      passwordHash: 'not-a-real-password-hash',
-      status: 'ACTIVE',
-    },
+  await client.user.createMany({
+    data: [
+      {
+        displayName: 'Administrador de prueba',
+        emailNormalized: 'admin@example.test',
+        id: ids.actor,
+        passwordHash: 'not-a-real-password-hash',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+      },
+      {
+        displayName: 'Superadministrador de prueba',
+        emailNormalized: 'superadmin@example.test',
+        id: ids.confirmer,
+        passwordHash: 'not-a-real-password-hash',
+        role: 'SUPERADMIN',
+        status: 'ACTIVE',
+      },
+    ],
   });
   await client.edition.create({
     data: {
@@ -220,12 +223,13 @@ function createRuleSet(id: string = ids.ruleSetA, revisionNumber = 1): Competiti
   });
 }
 
-function createDraw(id: string = ids.drawA): DrawConfiguration {
-  return DrawConfiguration.create({
+function createDraw(
+  id: string = ids.drawA,
+  formatCode: 'GROUP_STAGE' | 'KNOCKOUT' = 'GROUP_STAGE',
+): DrawConfiguration {
+  const common = {
     actorId: ids.actor,
     competitionId: ids.competition,
-    formatCode: 'GROUP_STAGE',
-    groupCount: 1,
     id,
     occurredAt,
     participants: [
@@ -233,7 +237,40 @@ function createDraw(id: string = ids.drawA): DrawConfiguration {
       { byeCount: 0, displayName: 'Colegio Dos', id: ids.participantC },
       { byeCount: 0, displayName: 'Colegio Tres', id: ids.participantD },
     ],
-    roundNumber: 0,
+    ruleSetId: ids.ruleSetA,
+  } as const;
+  return formatCode === 'GROUP_STAGE'
+    ? DrawConfiguration.create({
+        ...common,
+        formatCode: 'GROUP_STAGE',
+        groupCount: 1,
+        roundNumber: 0,
+      })
+    : DrawConfiguration.create({
+        ...common,
+        formatCode: 'KNOCKOUT',
+        groupCount: null,
+        roundNumber: 1,
+      });
+}
+
+async function prepareLockedDraw(
+  formatCode: 'GROUP_STAGE' | 'KNOCKOUT' = 'GROUP_STAGE',
+): Promise<void> {
+  const competition = createCompetitionWithThreeParticipants(true);
+  await repository.insert(competition);
+  const ruleSet = createRuleSet();
+  ruleSet.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+  await ruleSetRepository.insert(ruleSet);
+  const draw = createDraw(ids.drawA, formatCode);
+  draw.freeze({ actorId: ids.actor, expectedRevision: 1, occurredAt });
+  await drawRepository.insert(draw);
+  await lockService.lock({
+    actorId: ids.actor,
+    competitionId: ids.competition,
+    drawConfigurationId: ids.drawA,
+    expectedRevision: 5,
+    occurredAt,
     ruleSetId: ids.ruleSetA,
   });
 }
@@ -526,5 +563,118 @@ integration('PrismaCompetitionRepository', () => {
       }),
     ).rejects.toMatchObject({ code: 'LOCK_PRECONDITION_FAILED' } satisfies Partial<DomainError>);
     expect((await repository.findById(ids.competition))?.toSnapshot().status).toBe('DRAFT');
+  });
+
+  it('persists an official execution without materializing unconfirmed structures', async () => {
+    await prepareLockedDraw();
+    const execution = await officialDrawService.execute({
+      actorId: ids.actor,
+      configurationId: ids.drawA,
+      executionId: ids.executionA,
+      occurredAt,
+      seed: Uint8Array.from({ length: 32 }, (_, index) => index),
+    });
+
+    expect(execution.toSnapshot()).toMatchObject({
+      executedBy: ids.actor,
+      revision: 1,
+      status: 'PENDING_CONFIRMATION',
+    });
+    expect(await client.drawGroup.count()).toBe(0);
+    expect(await client.logicalMatch.count()).toBe(0);
+  });
+
+  it('confirms with another authority and atomically creates group matches once', async () => {
+    await prepareLockedDraw();
+    await officialDrawService.execute({
+      actorId: ids.actor,
+      configurationId: ids.drawA,
+      executionId: ids.executionA,
+      occurredAt,
+      seed: Uint8Array.from({ length: 32 }, (_, index) => index),
+    });
+    await expect(
+      officialDrawService.confirm({
+        actorId: ids.actor,
+        executionId: ids.executionA,
+        expectedRevision: 1,
+        occurredAt,
+      }),
+    ).rejects.toMatchObject({ code: 'DRAW_CONFIRMATION_INVALID' } satisfies Partial<DomainError>);
+
+    const confirmed = await officialDrawService.confirm({
+      actorId: ids.confirmer,
+      executionId: ids.executionA,
+      expectedRevision: 1,
+      occurredAt,
+    });
+    expect(confirmed.toSnapshot()).toMatchObject({
+      confirmedBy: ids.confirmer,
+      revision: 2,
+      status: 'CONFIRMED',
+    });
+    expect(await client.drawGroup.count()).toBe(1);
+    expect(await client.drawGroupMember.count()).toBe(3);
+    expect(await client.logicalMatch.count()).toBe(3);
+    await expect(
+      officialDrawService.confirm({
+        actorId: ids.confirmer,
+        executionId: ids.executionA,
+        expectedRevision: 1,
+        occurredAt,
+      }),
+    ).rejects.toThrow();
+    expect(await client.logicalMatch.count()).toBe(3);
+  });
+
+  it('materializes knockout pairings, an explicit bye and only playable matches', async () => {
+    await prepareLockedDraw('KNOCKOUT');
+    await officialDrawService.execute({
+      actorId: ids.actor,
+      configurationId: ids.drawA,
+      executionId: ids.executionA,
+      occurredAt,
+      seed: Uint8Array.from({ length: 32 }, (_, index) => index),
+    });
+    await officialDrawService.confirm({
+      actorId: ids.confirmer,
+      executionId: ids.executionA,
+      expectedRevision: 1,
+      occurredAt,
+    });
+
+    expect(await client.drawPairing.count()).toBe(2);
+    expect(await client.drawPairing.count({ where: { pairingType: 'BYE' } })).toBe(1);
+    expect(await client.logicalMatch.count()).toBe(1);
+  });
+
+  it('allows only a superadministrator to annul while retaining audit structures', async () => {
+    await prepareLockedDraw();
+    await officialDrawService.execute({
+      actorId: ids.actor,
+      configurationId: ids.drawA,
+      executionId: ids.executionA,
+      occurredAt,
+      seed: Uint8Array.from({ length: 32 }, (_, index) => index),
+    });
+    await officialDrawService.confirm({
+      actorId: ids.confirmer,
+      executionId: ids.executionA,
+      expectedRevision: 1,
+      occurredAt,
+    });
+    const annulled = await officialDrawService.annul({
+      actorId: ids.confirmer,
+      executionId: ids.executionA,
+      expectedRevision: 2,
+      occurredAt,
+      reason: 'Error formal en el acta',
+    });
+
+    expect(annulled.toSnapshot()).toMatchObject({
+      annulledBy: ids.confirmer,
+      status: 'ANNULLED',
+    });
+    expect(await client.logicalMatch.count()).toBe(3);
   });
 });

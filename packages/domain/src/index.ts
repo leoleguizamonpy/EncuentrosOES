@@ -57,3 +57,12 @@ export {
   type GroupDrawResult,
   type KnockoutDrawResult,
 } from './draw/draw-engine.js';
+export {
+  OfficialDraw,
+  type AnnulOfficialDrawInput,
+  type AuthorityRole,
+  type ConfirmOfficialDrawInput,
+  type ExecuteOfficialDrawInput,
+  type OfficialDrawSnapshot,
+  type OfficialDrawStatus,
+} from './draw/official-draw.js';
