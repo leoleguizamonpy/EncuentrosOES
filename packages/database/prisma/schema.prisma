@@ -36,6 +36,9 @@ model User {
   officialDrawsExecuted OfficialDraw[]         @relation("OfficialDrawExecutedBy")
   officialDrawsConfirmed OfficialDraw[]        @relation("OfficialDrawConfirmedBy")
   officialDrawsAnnulled OfficialDraw[]          @relation("OfficialDrawAnnulledBy")
+  matchResultsRecorded MatchResult[]            @relation("MatchResultRecordedBy")
+  matchResultsConfirmed MatchResult[]           @relation("MatchResultConfirmedBy")
+  matchResultsAnnulled MatchResult[]             @relation("MatchResultAnnulledBy")
 
   @@map("users")
 }
@@ -179,6 +182,11 @@ model CompetitionParticipant {
   pairingsAsB DrawPairing[] @relation("PairingParticipantB")
   matchesAsA LogicalMatch[] @relation("MatchParticipantA")
   matchesAsB LogicalMatch[] @relation("MatchParticipantB")
+  matchesWon LogicalMatch[] @relation("MatchWinner")
+  resultsAsA MatchResult[] @relation("ResultParticipantA")
+  resultsAsB MatchResult[] @relation("ResultParticipantB")
+  resultsWon MatchResult[] @relation("ResultWinner")
+  groupStandings GroupStanding[]
 
   @@unique([competitionId, institutionId])
   @@unique([competitionId, id])
@@ -210,6 +218,7 @@ model CompetitionRuleSet {
   metrics                  RuleSetMetric[]
   tiebreaks                RuleSetTiebreak[]
   drawConfigurations       DrawConfiguration[]
+  matchResults             MatchResult[]
 
   @@unique([competitionId, revisionNumber])
   @@unique([competitionId, id])
@@ -338,6 +347,7 @@ model DrawGroup {
   execution     OfficialDraw      @relation(fields: [competitionId, executionId], references: [competitionId, id], onDelete: Restrict)
   members       DrawGroupMember[]
   matches       LogicalMatch[]
+  standings     GroupStanding[]
 
   @@unique([competitionId, id])
   @@unique([executionId, ordinal])
@@ -388,13 +398,77 @@ model LogicalMatch {
   participantAId String                 @map("participant_a_id") @db.Uuid
   participantBId String                 @map("participant_b_id") @db.Uuid
   status         String                 @default("PENDING_RESULT")
+  winnerParticipantId String?           @map("winner_participant_id") @db.Uuid
   competition    Competition            @relation(fields: [competitionId], references: [id], onDelete: Restrict)
   execution      OfficialDraw           @relation(fields: [competitionId, executionId], references: [competitionId, id], onDelete: Restrict)
   group          DrawGroup?             @relation(fields: [competitionId, groupId], references: [competitionId, id], onDelete: Restrict)
   pairing        DrawPairing?           @relation(fields: [competitionId, pairingId], references: [competitionId, id], onDelete: Restrict)
   participantA   CompetitionParticipant @relation("MatchParticipantA", fields: [competitionId, participantAId], references: [competitionId, id], onDelete: Restrict)
   participantB   CompetitionParticipant @relation("MatchParticipantB", fields: [competitionId, participantBId], references: [competitionId, id], onDelete: Restrict)
+  winnerParticipant CompetitionParticipant? @relation("MatchWinner", fields: [competitionId, winnerParticipantId], references: [competitionId, id], onDelete: Restrict)
+  results         MatchResult[]
 
   @@unique([executionId, ordinal])
+  @@unique([competitionId, id])
   @@map("matches")
+}
+
+model MatchResult {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId               String                  @map("match_id") @db.Uuid
+  competitionId         String                  @map("competition_id") @db.Uuid
+  ruleSetId             String                  @map("rule_set_id") @db.Uuid
+  participantAId        String                  @map("participant_a_id") @db.Uuid
+  participantBId        String                  @map("participant_b_id") @db.Uuid
+  detailJson            Json                    @map("detail_json") @db.JsonB
+  resolvedJson          Json                    @map("resolved_json") @db.JsonB
+  winnerParticipantId   String?                 @map("winner_participant_id") @db.Uuid
+  status                String                  @default("PENDING_CONFIRMATION")
+  recordedAt            DateTime                @map("recorded_at") @db.Timestamptz(6)
+  recordedById          String                  @map("recorded_by") @db.Uuid
+  confirmedAt           DateTime?               @map("confirmed_at") @db.Timestamptz(6)
+  confirmedById         String?                 @map("confirmed_by") @db.Uuid
+  annulledAt            DateTime?               @map("annulled_at") @db.Timestamptz(6)
+  annulledById          String?                 @map("annulled_by") @db.Uuid
+  annulmentReason       String?                 @map("annulment_reason")
+  revision              Int                     @default(1)
+  match                 LogicalMatch            @relation(fields: [competitionId, matchId], references: [competitionId, id], onDelete: Restrict)
+  ruleSet               CompetitionRuleSet      @relation(fields: [competitionId, ruleSetId], references: [competitionId, id], onDelete: Restrict)
+  participantA          CompetitionParticipant  @relation("ResultParticipantA", fields: [competitionId, participantAId], references: [competitionId, id], onDelete: Restrict)
+  participantB          CompetitionParticipant  @relation("ResultParticipantB", fields: [competitionId, participantBId], references: [competitionId, id], onDelete: Restrict)
+  winnerParticipant     CompetitionParticipant? @relation("ResultWinner", fields: [competitionId, winnerParticipantId], references: [competitionId, id], onDelete: Restrict)
+  recordedBy            User                    @relation("MatchResultRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  confirmedBy           User?                   @relation("MatchResultConfirmedBy", fields: [confirmedById], references: [id], onDelete: Restrict)
+  annulledBy            User?                   @relation("MatchResultAnnulledBy", fields: [annulledById], references: [id], onDelete: Restrict)
+
+  @@index([matchId, status])
+  @@map("match_results")
+}
+
+model GroupStanding {
+  groupId                  String                 @map("group_id") @db.Uuid
+  competitionId            String                 @map("competition_id") @db.Uuid
+  participantId            String                 @map("participant_id") @db.Uuid
+  position                 Int
+  played                   Int
+  wins                     Int
+  draws                    Int
+  losses                   Int
+  tablePoints              Int                    @map("table_points")
+  scoreFor                 Int                    @map("score_for")
+  scoreAgainst             Int                    @map("score_against")
+  scoreDifference          Int                    @map("score_difference")
+  setsWon                  Int                    @map("sets_won")
+  setsLost                 Int                    @map("sets_lost")
+  setDifference            Int                    @map("set_difference")
+  sportPointsFor           Int                    @map("sport_points_for")
+  sportPointsAgainst       Int                    @map("sport_points_against")
+  sportPointDifference     Int                    @map("sport_point_difference")
+  recalculatedAt           DateTime               @map("recalculated_at") @db.Timestamptz(6)
+  group                    DrawGroup              @relation(fields: [competitionId, groupId], references: [competitionId, id], onDelete: Restrict)
+  participant              CompetitionParticipant @relation(fields: [competitionId, participantId], references: [competitionId, id], onDelete: Restrict)
+
+  @@id([groupId, participantId])
+  @@unique([groupId, position])
+  @@map("group_standings")
 }

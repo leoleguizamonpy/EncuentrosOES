@@ -13,6 +13,7 @@ import {
   PrismaCompetitionRuleSetRepository,
   PrismaDrawConfigurationRepository,
   PrismaOfficialDrawService,
+  PrismaMatchResultService,
 } from '../src/index.js';
 
 const databaseUrl =
@@ -25,6 +26,7 @@ const lockService = new PrismaCompetitionLockService(client);
 const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
 const drawRepository = new PrismaDrawConfigurationRepository(client);
 const officialDrawService = new PrismaOfficialDrawService(client);
+const matchResultService = new PrismaMatchResultService(client);
 
 const ids = {
   actor: '10000000-0000-4000-8000-000000000001',
@@ -48,6 +50,7 @@ const ids = {
   drawA: 'a0000000-0000-4000-8000-000000000001',
   drawB: 'a0000000-0000-4000-8000-000000000002',
   executionA: 'b0000000-0000-4000-8000-000000000001',
+  resultA: 'c0000000-0000-4000-8000-000000000001',
 } as const;
 const occurredAt = new Date('2026-08-06T12:00:00.000Z');
 
@@ -272,6 +275,25 @@ async function prepareLockedDraw(
     expectedRevision: 5,
     occurredAt,
     ruleSetId: ids.ruleSetA,
+  });
+}
+
+async function prepareConfirmedDraw(
+  formatCode: 'GROUP_STAGE' | 'KNOCKOUT' = 'GROUP_STAGE',
+): Promise<void> {
+  await prepareLockedDraw(formatCode);
+  await officialDrawService.execute({
+    actorId: ids.actor,
+    configurationId: ids.drawA,
+    executionId: ids.executionA,
+    occurredAt,
+    seed: Uint8Array.from({ length: 32 }, (_, index) => index),
+  });
+  await officialDrawService.confirm({
+    actorId: ids.confirmer,
+    executionId: ids.executionA,
+    expectedRevision: 1,
+    occurredAt,
   });
 }
 
@@ -676,5 +698,100 @@ integration('PrismaCompetitionRepository', () => {
       status: 'ANNULLED',
     });
     expect(await client.logicalMatch.count()).toBe(3);
+  });
+
+  it('records a pending group result and recalculates standings only after dual confirmation', async () => {
+    await prepareConfirmedDraw();
+    const match = await client.logicalMatch.findFirstOrThrow({ orderBy: { ordinal: 'asc' } });
+    const result = await matchResultService.record({
+      actorId: ids.actor,
+      detail: { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 },
+      matchId: match.id,
+      occurredAt,
+      resultId: ids.resultA,
+    });
+    expect(result.toSnapshot().status).toBe('PENDING_CONFIRMATION');
+    expect(await client.groupStanding.count()).toBe(0);
+    await expect(
+      matchResultService.confirm({
+        actorId: ids.actor,
+        expectedRevision: 1,
+        occurredAt,
+        resultId: ids.resultA,
+      }),
+    ).rejects.toMatchObject({ code: 'RESULT_CONFIRMATION_INVALID' } satisfies Partial<DomainError>);
+
+    await matchResultService.confirm({
+      actorId: ids.confirmer,
+      expectedRevision: 1,
+      occurredAt,
+      resultId: ids.resultA,
+    });
+    expect(await client.groupStanding.count()).toBe(3);
+    expect(await client.groupStanding.findFirst({ orderBy: { position: 'asc' } })).toMatchObject({
+      participantId: match.participantAId,
+      played: 1,
+      tablePoints: 3,
+      wins: 1,
+    });
+    expect(await client.logicalMatch.findUnique({ where: { id: match.id } })).toMatchObject({
+      status: 'RESULT_CONFIRMED',
+      winnerParticipantId: match.participantAId,
+    });
+  });
+
+  it('annuls a confirmed result, clears its winner and recalculates the group from confirmed data', async () => {
+    await prepareConfirmedDraw();
+    const match = await client.logicalMatch.findFirstOrThrow({ orderBy: { ordinal: 'asc' } });
+    await matchResultService.record({
+      actorId: ids.actor,
+      detail: { profile: 'SCORE_BASED', scoreA: 2, scoreB: 0 },
+      matchId: match.id,
+      occurredAt,
+      resultId: ids.resultA,
+    });
+    await matchResultService.confirm({ actorId: ids.confirmer, expectedRevision: 1, occurredAt, resultId: ids.resultA });
+    await matchResultService.annul({
+      actorId: ids.confirmer,
+      expectedRevision: 2,
+      occurredAt,
+      reason: 'Error formal de mesa',
+      resultId: ids.resultA,
+    });
+
+    expect(await client.logicalMatch.findUnique({ where: { id: match.id } })).toMatchObject({
+      status: 'PENDING_RESULT',
+      winnerParticipantId: null,
+    });
+    expect(await client.groupStanding.findMany()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ played: 0, tablePoints: 0 })]),
+    );
+  });
+
+  it('requires a winner in knockout and persists the confirmed winner', async () => {
+    await prepareConfirmedDraw('KNOCKOUT');
+    const match = await client.logicalMatch.findFirstOrThrow();
+    await expect(
+      matchResultService.record({
+        actorId: ids.actor,
+        detail: { profile: 'SCORE_BASED', scoreA: 1, scoreB: 1 },
+        matchId: match.id,
+        occurredAt,
+        resultId: ids.resultA,
+      }),
+    ).rejects.toMatchObject({ code: 'RESULT_DETAIL_INVALID' } satisfies Partial<DomainError>);
+    await matchResultService.record({
+      actorId: ids.actor,
+      detail: { profile: 'SCORE_BASED', scoreA: 1, scoreB: 2 },
+      matchId: match.id,
+      occurredAt,
+      resultId: ids.resultA,
+    });
+    await matchResultService.confirm({ actorId: ids.confirmer, expectedRevision: 1, occurredAt, resultId: ids.resultA });
+    expect(await client.logicalMatch.findUnique({ where: { id: match.id } })).toMatchObject({
+      status: 'RESULT_CONFIRMED',
+      winnerParticipantId: match.participantBId,
+    });
+    expect(await client.groupStanding.count()).toBe(0);
   });
 });

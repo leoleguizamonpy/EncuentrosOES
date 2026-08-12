@@ -66,3 +66,18 @@ export {
   type OfficialDrawSnapshot,
   type OfficialDrawStatus,
 } from './draw/official-draw.js';
+export {
+  MatchResult,
+  resolveResult,
+  type AnnulMatchResultInput,
+  type ConfirmMatchResultInput,
+  type MatchResultSnapshot,
+  type MatchResultStatus,
+  type RecordMatchResultInput,
+  type ResolvedResult,
+  type ResultDetail,
+} from './results/match-result.js';
+export {
+  calculateGroupTable,
+  type GroupTableRow,
+} from './results/group-table.js';
