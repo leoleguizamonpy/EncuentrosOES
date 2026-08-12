@@ -145,15 +145,37 @@ describe('MatchResult and group table', () => {
     expectCode(() => MatchResult.rehydrate({ ...snapshot, status: 'CONFIRMED' }, ruleSet), 'RESULT_DETAIL_INVALID');
   });
 
-  it('fails explicitly instead of silently ignoring unsupported head-to-head mini-tables', () => {
+  it('resolves tied participants through a head-to-head mini-table', () => {
     const base = rules();
     const withHeadToHead = {
       ...base,
       tieBreakCriteria: ['TABLE_POINTS', 'HEAD_TO_HEAD_TABLE_POINTS'] as const,
     };
-    expectCode(
-      () => calculateGroupTable(['A', 'B'], [], withHeadToHead),
-      'TABLE_CALCULATION_INVALID',
-    );
+    const details = [
+      ['C-A', 'C', 'A', 1, 0],
+      ['C-B', 'C', 'B', 1, 0],
+      ['A-B', 'A', 'B', 1, 0],
+      ['B-D', 'B', 'D', 1, 0],
+    ] as const;
+    const results = details.map(([id, a, b, scoreA, scoreB]) => {
+      const result = record(id, a, b, { profile: 'SCORE_BASED', scoreA, scoreB });
+      result.confirm({ actorId: 'admin-2', actorRole: 'ADMIN', expectedRevision: 1, occurredAt });
+      return result.toSnapshot();
+    });
+    expect(calculateGroupTable(['A', 'B', 'C', 'D'], results, withHeadToHead)).toMatchObject([
+      { participantId: 'C', position: 1, tied: false },
+      { participantId: 'A', position: 2, tied: false },
+      { participantId: 'B', position: 3, tied: false },
+      { participantId: 'D', position: 4, tied: false },
+    ]);
+  });
+
+  it('preserves an unresolved tie with a shared position', () => {
+    const table = calculateGroupTable(['A', 'B', 'C'], [], rules());
+    expect(table).toMatchObject([
+      { participantId: 'A', position: 1, tied: true },
+      { participantId: 'B', position: 1, tied: true },
+      { participantId: 'C', position: 1, tied: true },
+    ]);
   });
 });

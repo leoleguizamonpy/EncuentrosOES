@@ -81,3 +81,11 @@ export {
   calculateGroupTable,
   type GroupTableRow,
 } from './results/group-table.js';
+export {
+  GroupQualification,
+  type GroupQualificationSnapshot,
+  type GroupQualificationStatus,
+  type ProposeGroupQualificationInput,
+  type ReasonedGroupQualificationInput,
+  type TransitionGroupQualificationInput,
+} from './results/group-qualification.js';

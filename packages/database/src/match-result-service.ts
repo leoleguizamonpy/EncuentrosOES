@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   DomainError,
+  GroupQualification,
   MatchResult,
   calculateGroupTable,
   type AuthorityRole,
@@ -142,7 +145,15 @@ export class PrismaMatchResultService {
         data: { status: 'RESULT_CONFIRMED', winnerParticipantId: snapshot.resolved.winnerParticipantId },
         where: { id: snapshot.matchId },
       });
-      if (record.match.groupId !== null) await this.#recalculateGroup(record.match.groupId, input.occurredAt, transaction);
+      if (record.match.groupId !== null) {
+        await this.#recalculateGroup(
+          record.match.groupId,
+          input.occurredAt,
+          record.recordedById,
+          parseRole(actor.role, actor.status),
+          transaction,
+        );
+      }
     });
     return result;
   }
@@ -165,7 +176,25 @@ export class PrismaMatchResultService {
       });
       if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted result revision is stale.');
       await transaction.logicalMatch.update({ data: { status: 'PENDING_RESULT', winnerParticipantId: null }, where: { id: snapshot.matchId } });
-      if (record.match.groupId !== null) await this.#recalculateGroup(record.match.groupId, input.occurredAt, transaction);
+      if (record.match.groupId !== null) {
+        await transaction.groupQualification.updateMany({
+          data: {
+            invalidatedAt: input.occurredAt,
+            invalidatedById: input.actorId,
+            invalidationReason: 'A source result was annulled.',
+            revision: { increment: 1 },
+            status: 'INVALIDATED',
+          },
+          where: { groupId: record.match.groupId, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+        });
+        await this.#recalculateGroup(
+          record.match.groupId,
+          input.occurredAt,
+          input.actorId,
+          parseRole(actor.role, actor.status),
+          transaction,
+        );
+      }
     });
     return result;
   }
@@ -184,7 +213,13 @@ export class PrismaMatchResultService {
     };
   }
 
-  async #recalculateGroup(groupId: string, occurredAt: Date, transaction: Prisma.TransactionClient): Promise<void> {
+  async #recalculateGroup(
+    groupId: string,
+    occurredAt: Date,
+    actorId: string,
+    actorRole: AuthorityRole,
+    transaction: Prisma.TransactionClient,
+  ): Promise<void> {
     const group = await transaction.drawGroup.findUnique({
       include: {
         execution: { include: { configuration: true } },
@@ -200,5 +235,48 @@ export class PrismaMatchResultService {
     const table = calculateGroupTable(group.members.map(({ participantId }) => participantId), resultSnapshots, ruleSet.toSnapshot());
     await transaction.groupStanding.deleteMany({ where: { groupId } });
     await transaction.groupStanding.createMany({ data: table.map((row) => ({ ...row, competitionId: group.competitionId, groupId, recalculatedAt: occurredAt })) });
+    const complete = group.matches.length > 0 && group.matches.every(({ status }) => status === 'RESULT_CONFIRMED');
+    if (!complete) return;
+    const active = await transaction.groupQualification.findFirst({
+      where: { groupId, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+    });
+    if (active !== null) return;
+    try {
+      const qualification = GroupQualification.propose({
+        actorId,
+        actorRole,
+        competitionId: group.competitionId,
+        groupId,
+        id: randomUUID(),
+        occurredAt,
+        sourceResultIds: resultSnapshots.map(({ id }) => id),
+        sourceRuleSetId: ruleSet.toSnapshot().id,
+        table,
+      }).toSnapshot();
+      await transaction.groupQualification.create({
+        data: {
+          competitionId: qualification.competitionId,
+          firstParticipantId: qualification.firstParticipantId,
+          groupId: qualification.groupId,
+          id: qualification.id,
+          proposedAt: qualification.proposedAt,
+          proposedById: qualification.proposedBy,
+          revision: qualification.revision,
+          secondParticipantId: qualification.secondParticipantId,
+          sourceRuleSetId: qualification.sourceRuleSetId,
+          sources: {
+            create: qualification.sourceResultIds.map((resultId, index) => ({
+              competitionId: qualification.competitionId,
+              ordinal: index + 1,
+              resultId,
+            })),
+          },
+          status: qualification.status,
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof DomainError && error.code === 'TIE_UNRESOLVED') return;
+      throw error;
+    }
   }
 }
