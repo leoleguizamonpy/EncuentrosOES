@@ -12,3 +12,9 @@ export {
   type ConfirmPersistedOfficialDrawInput,
   type ExecutePersistedOfficialDrawInput,
 } from './official-draw-service.js';
+export {
+  PrismaMatchResultService,
+  type AnnulPersistedMatchResultInput,
+  type ConfirmPersistedMatchResultInput,
+  type RecordPersistedMatchResultInput,
+} from './match-result-service.js';
