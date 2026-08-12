@@ -18,10 +18,16 @@ export interface GroupTableRow {
   readonly sportPointsAgainst: number;
   readonly sportPointsFor: number;
   readonly tablePoints: number;
+  readonly tied: boolean;
   readonly wins: number;
 }
 
-type MutableRow = { -readonly [Key in keyof Omit<GroupTableRow, 'position'>]: Omit<GroupTableRow, 'position'>[Key] };
+type MutableRow = {
+  -readonly [Key in keyof Omit<GroupTableRow, 'position' | 'tied'>]: Omit<
+    GroupTableRow,
+    'position' | 'tied'
+  >[Key]
+};
 
 function outcomePoints(ruleSet: CompetitionRuleSetSnapshot, code: string): number {
   const outcome = ruleSet.outcomes.find((candidate) => candidate.code === code);
@@ -31,7 +37,7 @@ function outcomePoints(ruleSet: CompetitionRuleSetSnapshot, code: string): numbe
   return outcome.tablePoints;
 }
 
-function value(row: MutableRow, criterion: TieBreakCriterion): number {
+function value(row: MutableRow, criterion: Exclude<TieBreakCriterion, 'HEAD_TO_HEAD_TABLE_POINTS'>): number {
   switch (criterion) {
     case 'TABLE_POINTS': return row.tablePoints;
     case 'WINS': return row.wins;
@@ -41,12 +47,48 @@ function value(row: MutableRow, criterion: TieBreakCriterion): number {
     case 'SET_DIFFERENCE': return row.setDifference;
     case 'SPORT_POINTS_FOR': return row.sportPointsFor;
     case 'SPORT_POINT_DIFFERENCE': return row.sportPointDifference;
-    case 'HEAD_TO_HEAD_TABLE_POINTS':
-      throw new DomainError(
-        'TABLE_CALCULATION_INVALID',
-        'Head-to-head mini-tables are not implemented yet.',
-      );
   }
+}
+
+function headToHeadPoints(
+  participantIds: readonly string[],
+  results: readonly MatchResultSnapshot[],
+  ruleSet: CompetitionRuleSetSnapshot,
+): ReadonlyMap<string, number> {
+  const participants = new Set(participantIds);
+  const points = new Map(participantIds.map((participantId) => [participantId, 0]));
+  for (const result of results) {
+    if (
+      result.status !== 'CONFIRMED' ||
+      !participants.has(result.participantAId) ||
+      !participants.has(result.participantBId)
+    ) continue;
+    points.set(
+      result.participantAId,
+      (points.get(result.participantAId) ?? 0) + outcomePoints(ruleSet, result.resolved.outcomeA),
+    );
+    points.set(
+      result.participantBId,
+      (points.get(result.participantBId) ?? 0) + outcomePoints(ruleSet, result.resolved.outcomeB),
+    );
+  }
+  return points;
+}
+
+function splitByValue(
+  rows: readonly MutableRow[],
+  metric: (row: MutableRow) => number,
+): readonly (readonly MutableRow[])[] {
+  const buckets = new Map<number, MutableRow[]>();
+  for (const row of rows) {
+    const score = metric(row);
+    const bucket = buckets.get(score) ?? [];
+    bucket.push(row);
+    buckets.set(score, bucket);
+  }
+  return [...buckets.entries()]
+    .sort(([left], [right]) => right - left)
+    .map(([, bucket]) => bucket);
 }
 
 export function calculateGroupTable(
@@ -92,12 +134,29 @@ export function calculateGroupTable(
     row.setDifference = row.setsWon - row.setsLost;
     row.sportPointDifference = row.sportPointsFor - row.sportPointsAgainst;
   }
-  const ordered = [...rows.values()].sort((left, right) => {
-    for (const criterion of ruleSet.tieBreakCriteria) {
-      const difference = value(right, criterion) - value(left, criterion);
-      if (difference !== 0) return difference;
+  let partitions: readonly (readonly MutableRow[])[] = [[...rows.values()]];
+  const confirmedResults = results.filter(({ status }) => status === 'CONFIRMED');
+  for (const criterion of ruleSet.tieBreakCriteria) {
+    partitions = partitions.flatMap((partition) => {
+      if (partition.length < 2) return [partition];
+      if (criterion === 'HEAD_TO_HEAD_TABLE_POINTS') {
+        const miniTable = headToHeadPoints(
+          partition.map(({ participantId }) => participantId),
+          confirmedResults,
+          ruleSet,
+        );
+        return splitByValue(partition, ({ participantId }) => miniTable.get(participantId) ?? 0);
+      }
+      return splitByValue(partition, (row) => value(row, criterion));
+    });
+  }
+  const ordered: GroupTableRow[] = [];
+  for (const partition of partitions) {
+    const position = ordered.length + 1;
+    const tied = partition.length > 1;
+    for (const row of [...partition].sort((left, right) => left.participantId.localeCompare(right.participantId))) {
+      ordered.push(Object.freeze({ ...row, position, tied }));
     }
-    return left.participantId.localeCompare(right.participantId);
-  });
-  return Object.freeze(ordered.map((row, index) => Object.freeze({ ...row, position: index + 1 })));
+  }
+  return Object.freeze(ordered);
 }

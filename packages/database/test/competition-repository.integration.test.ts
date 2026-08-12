@@ -12,6 +12,7 @@ import {
   PrismaCompetitionLockService,
   PrismaCompetitionRuleSetRepository,
   PrismaDrawConfigurationRepository,
+  PrismaGroupQualificationService,
   PrismaOfficialDrawService,
   PrismaMatchResultService,
 } from '../src/index.js';
@@ -27,6 +28,7 @@ const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
 const drawRepository = new PrismaDrawConfigurationRepository(client);
 const officialDrawService = new PrismaOfficialDrawService(client);
 const matchResultService = new PrismaMatchResultService(client);
+const qualificationService = new PrismaGroupQualificationService(client);
 
 const ids = {
   actor: '10000000-0000-4000-8000-000000000001',
@@ -295,6 +297,39 @@ async function prepareConfirmedDraw(
     expectedRevision: 1,
     occurredAt,
   });
+}
+
+async function completeGroup(): Promise<readonly string[]> {
+  await prepareConfirmedDraw();
+  const matches = await client.logicalMatch.findMany({ orderBy: { ordinal: 'asc' } });
+  const resultIds = [
+    'c0000000-0000-4000-8000-000000000001',
+    'c0000000-0000-4000-8000-000000000002',
+    'c0000000-0000-4000-8000-000000000003',
+  ] as const;
+  for (const [index, match] of matches.entries()) {
+    const participantAWins = match.participantAId.localeCompare(match.participantBId) < 0;
+    const resultId = resultIds[index];
+    if (resultId === undefined) throw new Error('Unexpected group match count');
+    await matchResultService.record({
+      actorId: ids.actor,
+      detail: {
+        profile: 'SCORE_BASED',
+        scoreA: participantAWins ? 1 : 0,
+        scoreB: participantAWins ? 0 : 1,
+      },
+      matchId: match.id,
+      occurredAt,
+      resultId,
+    });
+    await matchResultService.confirm({
+      actorId: ids.confirmer,
+      expectedRevision: 1,
+      occurredAt,
+      resultId,
+    });
+  }
+  return resultIds;
 }
 
 integration('PrismaCompetitionRepository', () => {
@@ -766,6 +801,62 @@ integration('PrismaCompetitionRepository', () => {
     expect(await client.groupStanding.findMany()).toEqual(
       expect.arrayContaining([expect.objectContaining({ played: 0, tablePoints: 0 })]),
     );
+  });
+
+  it('creates and independently confirms two qualifiers only when the group is complete', async () => {
+    await completeGroup();
+    const proposal = await client.groupQualification.findFirstOrThrow({
+      include: { sources: true },
+    });
+    expect(proposal).toMatchObject({
+      proposedById: ids.actor,
+      status: 'PENDING_CONFIRMATION',
+      revision: 1,
+    });
+    expect(proposal.sources).toHaveLength(3);
+    await expect(qualificationService.confirm({
+      actorId: ids.actor,
+      expectedRevision: 1,
+      occurredAt,
+      qualificationId: proposal.id,
+    })).rejects.toMatchObject({
+      code: 'QUALIFICATION_CONFIRMATION_INVALID',
+    } satisfies Partial<DomainError>);
+    const confirmed = await qualificationService.confirm({
+      actorId: ids.confirmer,
+      expectedRevision: 1,
+      occurredAt,
+      qualificationId: proposal.id,
+    });
+    expect(confirmed.toSnapshot()).toMatchObject({
+      confirmedBy: ids.confirmer,
+      status: 'CONFIRMED',
+      revision: 2,
+    });
+  });
+
+  it('invalidates a qualification when one of its source results is annulled', async () => {
+    const [resultId] = await completeGroup();
+    const proposal = await client.groupQualification.findFirstOrThrow();
+    await qualificationService.confirm({
+      actorId: ids.confirmer,
+      expectedRevision: 1,
+      occurredAt,
+      qualificationId: proposal.id,
+    });
+    if (resultId === undefined) throw new Error('Expected a result source');
+    await matchResultService.annul({
+      actorId: ids.confirmer,
+      expectedRevision: 2,
+      occurredAt,
+      reason: 'Corrección oficial',
+      resultId,
+    });
+    expect(await client.groupQualification.findUnique({ where: { id: proposal.id } })).toMatchObject({
+      invalidatedById: ids.confirmer,
+      status: 'INVALIDATED',
+      revision: 3,
+    });
   });
 
   it('requires a winner in knockout and persists the confirmed winner', async () => {

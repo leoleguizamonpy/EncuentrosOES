@@ -8,7 +8,7 @@ La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md) y de las especif
 
 ## Estado
 
-El proyecto inicia su implementación incremental. La primera vertical incorpora el monorepo, el pipeline de calidad y las reglas puras de distribución de grupos.
+El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. Las aplicaciones web y API todavía no están implementadas.
 
 ## Requisitos
 

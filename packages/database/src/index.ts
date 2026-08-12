@@ -18,3 +18,8 @@ export {
   type ConfirmPersistedMatchResultInput,
   type RecordPersistedMatchResultInput,
 } from './match-result-service.js';
+export {
+  PrismaGroupQualificationService,
+  type AnnulPersistedGroupQualificationInput,
+  type ConfirmPersistedGroupQualificationInput,
+} from './group-qualification-service.js';
