@@ -179,7 +179,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
             </form>
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
-          <OfficialDrawPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
+          <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
         </div>
       </main>
     </div>
