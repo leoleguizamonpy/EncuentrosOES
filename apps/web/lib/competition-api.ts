@@ -41,6 +41,31 @@ export type RuleSetConfiguration =
   | Readonly<{ lossPoints: number; resultProfile: 'SET_BASED'; setsToWin: number; tieBreakCriteria: readonly SetTieBreakCriterion[]; winPoints: number }>;
 export type CompetitionRuleSet = RuleSetConfiguration & Readonly<{ canonicalHash: string | null; frozenAt: string | null; id: string; revision: number; status: 'DRAFT' | 'FROZEN' | 'REPLACED' }>;
 
+export interface DrawParticipantView { readonly displayName: string; readonly id: string }
+export type OfficialDrawResult =
+  | Readonly<{ formatCode: 'GROUP_STAGE'; groups: readonly Readonly<{ label: string; members: readonly DrawParticipantView[]; ordinal: number }>[] }>
+  | Readonly<{ bye: Readonly<{ participant: DrawParticipantView; priorByeCount: number }> | null; formatCode: 'KNOCKOUT'; pairings: readonly Readonly<{ ordinal: number; participantA: DrawParticipantView; participantB: DrawParticipantView }>[]; roundNumber: number }>;
+export interface DrawWorkspace {
+  readonly competitionId: string;
+  readonly competitionRevision: number;
+  readonly competitionStatus: CompetitionSummary['status'];
+  readonly configuration: Readonly<{ canonicalHash: string; formatCode: 'GROUP_STAGE' | 'KNOCKOUT'; groupCount: number | null; id: string; participantCount: number; revision: number; roundNumber: number; status: 'FROZEN' }> | null;
+  readonly execution: Readonly<{
+    confirmedAt: string | null;
+    confirmedBy: DrawParticipantView | null;
+    evidenceHash: string;
+    executedAt: string;
+    executedBy: DrawParticipantView;
+    id: string;
+    matchCount: number;
+    result: OfficialDrawResult;
+    revision: number;
+    seedCommitment: string;
+    seedHex: string | null;
+    status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
+  }> | null;
+}
+
 export interface CreateCompetitionInput {
   readonly editionId: string;
   readonly eventId: string;
@@ -127,6 +152,22 @@ export function saveCompetitionRuleSet(
 
 export function freezeCompetitionRuleSet(id: string, expectedRevision: number): Promise<CompetitionDetail> {
   return mutate(`/competitions/${id}/rules/freeze`, 'POST', { expectedRevision });
+}
+
+export function drawWorkspace(competitionId: string): Promise<DrawWorkspace> {
+  return get(`/competitions/${competitionId}/draw-workspace`);
+}
+
+export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> {
+  return mutate(`/competitions/${competitionId}/draw-workspace/prepare`, 'POST', { expectedRevision });
+}
+
+export function executeOfficialDraw(configurationId: string, expectedRevision: number): Promise<DrawWorkspace> {
+  return mutate(`/draw-configurations/${configurationId}/execute`, 'POST', { expectedRevision });
+}
+
+export function confirmOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
+  return mutate(`/official-draws/${executionId}/confirm`, 'POST', { expectedRevision });
 }
 
 export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> {
