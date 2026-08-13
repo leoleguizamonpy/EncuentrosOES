@@ -9,6 +9,7 @@ import {
 import {
   DRAW_STORE,
   DrawStoreError,
+  type AnnulDrawInput,
   type ConfirmDrawInput,
   type DrawStore,
   type DrawWorkspace,
@@ -36,6 +37,10 @@ export class DrawsService {
     return this.#handle(() => this.store.confirm(input));
   }
 
+  public annul(input: AnnulDrawInput): Promise<DrawWorkspace> {
+    return this.#handle(() => this.store.annul(input));
+  }
+
   async #handle(operation: () => Promise<DrawWorkspace>): Promise<DrawWorkspace> {
     try {
       return await operation();
@@ -44,7 +49,7 @@ export class DrawsService {
       if (error.code === 'COMPETITION_NOT_FOUND' || error.code === 'DRAW_NOT_FOUND') {
         throw new NotFoundException(error.message);
       }
-      if (error.code === 'DRAW_CONFIGURATION_INVALID' || error.code === 'DRAW_EXECUTION_INVALID') {
+      if (error.code === 'DRAW_ANNULMENT_INVALID' || error.code === 'DRAW_CONFIGURATION_INVALID' || error.code === 'DRAW_EXECUTION_INVALID') {
         throw new UnprocessableEntityException(error.message);
       }
       throw new ConflictException(error.message);

@@ -22,6 +22,7 @@ import {
 import { API_CONFIG, type ApiConfig } from '../src/config.js';
 import {
   DRAW_STORE,
+  type AnnulDrawInput,
   type ConfirmDrawInput,
   type DrawStore,
   type DrawWorkspace,
@@ -162,6 +163,7 @@ function drawWorkspace(state: 'CONFIRMED' | 'EMPTY' | 'PENDING' | 'PREPARED'): D
 }
 
 class FakeDrawStore implements DrawStore {
+  public readonly annulled: AnnulDrawInput[] = [];
   public readonly prepared: PrepareDrawInput[] = [];
   public readonly executed: ExecuteDrawInput[] = [];
   public readonly confirmed: ConfirmDrawInput[] = [];
@@ -169,6 +171,7 @@ class FakeDrawStore implements DrawStore {
   public prepare(input: PrepareDrawInput): Promise<DrawWorkspace> { this.prepared.push(input); return Promise.resolve(drawWorkspace('PREPARED')); }
   public execute(input: ExecuteDrawInput): Promise<DrawWorkspace> { this.executed.push(input); return Promise.resolve(drawWorkspace('PENDING')); }
   public confirm(input: ConfirmDrawInput): Promise<DrawWorkspace> { this.confirmed.push(input); return Promise.resolve(drawWorkspace('CONFIRMED')); }
+  public annul(input: AnnulDrawInput): Promise<DrawWorkspace> { this.annulled.push(input); return Promise.resolve(drawWorkspace('PREPARED')); }
 }
 
 interface RunningApplication {
@@ -378,6 +381,29 @@ describe('competitions HTTP boundary', () => {
     expect(drawStore.prepared[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: 1 });
     expect(drawStore.executed[0]).toMatchObject({ expectedRevision: 2 });
     expect(drawStore.confirmed[0]).toMatchObject({ expectedRevision: 1 });
+  });
+
+  it('only lets a superadministrator annul a confirmed draw with a reason', async () => {
+    const superadmin = await start('SUPERADMIN');
+    const auth = await authenticate(superadmin.app);
+    const path = '/api/v1/official-draws/b0000000-0000-4000-8000-000000000001/annul';
+    const headers = { Cookie: auth.session, Origin: config.webOrigin, 'X-CSRF-Token': auth.csrf, 'Idempotency-Key': 'draw-annul-0000001' };
+    await request(server(superadmin.app)).post(path).set(headers)
+      .send({ expectedRevision: 2, reason: 'La nómina oficial contenía un participante incorrecto.' })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ execution: null }));
+    expect(superadmin.drawStore.annulled[0]).toMatchObject({
+      actorRole: 'SUPERADMIN', expectedRevision: 2,
+      reason: 'La nómina oficial contenía un participante incorrecto.',
+    });
+
+    const admin = await start('ADMIN');
+    const adminAuth = await authenticate(admin.app);
+    await request(server(admin.app)).post(path)
+      .set({ Cookie: adminAuth.session, Origin: config.webOrigin, 'X-CSRF-Token': adminAuth.csrf, 'Idempotency-Key': 'draw-annul-0000002' })
+      .send({ expectedRevision: 2, reason: 'Intento de anulación sin autoridad suficiente.' })
+      .expect(403);
+    expect(admin.drawStore.annulled).toHaveLength(0);
   });
 });
 

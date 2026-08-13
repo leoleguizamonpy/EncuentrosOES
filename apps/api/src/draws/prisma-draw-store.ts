@@ -20,6 +20,7 @@ import {
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
 import {
   DrawStoreError,
+  type AnnulDrawInput,
   type ConfirmDrawInput,
   type DrawStore,
   type DrawWorkspace,
@@ -31,8 +32,9 @@ import {
 const PREPARE_SCOPE = 'draw:prepare';
 const EXECUTE_SCOPE = 'draw:execute';
 const CONFIRM_SCOPE = 'draw:confirm';
+const ANNUL_SCOPE = 'draw:annul';
 
-type MutationInput = PrepareDrawInput | ExecuteDrawInput | ConfirmDrawInput;
+type MutationInput = PrepareDrawInput | ExecuteDrawInput | ConfirmDrawInput | AnnulDrawInput;
 
 function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
@@ -54,6 +56,7 @@ function authorityRole(role: MutationInput['actorRole']): AuthorityRole {
 function mutationDigest(input: MutationInput): string {
   return sha256(JSON.stringify({
     expectedRevision: input.expectedRevision,
+    ...('reason' in input ? { reason: input.reason.trim() } : {}),
     ...('competitionId' in input
       ? { competitionId: input.competitionId }
       : 'configurationId' in input
@@ -69,7 +72,7 @@ function parseReplay(value: unknown): DrawWorkspace {
   return value as unknown as DrawWorkspace;
 }
 
-function mappedDomainError(error: DomainError, fallback: 'DRAW_CONFIGURATION_INVALID' | 'DRAW_CONFIRMATION_INVALID' | 'DRAW_EXECUTION_INVALID'): DrawStoreError {
+function mappedDomainError(error: DomainError, fallback: 'DRAW_ANNULMENT_INVALID' | 'DRAW_CONFIGURATION_INVALID' | 'DRAW_CONFIRMATION_INVALID' | 'DRAW_EXECUTION_INVALID'): DrawStoreError {
   return new DrawStoreError(error.code === 'CONCURRENCY_CONFLICT' ? 'CONCURRENCY_CONFLICT' : fallback, error.message);
 }
 
@@ -299,6 +302,53 @@ export class PrismaDrawStore implements DrawStore {
     }
   }
 
+  public async annul(input: AnnulDrawInput): Promise<DrawWorkspace> {
+    try {
+      return await this.client.$transaction(async (transaction) => {
+        const replay = await this.#beginMutation(transaction, input, ANNUL_SCOPE);
+        if (replay !== null) return replay;
+        const draw = await this.#officialDraw(transaction, input.executionId);
+        if (draw === null) throw new DrawStoreError('DRAW_NOT_FOUND', 'The official draw does not exist.');
+        try {
+          draw.annul({
+            actorId: input.actorId,
+            actorRole: authorityRole(input.actorRole),
+            expectedRevision: input.expectedRevision,
+            occurredAt: new Date(),
+            reason: input.reason,
+          });
+        } catch (error: unknown) {
+          if (error instanceof DomainError) throw mappedDomainError(error, 'DRAW_ANNULMENT_INVALID');
+          throw error;
+        }
+        const snapshot = draw.toSnapshot();
+        const changed = await transaction.officialDraw.updateMany({
+          data: {
+            annulledAt: snapshot.annulledAt,
+            annulledById: snapshot.annulledBy,
+            annulmentReason: snapshot.annulmentReason,
+            revision: snapshot.revision,
+            status: snapshot.status,
+          },
+          where: { id: snapshot.id, revision: input.expectedRevision, status: 'CONFIRMED' },
+        });
+        if (changed.count !== 1) throw new DrawStoreError('CONCURRENCY_CONFLICT', 'The official draw revision is stale.');
+        await transaction.auditEntry.create({ data: {
+          actionCode: 'OFFICIAL_DRAW_ANNULLED', actorId: input.actorId, actorRole: input.actorRole,
+          competitionId: snapshot.competitionId, correlationId: input.correlationId, id: randomUUID(),
+          metadata: { evidenceHash: snapshot.evidence.evidenceHash, reason: snapshot.annulmentReason },
+          resourceId: snapshot.id, resourceType: 'OFFICIAL_DRAW', revisionAfter: snapshot.revision,
+          revisionBefore: input.expectedRevision,
+        } });
+        const response = await this.#workspace(transaction, snapshot.competitionId);
+        await this.#completeMutation(transaction, input, ANNUL_SCOPE, response);
+        return response;
+      }, { isolationLevel: 'Serializable' });
+    } catch (error: unknown) {
+      return this.#recoverMutation(error, input, ANNUL_SCOPE, 'DRAW_ANNULMENT_INVALID');
+    }
+  }
+
   async #workspace(transaction: Prisma.TransactionClient, competitionId: string): Promise<DrawWorkspace> {
     const competition = await transaction.competition.findUnique({ select: { id: true, revision: true, status: true }, where: { id: competitionId } });
     if (competition === null) throw new DrawStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
@@ -480,7 +530,7 @@ export class PrismaDrawStore implements DrawStore {
     await transaction.idempotencyRecord.update({ data: { completedAt: new Date(), resourceId: response.competitionId, resourceType: 'COMPETITION', responseBody: response as unknown as Prisma.InputJsonValue, responseStatus: 200, status: 'COMPLETED' }, where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: sha256(input.idempotencyKey), scope } } });
   }
 
-  async #recoverMutation(error: unknown, input: MutationInput, scope: string, fallback: 'DRAW_CONFIGURATION_INVALID' | 'DRAW_CONFIRMATION_INVALID' | 'DRAW_EXECUTION_INVALID'): Promise<DrawWorkspace> {
+  async #recoverMutation(error: unknown, input: MutationInput, scope: string, fallback: 'DRAW_ANNULMENT_INVALID' | 'DRAW_CONFIGURATION_INVALID' | 'DRAW_CONFIRMATION_INVALID' | 'DRAW_EXECUTION_INVALID'): Promise<DrawWorkspace> {
     if (!isUniqueConstraint(error)) throw error;
     const existing = await this.client.idempotencyRecord.findUnique({ where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: sha256(input.idempotencyKey), scope } } });
     if (existing !== null) return this.#existingResponse(existing.requestHash, existing.status, existing.responseBody, mutationDigest(input));
