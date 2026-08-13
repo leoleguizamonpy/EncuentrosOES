@@ -10,6 +10,7 @@ import { DrawsService } from './draws.service.js';
 const uuidSchema = z.uuid();
 const idempotencySchema = z.string().min(16).max(120).regex(/^[A-Za-z0-9._:-]+$/);
 const revisionSchema = z.object({ expectedRevision: z.int().positive() }).strict();
+const annulmentSchema = z.object({ expectedRevision: z.int().positive(), reason: z.string().trim().min(10).max(500) }).strict();
 
 @Controller()
 @RequireRoles('ADMIN', 'OPERATOR', 'SUPERADMIN')
@@ -69,6 +70,28 @@ export class DrawsController {
       ...this.#mutation(executionId, body, idempotencyKey, correlationId, request),
       executionId,
     });
+  }
+
+  @HttpCode(200)
+  @Post('official-draws/:executionId/annul')
+  @RequireRoles('SUPERADMIN')
+  public annul(
+    @Param('executionId') executionId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<DrawsService['annul']> {
+    const parsedBody = annulmentSchema.safeParse(body);
+    if (!parsedBody.success) throw new BadRequestException('An annulment reason between 10 and 500 characters is required.');
+    const mutation = this.#mutation(
+      executionId,
+      { expectedRevision: parsedBody.data.expectedRevision },
+      idempotencyKey,
+      correlationId,
+      request,
+    );
+    return this.service.annul({ ...mutation, executionId, reason: parsedBody.data.reason });
   }
 
   #mutation(

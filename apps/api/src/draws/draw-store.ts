@@ -86,10 +86,15 @@ export interface ConfirmDrawInput extends DrawMutationInput {
   readonly expectedRevision: number;
 }
 
+export interface AnnulDrawInput extends ConfirmDrawInput {
+  readonly reason: string;
+}
+
 export type DrawStoreErrorCode =
   | 'COMPETITION_NOT_FOUND'
   | 'CONCURRENCY_CONFLICT'
   | 'DRAW_CONFIRMATION_INVALID'
+  | 'DRAW_ANNULMENT_INVALID'
   | 'DRAW_CONFIGURATION_INVALID'
   | 'DRAW_EXECUTION_INVALID'
   | 'DRAW_NOT_FOUND'
@@ -104,6 +109,7 @@ export class DrawStoreError extends Error {
 }
 
 export interface DrawStore {
+  annul(input: AnnulDrawInput): Promise<DrawWorkspace>;
   confirm(input: ConfirmDrawInput): Promise<DrawWorkspace>;
   execute(input: ExecuteDrawInput): Promise<DrawWorkspace>;
   prepare(input: PrepareDrawInput): Promise<DrawWorkspace>;
