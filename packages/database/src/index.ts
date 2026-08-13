@@ -1,4 +1,5 @@
 export { createPrismaClient, type PrismaClient } from './client.js';
+export { Prisma } from './generated/prisma/client.js';
 export { PrismaCompetitionRepository } from './competition-repository.js';
 export {
   PrismaCompetitionLockService,

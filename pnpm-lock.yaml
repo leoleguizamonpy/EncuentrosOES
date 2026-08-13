@@ -47,6 +47,9 @@ importers:
       '@oes/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@oes/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
