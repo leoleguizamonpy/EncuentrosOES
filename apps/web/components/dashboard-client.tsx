@@ -51,7 +51,7 @@ export function DashboardClient(): React.JSX.Element {
         <nav aria-label="Navegación principal">
           <a className="nav-item nav-item--active" href="/dashboard">Resumen</a>
           <span className="nav-heading">Gestión competitiva</span>
-          <span className="nav-item nav-item--disabled">Competencias <small>Próximo</small></span>
+          <a className="nav-item" href="/competitions">Competencias</a>
           <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
           <span className="nav-item nav-item--disabled">Resultados <small>Próximo</small></span>
         </nav>
@@ -76,7 +76,7 @@ export function DashboardClient(): React.JSX.Element {
           <div className="readiness" aria-label="Estado de módulos">
             <div><strong>Identidad</strong><span className="ready">Operativa</span></div>
             <div><strong>Persistencia</strong><span className="ready">Operativa</span></div>
-            <div><strong>Competencias</strong><span>En construcción</span></div>
+            <div><strong>Competencias</strong><span className="ready">Operativa</span></div>
           </div>
         </section>
         <section className="principles-grid" aria-label="Garantías del sistema">

@@ -46,6 +46,8 @@ model User {
   qualificationsInvalidated GroupQualification[] @relation("QualificationInvalidatedBy")
   qualificationsAnnulled GroupQualification[]     @relation("QualificationAnnulledBy")
   sessions           UserSession[]
+  auditEntries       AuditEntry[]
+  idempotencyRecords IdempotencyRecord[]
 
   @@map("users")
 }
@@ -183,11 +185,56 @@ model Competition {
   officialDraws OfficialDraw[]
   matches       LogicalMatch[]
   groupQualifications GroupQualification[]
+  auditEntries AuditEntry[]
 
   @@unique([editionId, eventId, sportId, modalityId])
   @@unique([eventId, id])
   @@index([editionId, eventId, status])
   @@map("competitions")
+}
+
+model AuditEntry {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  occurredAt     DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorId        String?      @map("actor_id") @db.Uuid
+  actorRole      String       @map("actor_role")
+  actionCode     String       @map("action_code")
+  resourceType   String       @map("resource_type")
+  resourceId     String       @map("resource_id") @db.Uuid
+  competitionId  String?      @map("competition_id") @db.Uuid
+  revisionBefore Int?         @map("revision_before")
+  revisionAfter  Int?         @map("revision_after")
+  correlationId  String       @map("correlation_id") @db.Uuid
+  reason         String?
+  metadata       Json         @default("{}") @db.JsonB
+  actor          User?        @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  competition    Competition? @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+
+  @@index([competitionId, occurredAt(sort: Desc)])
+  @@index([resourceType, resourceId, occurredAt])
+  @@index([correlationId])
+  @@map("audit_entries")
+}
+
+model IdempotencyRecord {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId            String    @map("actor_id") @db.Uuid
+  scope              String
+  idempotencyKeyHash String    @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String    @map("request_hash") @db.Char(64)
+  status             String
+  responseStatus     Int?      @map("response_status")
+  responseBody       Json?     @map("response_body") @db.JsonB
+  resourceType       String?   @map("resource_type")
+  resourceId         String?   @map("resource_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+  expiresAt          DateTime  @map("expires_at") @db.Timestamptz(6)
+  actor              User      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([actorId, scope, idempotencyKeyHash])
+  @@index([expiresAt])
+  @@map("idempotency_records")
 }
 
 model CompetitionParticipant {
