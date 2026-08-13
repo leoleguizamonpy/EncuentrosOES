@@ -89,6 +89,58 @@ export interface PublicDrawPublication {
   readonly verified: boolean;
 }
 
+export type ResultDetail =
+  | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number }>
+  | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>;
+export interface MatchResultView {
+  readonly confirmedAt: string | null;
+  readonly confirmedBy: DrawParticipantView | null;
+  readonly detail: ResultDetail;
+  readonly id: string;
+  readonly recordedAt: string;
+  readonly recordedBy: DrawParticipantView;
+  readonly resolved: Readonly<{ scoreA: number; scoreB: number; setsWonA: number; setsWonB: number; winnerParticipantId: string | null }>;
+  readonly revision: number;
+  readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
+}
+export interface ResultMatchView {
+  readonly group: Readonly<{ id: string; label: string }> | null;
+  readonly id: string;
+  readonly ordinal: number;
+  readonly participantA: DrawParticipantView;
+  readonly participantB: DrawParticipantView;
+  readonly result: MatchResultView | null;
+  readonly roundNumber: number;
+  readonly status: 'PENDING_RESULT' | 'RESULT_CONFIRMED' | 'RESULT_PENDING_CONFIRMATION';
+  readonly winnerParticipantId: string | null;
+}
+export interface StandingRowView {
+  readonly draws: number;
+  readonly losses: number;
+  readonly participant: DrawParticipantView;
+  readonly played: number;
+  readonly position: number;
+  readonly scoreAgainst: number;
+  readonly scoreDifference: number;
+  readonly scoreFor: number;
+  readonly setDifference: number;
+  readonly setsLost: number;
+  readonly setsWon: number;
+  readonly sportPointDifference: number;
+  readonly sportPointsAgainst: number;
+  readonly sportPointsFor: number;
+  readonly tablePoints: number;
+  readonly tied: boolean;
+  readonly wins: number;
+}
+export interface ResultsWorkspace {
+  readonly competitionId: string;
+  readonly competitionStatus: CompetitionSummary['status'];
+  readonly groups: readonly Readonly<{ complete: boolean; id: string; label: string; ordinal: number; standings: readonly StandingRowView[] }>[];
+  readonly matches: readonly ResultMatchView[];
+  readonly resultProfile: 'SCORE_BASED' | 'SET_BASED' | null;
+}
+
 export interface CreateCompetitionInput {
   readonly editionId: string;
   readonly eventId: string;
@@ -179,6 +231,10 @@ export function freezeCompetitionRuleSet(id: string, expectedRevision: number): 
 
 export function drawWorkspace(competitionId: string): Promise<DrawWorkspace> {
   return get(`/competitions/${competitionId}/draw-workspace`);
+}
+
+export function resultsWorkspace(competitionId: string): Promise<ResultsWorkspace> {
+  return get(`/competitions/${competitionId}/results-workspace`);
 }
 
 export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> {
