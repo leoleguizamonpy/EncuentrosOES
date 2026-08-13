@@ -13,6 +13,9 @@ const ids = {
   actor: '10000000-0000-4000-8000-000000000091',
   edition: '30000000-0000-4000-8000-000000000091',
   event: '40000000-0000-4000-8000-000000000091',
+  institutionA: '70000000-0000-4000-8000-000000000091',
+  institutionB: '70000000-0000-4000-8000-000000000092',
+  institutionC: '70000000-0000-4000-8000-000000000093',
   modality: '60000000-0000-4000-8000-000000000091',
   sport: '80000000-0000-4000-8000-000000000091',
 };
@@ -43,6 +46,13 @@ async function seed(): Promise<void> {
   await client.modality.create({ data: { code: 'MALE', id: ids.modality, name: 'Masculina' } });
   await client.eventSportModality.create({
     data: { eventId: ids.event, modalityId: ids.modality, sportId: ids.sport },
+  });
+  await client.institution.createMany({
+    data: [
+      { code: 'CA', createdById: ids.actor, eventId: ids.event, id: ids.institutionA, name: 'Colegio A', normalizedName: 'colegio a', updatedById: ids.actor },
+      { code: 'CB', createdById: ids.actor, eventId: ids.event, id: ids.institutionB, name: 'Colegio B', normalizedName: 'colegio b', updatedById: ids.actor },
+      { code: 'CC', createdById: ids.actor, eventId: ids.event, id: ids.institutionC, name: 'Colegio C', normalizedName: 'colegio c', updatedById: ids.actor },
+    ],
   });
 }
 
@@ -75,5 +85,47 @@ integration('PrismaCompetitionStore', () => {
     expect(await client.competition.count()).toBe(1);
     expect(await client.auditEntry.count()).toBe(1);
     expect(await client.idempotencyRecord.count()).toBe(1);
+  });
+
+  it('persists participant loading and a validated group-stage setup', async () => {
+    const created = await store.create({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      correlationId: '90000000-0000-4000-8000-000000000092',
+      editionId: ids.edition,
+      eventId: ids.event,
+      idempotencyKey: 'integration-setup-create-0001',
+      modalityId: ids.modality,
+      sportId: ids.sport,
+    });
+    let revision = created.revision;
+    for (const [index, institutionId] of [ids.institutionA, ids.institutionB, ids.institutionC].entries()) {
+      const response = await store.addParticipant({
+        actorId: ids.actor,
+        actorRole: 'ADMIN',
+        competitionId: created.id,
+        correlationId: `90000000-0000-4000-8000-00000000009${String(index + 3)}`,
+        expectedRevision: revision,
+        idempotencyKey: `integration-participant-000${String(index + 1)}`,
+        institutionId,
+      });
+      revision = response.revision;
+    }
+    const configured = await store.configureFormat({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      competitionId: created.id,
+      correlationId: '90000000-0000-4000-8000-000000000096',
+      expectedRevision: revision,
+      formatCode: 'GROUP_STAGE',
+      groupCount: 1,
+      idempotencyKey: 'integration-format-0001',
+    });
+
+    expect(configured).toMatchObject({ formatCode: 'GROUP_STAGE', groupCount: 1, participantCount: 3, revision: 5 });
+    expect(configured.participants.map(({ displayName }) => displayName)).toEqual(['Colegio A', 'Colegio B', 'Colegio C']);
+    expect(configured.validGroupCounts).toEqual([1]);
+    expect(await client.auditEntry.count()).toBe(5);
+    expect(await client.idempotencyRecord.count()).toBe(5);
   });
 });

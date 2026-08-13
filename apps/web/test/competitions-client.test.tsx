@@ -31,6 +31,7 @@ const created = {
   edition,
   event: combination.event,
   formatCode: null,
+  groupCount: null,
   id: 'competition-1',
   modality: combination.modality,
   participantCount: 0,

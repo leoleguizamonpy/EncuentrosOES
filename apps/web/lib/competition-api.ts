@@ -18,12 +18,19 @@ export interface CompetitionSummary {
   readonly edition: { readonly id: string; readonly name: string; readonly year: number };
   readonly event: CatalogItem;
   readonly formatCode: 'GROUP_STAGE' | 'KNOCKOUT' | null;
+  readonly groupCount: number | null;
   readonly id: string;
   readonly modality: CatalogItem;
   readonly participantCount: number;
   readonly revision: number;
   readonly sport: CatalogItem;
   readonly status: 'DRAFT' | 'FINALIZED' | 'LOCKED' | 'OPEN';
+}
+
+export interface CompetitionDetail extends CompetitionSummary {
+  readonly institutions: readonly { readonly code: string; readonly id: string; readonly name: string; readonly selected: boolean }[];
+  readonly participants: readonly { readonly displayName: string; readonly enabledAt: string; readonly id: string; readonly institutionId: string; readonly status: 'ENABLED' | 'WITHDRAWN' }[];
+  readonly validGroupCounts: readonly number[];
 }
 
 export interface CreateCompetitionInput {
@@ -65,6 +72,21 @@ async function get<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function mutate<T>(path: string, method: 'PATCH' | 'POST', body: unknown): Promise<T> {
+  const response = await fetch(`${apiUrl}${path}`, {
+    body: JSON.stringify(body),
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': crypto.randomUUID(),
+      'X-CSRF-Token': csrfToken(),
+    },
+    method,
+  });
+  if (!response.ok) throw await problem(response);
+  return response.json() as Promise<T>;
+}
+
 export function competitionCatalog(): Promise<CompetitionCatalog> {
   return get('/competitions/catalog');
 }
@@ -73,17 +95,21 @@ export function competitions(): Promise<readonly CompetitionSummary[]> {
   return get('/competitions');
 }
 
+export function competitionDetail(id: string): Promise<CompetitionDetail> {
+  return get(`/competitions/${id}`);
+}
+
+export function addCompetitionParticipant(id: string, institutionId: string, expectedRevision: number): Promise<CompetitionDetail> {
+  return mutate(`/competitions/${id}/participants`, 'POST', { expectedRevision, institutionId });
+}
+
+export function configureCompetitionFormat(
+  id: string,
+  input: Readonly<{ expectedRevision: number; formatCode: 'GROUP_STAGE'; groupCount: number }> | Readonly<{ expectedRevision: number; formatCode: 'KNOCKOUT'; groupCount: null }>,
+): Promise<CompetitionDetail> {
+  return mutate(`/competitions/${id}/format`, 'PATCH', input);
+}
+
 export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> {
-  const response = await fetch(`${apiUrl}/competitions`, {
-    body: JSON.stringify(input),
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'Idempotency-Key': crypto.randomUUID(),
-      'X-CSRF-Token': csrfToken(),
-    },
-    method: 'POST',
-  });
-  if (!response.ok) throw await problem(response);
-  return response.json() as Promise<CompetitionSummary>;
+  return mutate('/competitions', 'POST', input);
 }

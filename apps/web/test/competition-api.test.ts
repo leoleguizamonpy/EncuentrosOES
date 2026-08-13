@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createCompetition } from '../lib/competition-api';
+import { addCompetitionParticipant, configureCompetitionFormat, createCompetition } from '../lib/competition-api';
 
 describe('competition API client', () => {
   beforeEach(() => {
@@ -23,5 +23,23 @@ describe('competition API client', () => {
       },
       method: 'POST',
     });
+  });
+
+  it('sends the persisted revision when mutating competition setup', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'competition-1', revision: 2 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'competition-1', revision: 3 }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000002')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000003');
+
+    await addCompetitionParticipant('competition-1', 'institution-1', 4);
+    await configureCompetitionFormat('competition-1', { expectedRevision: 5, formatCode: 'GROUP_STAGE', groupCount: 2 });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/participants');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 4, institutionId: 'institution-1' }), method: 'POST' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/format');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 5, formatCode: 'GROUP_STAGE', groupCount: 2 }), method: 'PATCH' });
   });
 });

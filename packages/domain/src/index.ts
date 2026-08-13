@@ -13,6 +13,7 @@ export {
   type CompetitionKey,
   type CompetitionSnapshot,
   type CompetitionStatus,
+  type ConfigureCompetitionFormatInput,
   type CreateCompetitionInput,
   type LockCompetitionInput,
   type OpenCompetitionInput,
