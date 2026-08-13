@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addCompetitionParticipant, configureCompetitionFormat, createCompetition } from '../lib/competition-api';
+import {
+  addCompetitionParticipant,
+  configureCompetitionFormat,
+  createCompetition,
+  freezeCompetitionRuleSet,
+  saveCompetitionRuleSet,
+} from '../lib/competition-api';
 
 describe('competition API client', () => {
   beforeEach(() => {
@@ -41,5 +47,31 @@ describe('competition API client', () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 4, institutionId: 'institution-1' }), method: 'POST' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/format');
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 5, formatCode: 'GROUP_STAGE', groupCount: 2 }), method: 'PATCH' });
+  });
+
+  it('saves and freezes the scoring template through revisioned endpoints', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'competition-1' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'competition-1' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000004')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000005');
+
+    await saveCompetitionRuleSet('competition-1', {
+      allowDraws: true,
+      drawPoints: 1,
+      expectedRevision: null,
+      lossPoints: 0,
+      resultProfile: 'SCORE_BASED',
+      tieBreakCriteria: ['TABLE_POINTS', 'WINS'],
+      winPoints: 3,
+    });
+    await freezeCompetitionRuleSet('competition-1', 1);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/rules');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'PATCH' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/rules/freeze');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
   });
 });

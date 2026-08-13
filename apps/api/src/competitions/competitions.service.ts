@@ -16,6 +16,8 @@ import {
   type AddStoredParticipantInput,
   type ConfigureStoredFormatInput,
   type CreateStoredCompetitionInput,
+  type FreezeStoredRuleSetInput,
+  type SaveStoredRuleSetInput,
 } from './competition-store.js';
 
 @Injectable()
@@ -44,6 +46,14 @@ export class CompetitionsService {
     return this.#handle(() => this.store.configureFormat(input));
   }
 
+  public saveRuleSet(input: SaveStoredRuleSetInput): Promise<CompetitionDetail> {
+    return this.#handle(() => this.store.saveRuleSet(input));
+  }
+
+  public freezeRuleSet(input: FreezeStoredRuleSetInput): Promise<CompetitionDetail> {
+    return this.#handle(() => this.store.freezeRuleSet(input));
+  }
+
   public async create(input: CreateStoredCompetitionInput): Promise<CompetitionSummary> {
     try {
       return await this.store.create(input);
@@ -64,7 +74,8 @@ export class CompetitionsService {
       if (error.code === 'COMPETITION_NOT_FOUND') throw new NotFoundException(error.message);
       if (
         error.code === 'FORMAT_CONFIGURATION_INVALID' ||
-        error.code === 'INSTITUTION_INVALID'
+        error.code === 'INSTITUTION_INVALID' ||
+        error.code === 'RULE_SET_INVALID'
       ) {
         throw new UnprocessableEntityException(error.message);
       }

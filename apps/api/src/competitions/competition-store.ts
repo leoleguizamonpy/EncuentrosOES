@@ -47,8 +47,50 @@ export interface CompetitionDetail extends CompetitionSummary {
     readonly institutionId: string;
     readonly status: 'ENABLED' | 'WITHDRAWN';
   }[];
+  readonly ruleSet: CompetitionRuleSetView | null;
   readonly validGroupCounts: readonly number[];
 }
+
+export type ScoreTieBreakCriterion =
+  | 'HEAD_TO_HEAD_TABLE_POINTS'
+  | 'SCORE_DIFFERENCE'
+  | 'SCORE_FOR'
+  | 'TABLE_POINTS'
+  | 'WINS';
+
+export type SetTieBreakCriterion =
+  | 'HEAD_TO_HEAD_TABLE_POINTS'
+  | 'SETS_WON'
+  | 'SET_DIFFERENCE'
+  | 'SPORT_POINTS_FOR'
+  | 'SPORT_POINT_DIFFERENCE'
+  | 'TABLE_POINTS'
+  | 'WINS';
+
+export type RuleSetConfiguration =
+  | Readonly<{
+      allowDraws: boolean;
+      drawPoints: number | null;
+      lossPoints: number;
+      resultProfile: 'SCORE_BASED';
+      tieBreakCriteria: readonly ScoreTieBreakCriterion[];
+      winPoints: number;
+    }>
+  | Readonly<{
+      lossPoints: number;
+      resultProfile: 'SET_BASED';
+      setsToWin: number;
+      tieBreakCriteria: readonly SetTieBreakCriterion[];
+      winPoints: number;
+    }>;
+
+export type CompetitionRuleSetView = RuleSetConfiguration & Readonly<{
+  readonly canonicalHash: string | null;
+  readonly frozenAt: string | null;
+  readonly id: string;
+  readonly revision: number;
+  readonly status: 'DRAFT' | 'FROZEN' | 'REPLACED';
+}>;
 
 export interface CreateStoredCompetitionInput {
   readonly actorId: string;
@@ -79,6 +121,11 @@ export type ConfigureStoredFormatInput = CompetitionMutationInput & (
   | Readonly<{ formatCode: 'KNOCKOUT'; groupCount: null }>
 );
 
+export type SaveStoredRuleSetInput = Omit<CompetitionMutationInput, 'expectedRevision'> &
+  RuleSetConfiguration & Readonly<{ expectedRevision: number | null }>;
+
+export type FreezeStoredRuleSetInput = CompetitionMutationInput;
+
 export type CompetitionStoreErrorCode =
   | 'CATALOG_SELECTION_INVALID'
   | 'COMPETITION_ALREADY_EXISTS'
@@ -89,7 +136,9 @@ export type CompetitionStoreErrorCode =
   | 'FORMAT_CONFIGURATION_INVALID'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_PROGRESS'
-  | 'INSTITUTION_INVALID';
+  | 'INSTITUTION_INVALID'
+  | 'RULE_SET_INVALID'
+  | 'RULE_SET_NOT_FOUND';
 
 export class CompetitionStoreError extends Error {
   public constructor(public readonly code: CompetitionStoreErrorCode, message: string) {
@@ -104,7 +153,9 @@ export interface CompetitionStore {
   configureFormat(input: ConfigureStoredFormatInput): Promise<CompetitionDetail>;
   create(input: CreateStoredCompetitionInput): Promise<CompetitionSummary>;
   detail(id: string): Promise<CompetitionDetail>;
+  freezeRuleSet(input: FreezeStoredRuleSetInput): Promise<CompetitionDetail>;
   list(): Promise<readonly CompetitionSummary[]>;
+  saveRuleSet(input: SaveStoredRuleSetInput): Promise<CompetitionDetail>;
 }
 
 export const COMPETITION_STORE = Symbol('COMPETITION_STORE');
