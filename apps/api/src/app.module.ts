@@ -6,6 +6,7 @@ import { CompetitionsModule } from './competitions/competitions.module.js';
 import { IdentityModule } from './identity/identity.module.js';
 import { OperationsController } from './operations.controller.js';
 import { DatabaseModule } from './persistence/database.module.js';
+import { DrawsModule } from './draws/draws.module.js';
 import { CsrfGuard } from './security/csrf.guard.js';
 import { OriginGuard } from './security/origin.guard.js';
 import { RolesGuard } from './security/roles.guard.js';
@@ -13,7 +14,7 @@ import { SessionGuard } from './security/session.guard.js';
 
 @Module({
   controllers: [OperationsController],
-  imports: [ApiConfigModule, CompetitionsModule, DatabaseModule, IdentityModule],
+  imports: [ApiConfigModule, CompetitionsModule, DatabaseModule, DrawsModule, IdentityModule],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },
     { provide: APP_GUARD, useClass: SessionGuard },

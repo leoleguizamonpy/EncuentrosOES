@@ -8,10 +8,13 @@ import {
   addCompetitionParticipant,
   competitionDetail,
   configureCompetitionFormat,
+  drawWorkspace,
   type CompetitionDetail,
+  type DrawWorkspace,
 } from '../lib/competition-api';
 import { OesMark } from './oes-mark';
 import { CompetitionRulesPanel } from './competition-rules-panel';
+import { OfficialDrawPanel } from './official-draw-panel';
 
 const roleLabels = { ADMIN: 'Administrador', OPERATOR: 'Operador', SUPERADMIN: 'Superadministrador' } as const;
 const statusLabels = { DRAFT: 'Borrador', FINALIZED: 'Finalizada', LOCKED: 'Bloqueada', OPEN: 'Abierta' } as const;
@@ -26,6 +29,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   const router = useRouter();
   const [actor, setActor] = useState<Actor | null>(null);
   const [detail, setDetail] = useState<CompetitionDetail | null>(null);
+  const [draw, setDraw] = useState<DrawWorkspace | null>(null);
   const [institutionId, setInstitutionId] = useState('');
   const [formatCode, setFormatCode] = useState<'GROUP_STAGE' | 'KNOCKOUT'>('GROUP_STAGE');
   const [groupCount, setGroupCount] = useState(0);
@@ -35,8 +39,8 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
 
   useEffect(() => {
     let active = true;
-    void Promise.all([currentActor(), competitionDetail(competitionId)])
-      .then(([current, loaded]) => {
+    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId)])
+      .then(([current, loaded, loadedDraw]) => {
         if (!active) return;
         if (current === null) {
           router.replace('/login');
@@ -44,6 +48,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
         }
         setActor(current);
         setDetail(loaded);
+        setDraw(loadedDraw);
         setFormatCode(loaded.formatCode ?? 'GROUP_STAGE');
         setGroupCount(loaded.groupCount ?? loaded.validGroupCounts[0] ?? 0);
       })
@@ -106,11 +111,16 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   }
 
   if (loading) return <main className="session-state" aria-live="polite">Recuperando configuración…</main>;
-  if (actor === null || detail === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
+  if (actor === null || detail === null || draw === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
 
   const canEdit = actor.role !== 'OPERATOR' && (detail.status === 'DRAFT' || detail.status === 'OPEN');
   const groupsAvailable = detail.validGroupCounts.length > 0;
   const knockoutAvailable = detail.participantCount >= 2;
+
+  function updateDraw(workspace: DrawWorkspace): void {
+    setDraw(workspace);
+    setDetail((current) => current === null ? current : { ...current, revision: workspace.competitionRevision, status: workspace.competitionStatus });
+  }
 
   return (
     <div className="dashboard-shell">
@@ -169,6 +179,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
             </form>
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
+          <OfficialDrawPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
         </div>
       </main>
     </div>

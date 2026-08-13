@@ -20,6 +20,14 @@ import {
   type SaveStoredRuleSetInput,
 } from '../src/competitions/competition-store.js';
 import { API_CONFIG, type ApiConfig } from '../src/config.js';
+import {
+  DRAW_STORE,
+  type ConfirmDrawInput,
+  type DrawStore,
+  type DrawWorkspace,
+  type ExecuteDrawInput,
+  type PrepareDrawInput,
+} from '../src/draws/draw-store.js';
 import { IDENTITY_STORE, type AccountRecord, type AccountRole } from '../src/identity/identity-store.js';
 import { hashPassword } from '../src/identity/password.js';
 import { FakeIdentityStore } from './fake-identity-store.js';
@@ -134,8 +142,38 @@ class FakeCompetitionStore implements CompetitionStore {
   }
 }
 
+function drawWorkspace(state: 'CONFIRMED' | 'EMPTY' | 'PENDING' | 'PREPARED'): DrawWorkspace {
+  const configuration = state === 'EMPTY' ? null : {
+    canonicalHash: 'a'.repeat(64), formatCode: 'GROUP_STAGE' as const, groupCount: 1,
+    id: 'a0000000-0000-4000-8000-000000000001', participantCount: 3, revision: 2,
+    roundNumber: 0, status: 'FROZEN' as const,
+  };
+  const execution = state === 'PENDING' || state === 'CONFIRMED' ? {
+    confirmedAt: state === 'CONFIRMED' ? '2026-08-13T18:03:00.000Z' : null,
+    confirmedBy: state === 'CONFIRMED' ? { displayName: 'Segunda autoridad', id: '10000000-0000-4000-8000-000000000002' } : null,
+    evidenceHash: 'b'.repeat(64), executedAt: '2026-08-13T18:02:00.000Z',
+    executedBy: { displayName: 'Autoridad OES', id: '10000000-0000-4000-8000-000000000001' },
+    id: 'b0000000-0000-4000-8000-000000000001', matchCount: state === 'CONFIRMED' ? 3 : 0,
+    result: { formatCode: 'GROUP_STAGE' as const, groups: [{ label: 'A', members: [], ordinal: 1 }] },
+    revision: state === 'CONFIRMED' ? 2 : 1, seedCommitment: 'c'.repeat(64),
+    seedHex: state === 'CONFIRMED' ? 'd'.repeat(64) : null, status: state === 'CONFIRMED' ? 'CONFIRMED' as const : 'PENDING_CONFIRMATION' as const,
+  } : null;
+  return { competitionId: detail().id, competitionRevision: state === 'EMPTY' ? 1 : 3, competitionStatus: state === 'EMPTY' ? 'DRAFT' : 'LOCKED', configuration, execution };
+}
+
+class FakeDrawStore implements DrawStore {
+  public readonly prepared: PrepareDrawInput[] = [];
+  public readonly executed: ExecuteDrawInput[] = [];
+  public readonly confirmed: ConfirmDrawInput[] = [];
+  public workspace(): Promise<DrawWorkspace> { return Promise.resolve(drawWorkspace('EMPTY')); }
+  public prepare(input: PrepareDrawInput): Promise<DrawWorkspace> { this.prepared.push(input); return Promise.resolve(drawWorkspace('PREPARED')); }
+  public execute(input: ExecuteDrawInput): Promise<DrawWorkspace> { this.executed.push(input); return Promise.resolve(drawWorkspace('PENDING')); }
+  public confirm(input: ConfirmDrawInput): Promise<DrawWorkspace> { this.confirmed.push(input); return Promise.resolve(drawWorkspace('CONFIRMED')); }
+}
+
 interface RunningApplication {
   readonly app: INestApplication;
+  readonly drawStore: FakeDrawStore;
   readonly store: FakeCompetitionStore;
 }
 
@@ -155,16 +193,18 @@ async function start(role: AccountRole): Promise<RunningApplication> {
   };
   const identityStore = new FakeIdentityStore(account);
   const competitionStore = new FakeCompetitionStore();
+  const drawStore = new FakeDrawStore();
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(API_CONFIG).useValue(config)
     .overrideProvider(IDENTITY_STORE).useValue(identityStore)
     .overrideProvider(COMPETITION_STORE).useValue(competitionStore)
+    .overrideProvider(DRAW_STORE).useValue(drawStore)
     .compile();
   const app = module.createNestApplication();
   configureApp(app, config);
   await app.init();
   applications.push(app);
-  return { app, store: competitionStore };
+  return { app, drawStore, store: competitionStore };
 }
 
 async function authenticate(app: INestApplication): Promise<{ csrf: string; session: string }> {
@@ -320,6 +360,24 @@ describe('competitions HTTP boundary', () => {
       .send({ allowDraws: false, drawPoints: null, expectedRevision: null, lossPoints: 0, resultProfile: 'SCORE_BASED', tieBreakCriteria: ['TABLE_POINTS'], winPoints: 3 })
       .expect(403);
     expect(store.ruleInputs).toHaveLength(0);
+  });
+
+  it('prepares, executes and confirms the persisted official draw through revisioned boundaries', async () => {
+    const { app, drawStore } = await start('ADMIN');
+    const auth = await authenticate(app);
+    const common = (key: string) => ({ Cookie: auth.session, Origin: config.webOrigin, 'X-CSRF-Token': auth.csrf, 'Idempotency-Key': key });
+    await request(server(app)).post(`/api/v1/competitions/${detail().id}/draw-workspace/prepare`)
+      .set(common('draw-prepare-0001')).send({ expectedRevision: 1 }).expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ competitionStatus: 'LOCKED', configuration: { status: 'FROZEN' } }));
+    await request(server(app)).post('/api/v1/draw-configurations/a0000000-0000-4000-8000-000000000001/execute')
+      .set(common('draw-execute-0001')).send({ expectedRevision: 2 }).expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ execution: { status: 'PENDING_CONFIRMATION' } }));
+    await request(server(app)).post('/api/v1/official-draws/b0000000-0000-4000-8000-000000000001/confirm')
+      .set(common('draw-confirm-0001')).send({ expectedRevision: 1 }).expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ execution: { matchCount: 3, status: 'CONFIRMED' } }));
+    expect(drawStore.prepared[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: 1 });
+    expect(drawStore.executed[0]).toMatchObject({ expectedRevision: 2 });
+    expect(drawStore.confirmed[0]).toMatchObject({ expectedRevision: 1 });
   });
 });
 

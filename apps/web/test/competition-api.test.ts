@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addCompetitionParticipant,
   configureCompetitionFormat,
+  confirmOfficialDraw,
   createCompetition,
+  executeOfficialDraw,
   freezeCompetitionRuleSet,
+  prepareOfficialDraw,
   saveCompetitionRuleSet,
 } from '../lib/competition-api';
 
@@ -73,5 +76,25 @@ describe('competition API client', () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'PATCH' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/rules/freeze');
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
+  });
+
+  it('uses revisioned endpoints for the complete official draw workflow', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ competitionId: 'competition-1' }), { status: 200 })));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000006')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000007')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000008');
+
+    await prepareOfficialDraw('competition-1', 7);
+    await executeOfficialDraw('configuration-1', 2);
+    await confirmOfficialDraw('execution-1', 1);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/draw-workspace/prepare');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 7 }), method: 'POST' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/draw-configurations/configuration-1/execute');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 2 }), method: 'POST' });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('http://localhost:3001/api/v1/official-draws/execution-1/confirm');
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
   });
 });
