@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
 
-import { RequireRoles } from '../security/metadata.js';
+import { Public, RequireRoles } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
 import { DrawsService } from './draws.service.js';
 
@@ -70,6 +70,45 @@ export class DrawsController {
       ...this.#mutation(executionId, body, idempotencyKey, correlationId, request),
       executionId,
     });
+  }
+
+  @HttpCode(200)
+  @Post('official-draws/:executionId/publish')
+  @RequireRoles('ADMIN', 'SUPERADMIN')
+  public publish(
+    @Param('executionId') executionId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<DrawsService['publish']> {
+    return this.service.publish({
+      ...this.#mutation(executionId, body, idempotencyKey, correlationId, request),
+      executionId,
+    });
+  }
+
+  @Get('public/draws/:publicationId')
+  @Public()
+  public publicDraw(@Param('publicationId') publicationId: string): ReturnType<DrawsService['publicDraw']> {
+    const parsed = uuidSchema.safeParse(publicationId);
+    if (!parsed.success) throw new BadRequestException('Publication identifier is invalid.');
+    return this.service.publicDraw(parsed.data);
+  }
+
+  @Get('public/draws/:publicationId/act')
+  @Header('Content-Disposition', 'attachment; filename="oes-draw-act.json"')
+  @Header('Content-Type', 'application/json; charset=utf-8')
+  @Public()
+  public act(@Param('publicationId') publicationId: string): ReturnType<DrawsService['publicDraw']> {
+    return this.publicDraw(publicationId);
+  }
+
+  @Get('public/draws/verify/:verificationCode')
+  @Public()
+  public verify(@Param('verificationCode') verificationCode: string): ReturnType<DrawsService['verify']> {
+    if (!/^[0-9a-f]{64}$/.test(verificationCode)) return Promise.resolve({ publicationId: null, valid: false });
+    return this.service.verify(verificationCode);
   }
 
   @HttpCode(200)

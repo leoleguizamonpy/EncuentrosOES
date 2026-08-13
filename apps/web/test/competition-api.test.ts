@@ -8,6 +8,7 @@ import {
   executeOfficialDraw,
   freezeCompetitionRuleSet,
   prepareOfficialDraw,
+  publishOfficialDraw,
   saveCompetitionRuleSet,
 } from '../lib/competition-api';
 
@@ -84,11 +85,13 @@ describe('competition API client', () => {
     vi.spyOn(crypto, 'randomUUID')
       .mockReturnValueOnce('00000000-0000-4000-8000-000000000006')
       .mockReturnValueOnce('00000000-0000-4000-8000-000000000007')
-      .mockReturnValueOnce('00000000-0000-4000-8000-000000000008');
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000008')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000009');
 
     await prepareOfficialDraw('competition-1', 7);
     await executeOfficialDraw('configuration-1', 2);
     await confirmOfficialDraw('execution-1', 1);
+    await publishOfficialDraw('execution-1', 2);
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/competitions/competition-1/draw-workspace/prepare');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 7 }), method: 'POST' });
@@ -96,5 +99,7 @@ describe('competition API client', () => {
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 2 }), method: 'POST' });
     expect(fetchMock.mock.calls[2]?.[0]).toBe('http://localhost:3001/api/v1/official-draws/execution-1/confirm');
     expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('http://localhost:3001/api/v1/official-draws/execution-1/publish');
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 2 }), method: 'POST' });
   });
 });

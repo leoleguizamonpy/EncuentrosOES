@@ -6,6 +6,8 @@ import {
   confirmOfficialDraw,
   executeOfficialDraw,
   prepareOfficialDraw,
+  publishOfficialDraw,
+  publicDrawActUrl,
   type CompetitionDetail,
   type DrawWorkspace,
   type OfficialDrawResult,
@@ -40,7 +42,7 @@ export function OfficialDrawPanel({
   readonly onError: (message: string | null) => void;
   readonly workspace: DrawWorkspace;
 }): React.JSX.Element {
-  const [action, setAction] = useState<'confirm' | 'execute' | 'prepare' | null>(null);
+  const [action, setAction] = useState<'confirm' | 'execute' | 'prepare' | 'publish' | null>(null);
   const [confirmLock, setConfirmLock] = useState(false);
   const configuration = workspace.configuration;
   const execution = workspace.execution;
@@ -48,7 +50,7 @@ export function OfficialDrawPanel({
   const canPrepare = canOperate && (workspace.competitionStatus === 'DRAFT' || workspace.competitionStatus === 'OPEN');
   const sameExecutor = execution?.executedBy.id === actorId;
 
-  async function run(kind: 'confirm' | 'execute' | 'prepare'): Promise<void> {
+  async function run(kind: 'confirm' | 'execute' | 'prepare' | 'publish'): Promise<void> {
     onError(null);
     setAction(kind);
     try {
@@ -56,7 +58,9 @@ export function OfficialDrawPanel({
         ? await prepareOfficialDraw(detail.id, workspace.competitionRevision)
         : kind === 'execute'
           ? await executeOfficialDraw(configuration?.id ?? '', configuration?.revision ?? 0)
-          : await confirmOfficialDraw(execution?.id ?? '', execution?.revision ?? 0);
+          : kind === 'confirm'
+            ? await confirmOfficialDraw(execution?.id ?? '', execution?.revision ?? 0)
+            : await publishOfficialDraw(execution?.id ?? '', execution?.revision ?? 0);
       onChange(next);
       setConfirmLock(false);
     } catch (caught: unknown) {
@@ -84,7 +88,10 @@ export function OfficialDrawPanel({
           <div className="draw-result__heading"><div><span>{execution.status === 'CONFIRMED' ? 'Sorteo confirmado' : 'Pendiente de confirmación'}</span><strong>Ejecutado por {execution.executedBy.displayName}</strong></div><small>{new Date(execution.executedAt).toLocaleString('es-PY')}</small></div>
           <DrawResult result={execution.result} />
           <div className="draw-evidence"><span>Hash de evidencia</span><code>{execution.evidenceHash}</code><span>Compromiso de semilla</span><code>{execution.seedCommitment}</code>{execution.seedHex === null ? null : <><span>Semilla revelada</span><code>{execution.seedHex}</code></>}</div>
-          {execution.status === 'CONFIRMED' ? <p className="draw-confirmed-proof">✓ Se generaron {execution.matchCount} encuentros automáticamente.</p> : sameExecutor ? <p className="readonly-note">La autoridad que ejecutó el sorteo no puede confirmarlo. Debe ingresar otro administrador o el superadministrador.</p> : canOperate ? <button className="primary-button" disabled={action !== null} onClick={() => void run('confirm')} type="button">{action === 'confirm' ? 'Confirmando…' : 'Confirmar sorteo y generar encuentros'}</button> : <p className="readonly-note">Esperando confirmación de una autoridad independiente.</p>}
+          {execution.status === 'CONFIRMED' ? <>
+            <p className="draw-confirmed-proof">✓ Se generaron {execution.matchCount} encuentros automáticamente.</p>
+            {workspace.publication === null ? canOperate ? <button className="primary-button" disabled={action !== null} onClick={() => void run('publish')} type="button">{action === 'publish' ? 'Publicando…' : 'Publicar sorteo y acta'}</button> : <p className="readonly-note">Esperando que una autoridad publique el sorteo.</p> : <div className="draw-publication-proof"><strong>Publicado y verificable</strong><code>{workspace.publication.verificationCode}</code><div><a href={`/draws/${workspace.publication.id}`}>Abrir vista pública</a><a href={publicDrawActUrl(workspace.publication.id)}>Descargar acta JSON</a></div></div>}
+          </> : sameExecutor ? <p className="readonly-note">La autoridad que ejecutó el sorteo no puede confirmarlo. Debe ingresar otro administrador o el superadministrador.</p> : canOperate ? <button className="primary-button" disabled={action !== null} onClick={() => void run('confirm')} type="button">{action === 'confirm' ? 'Confirmando…' : 'Confirmar sorteo y generar encuentros'}</button> : <p className="readonly-note">Esperando confirmación de una autoridad independiente.</p>}
         </div>
       )}
     </section>

@@ -1,4 +1,5 @@
 import type { AccountRole } from '../identity/identity-store.js';
+import type { PublicDrawAct } from '@oes/domain';
 
 export interface DrawConfigurationView {
   readonly canonicalHash: string;
@@ -56,12 +57,24 @@ export interface OfficialDrawView {
   readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
 }
 
+export interface DrawPublicationSummary {
+  readonly id: string;
+  readonly publishedAt: string;
+  readonly verificationCode: string;
+}
+
+export interface PublicDrawPublicationView extends DrawPublicationSummary {
+  readonly act: PublicDrawAct;
+  readonly verified: boolean;
+}
+
 export interface DrawWorkspace {
   readonly competitionId: string;
   readonly competitionRevision: number;
   readonly competitionStatus: 'DRAFT' | 'FINALIZED' | 'LOCKED' | 'OPEN';
   readonly configuration: DrawConfigurationView | null;
   readonly execution: OfficialDrawView | null;
+  readonly publication: DrawPublicationSummary | null;
 }
 
 interface DrawMutationInput {
@@ -90,6 +103,8 @@ export interface AnnulDrawInput extends ConfirmDrawInput {
   readonly reason: string;
 }
 
+export type PublishDrawInput = ConfirmDrawInput;
+
 export type DrawStoreErrorCode =
   | 'COMPETITION_NOT_FOUND'
   | 'CONCURRENCY_CONFLICT'
@@ -113,6 +128,9 @@ export interface DrawStore {
   confirm(input: ConfirmDrawInput): Promise<DrawWorkspace>;
   execute(input: ExecuteDrawInput): Promise<DrawWorkspace>;
   prepare(input: PrepareDrawInput): Promise<DrawWorkspace>;
+  publicDraw(publicationId: string): Promise<PublicDrawPublicationView>;
+  publish(input: PublishDrawInput): Promise<DrawWorkspace>;
+  verify(verificationCode: string): Promise<Readonly<{ publicationId: string | null; valid: boolean }>>;
   workspace(competitionId: string): Promise<DrawWorkspace>;
 }
 
