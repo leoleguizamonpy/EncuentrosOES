@@ -12,6 +12,7 @@ import { PUBLIC_ROUTE } from './metadata.js';
 import { type AuthenticatedRequest, readCookie } from './request.js';
 
 export const SESSION_COOKIE = 'oes_session';
+export const CSRF_COOKIE = 'oes_csrf';
 
 @Injectable()
 export class SessionGuard implements CanActivate {

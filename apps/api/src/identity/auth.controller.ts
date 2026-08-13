@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { API_CONFIG, type ApiConfig } from '../config.js';
 import { Public } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
-import { SESSION_COOKIE } from '../security/session.guard.js';
+import { CSRF_COOKIE, SESSION_COOKIE } from '../security/session.guard.js';
 import { AuthService } from './auth.service.js';
 
 const loginSchema = z.object({
@@ -23,15 +23,20 @@ const loginSchema = z.object({
   password: z.string().min(1).max(256),
 }).strict();
 
-function cookie(value: string, config: ApiConfig, expiresAt?: Date): string {
+function cookie(
+  name: string,
+  value: string,
+  config: ApiConfig,
+  options: { readonly expiresAt?: Date; readonly httpOnly: boolean; readonly path: string },
+): string {
   const attributes = [
-    `${SESSION_COOKIE}=${encodeURIComponent(value)}`,
-    'HttpOnly',
+    `${name}=${encodeURIComponent(value)}`,
     'SameSite=Lax',
-    'Path=/api/v1',
+    `Path=${options.path}`,
   ];
+  if (options.httpOnly) attributes.push('HttpOnly');
   if (config.production) attributes.push('Secure');
-  if (expiresAt !== undefined) attributes.push(`Expires=${expiresAt.toUTCString()}`);
+  if (options.expiresAt !== undefined) attributes.push(`Expires=${options.expiresAt.toUTCString()}`);
   else attributes.push('Max-Age=0');
   return attributes.join('; ');
 }
@@ -53,7 +58,18 @@ export class AuthController {
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) throw new UnauthorizedException('Invalid credentials or unavailable account.');
     const result = await this.authService.login(parsed.data.email, parsed.data.password);
-    response.setHeader('Set-Cookie', cookie(result.sessionToken, this.config, result.expiresAt));
+    response.setHeader('Set-Cookie', [
+      cookie(SESSION_COOKIE, result.sessionToken, this.config, {
+        expiresAt: result.expiresAt,
+        httpOnly: true,
+        path: '/api/v1',
+      }),
+      cookie(CSRF_COOKIE, result.csrfToken, this.config, {
+        expiresAt: result.expiresAt,
+        httpOnly: false,
+        path: '/',
+      }),
+    ]);
     response.setHeader('Cache-Control', 'no-store');
     return {
       actor: {
@@ -84,7 +100,10 @@ export class AuthController {
   ): Promise<void> {
     if (request.actor === undefined) throw new UnauthorizedException('Authentication is required.');
     await this.authService.logout(request.actor.sessionId);
-    response.setHeader('Set-Cookie', cookie('', this.config));
+    response.setHeader('Set-Cookie', [
+      cookie(SESSION_COOKIE, '', this.config, { httpOnly: true, path: '/api/v1' }),
+      cookie(CSRF_COOKIE, '', this.config, { httpOnly: false, path: '/' }),
+    ]);
     response.setHeader('Cache-Control', 'no-store');
   }
 }

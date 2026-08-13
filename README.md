@@ -8,7 +8,7 @@ La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md) y de las especif
 
 ## Estado
 
-El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. La API NestJS ya cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La interfaz web es el siguiente vertical.
+El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. La API NestJS cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La aplicación Next.js incorpora acceso institucional, restauración de sesión, protección del panel y cierre seguro. La gestión web de competencias es el siguiente vertical.
 
 ## Requisitos
 
@@ -36,20 +36,21 @@ pnpm test:integration
 
 El alta inicial falla sin modificar datos si el correo ya existe. La contraseña debe tener entre 12 y 256 caracteres y no se guarda en texto plano.
 
-Para iniciar la API:
+Para iniciar API y web en terminales separadas:
 
 ```bash
 pnpm --filter @oes/api build
 pnpm --filter @oes/api start
+pnpm --filter @oes/web dev
 ```
 
-La API queda disponible en `http://localhost:3001/api/v1`; `GET /health` es público y los endpoints de identidad están bajo `/auth`.
+La API queda disponible en `http://localhost:3001/api/v1` y la web en `http://localhost:3000`. `GET /health` es público y los endpoints de identidad están bajo `/auth`.
 
 ## Estructura
 
 ```text
 apps/api/              API REST NestJS y límite HTTP de seguridad
-apps/web/              interfaz web (siguiente vertical)
+apps/web/              interfaz Next.js para autoridades y consulta pública
 packages/domain/       reglas e invariantes sin infraestructura
 packages/database/     Prisma, migraciones y adaptadores PostgreSQL
 packages/config/       configuración compartida

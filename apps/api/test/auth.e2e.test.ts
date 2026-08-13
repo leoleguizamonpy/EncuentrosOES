@@ -88,12 +88,14 @@ describe('authentication HTTP boundary', () => {
       .send({ email: 'admin@oes.test', password: 'frase-segura-de-prueba' })
       .expect(200);
     const setCookie: unknown = login.headers['set-cookie'];
-    if (!Array.isArray(setCookie) || setCookie.length !== 1 || typeof setCookie[0] !== 'string') {
-      throw new Error('Expected a session cookie');
+    if (!Array.isArray(setCookie) || setCookie.length !== 2 || typeof setCookie[0] !== 'string') {
+      throw new Error('Expected session and CSRF cookies');
     }
     const sessionCookie = setCookie[0].split(';')[0];
     if (sessionCookie === undefined) throw new Error('Expected a session cookie value');
     expect(sessionCookie).toMatch(/^oes_session=/);
+    expect(setCookie[1]).toContain('oes_csrf=');
+    expect(setCookie[1]).not.toContain('HttpOnly');
     expect(login.body).toMatchObject({
       actor: { id: accountId(store), role: 'ADMIN' },
     });
