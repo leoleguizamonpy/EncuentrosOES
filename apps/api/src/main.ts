@@ -1,0 +1,16 @@
+import 'reflect-metadata';
+
+import { NestFactory } from '@nestjs/core';
+
+import { AppModule } from './app.module.js';
+import { configureApp } from './bootstrap.js';
+import { API_CONFIG, type ApiConfig } from './config.js';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  const config = app.get<ApiConfig>(API_CONFIG);
+  configureApp(app, config);
+  await app.listen(config.apiPort, '0.0.0.0');
+}
+
+await bootstrap();

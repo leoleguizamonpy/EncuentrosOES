@@ -8,7 +8,7 @@ La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md) y de las especif
 
 ## Estado
 
-El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. Las aplicaciones web y API todavía no están implementadas.
+El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. La API NestJS ya cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La interfaz web es el siguiente vertical.
 
 ## Requisitos
 
@@ -24,14 +24,32 @@ cp .env.example .env
 pnpm install --frozen-lockfile
 docker compose up -d postgres
 pnpm db:migrate:deploy
+read -r OES_BOOTSTRAP_EMAIL
+read -r OES_BOOTSTRAP_DISPLAY_NAME
+read -rs OES_BOOTSTRAP_PASSWORD
+export OES_BOOTSTRAP_EMAIL OES_BOOTSTRAP_DISPLAY_NAME OES_BOOTSTRAP_PASSWORD
+pnpm --filter @oes/api bootstrap:superadmin
+unset OES_BOOTSTRAP_EMAIL OES_BOOTSTRAP_DISPLAY_NAME OES_BOOTSTRAP_PASSWORD
 pnpm run check
 pnpm test:integration
 ```
 
+El alta inicial falla sin modificar datos si el correo ya existe. La contraseña debe tener entre 12 y 256 caracteres y no se guarda en texto plano.
+
+Para iniciar la API:
+
+```bash
+pnpm --filter @oes/api build
+pnpm --filter @oes/api start
+```
+
+La API queda disponible en `http://localhost:3001/api/v1`; `GET /health` es público y los endpoints de identidad están bajo `/auth`.
+
 ## Estructura
 
 ```text
-apps/                  aplicaciones web y API (siguientes verticales)
+apps/api/              API REST NestJS y límite HTTP de seguridad
+apps/web/              interfaz web (siguiente vertical)
 packages/domain/       reglas e invariantes sin infraestructura
 packages/database/     Prisma, migraciones y adaptadores PostgreSQL
 packages/config/       configuración compartida

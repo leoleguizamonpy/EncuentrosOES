@@ -25,4 +25,10 @@ export default tseslint.config(
       '@typescript-eslint/no-confusing-void-expression': 'off',
     },
   },
+  {
+    files: ['**/*.module.ts'],
+    rules: {
+      '@typescript-eslint/no-extraneous-class': 'off',
+    },
+  },
 );
