@@ -10,6 +10,7 @@ import {
   freezeCompetitionRuleSet,
   prepareOfficialDraw,
   publishOfficialDraw,
+  resultsWorkspace,
   saveCompetitionRuleSet,
 } from '../lib/competition-api';
 
@@ -33,6 +34,16 @@ describe('competition API client', () => {
         'X-CSRF-Token': 'csrf-competencias',
       },
       method: 'POST',
+    });
+  });
+
+  it('restores the persisted results workspace without caching', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ competitionId: 'competition-1', matches: [] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await resultsWorkspace('competition-1');
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3001/api/v1/competitions/competition-1/results-workspace', {
+      cache: 'no-store',
+      credentials: 'include',
     });
   });
 

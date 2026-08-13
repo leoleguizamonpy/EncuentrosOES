@@ -92,7 +92,7 @@ export function OfficialDrawPanel({
   }
 
   return (
-    <section className="setup-card official-draw-card" aria-labelledby="official-draw-title">
+    <section className="setup-card official-draw-card" id="official-draw-workspace" aria-labelledby="official-draw-title">
       <div className="section-title"><div><span className="eyebrow eyebrow--dark">Paso 4</span><h3 id="official-draw-title">Sorteo oficial</h3></div><span>04</span></div>
       {configuration === null ? (
         <div className="draw-empty">

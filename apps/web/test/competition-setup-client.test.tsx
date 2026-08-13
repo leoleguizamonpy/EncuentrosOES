@@ -15,6 +15,7 @@ const competitionApi = vi.hoisted(() => ({
   executeOfficialDraw: vi.fn(),
   freezeCompetitionRuleSet: vi.fn(),
   prepareOfficialDraw: vi.fn(),
+  resultsWorkspace: vi.fn(),
   saveCompetitionRuleSet: vi.fn(),
 }));
 vi.mock('../lib/auth-api', () => authApi);
@@ -52,6 +53,7 @@ describe('CompetitionSetupClient', () => {
     authApi.logout.mockResolvedValue(undefined);
     competitionApi.competitionDetail.mockResolvedValue(base);
     competitionApi.drawWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionRevision: 4, competitionStatus: 'DRAFT', configuration: null, execution: null, publication: null });
+    competitionApi.resultsWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionStatus: 'DRAFT', groups: [], matches: [], resultProfile: null });
     competitionApi.addCompetitionParticipant.mockResolvedValue({ ...base, participantCount: 4, revision: 5 });
     competitionApi.configureCompetitionFormat.mockResolvedValue({ ...base, formatCode: 'GROUP_STAGE', groupCount: 1, revision: 5 });
   });

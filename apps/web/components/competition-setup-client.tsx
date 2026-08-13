@@ -9,12 +9,15 @@ import {
   competitionDetail,
   configureCompetitionFormat,
   drawWorkspace,
+  resultsWorkspace,
   type CompetitionDetail,
   type DrawWorkspace,
+  type ResultsWorkspace,
 } from '../lib/competition-api';
 import { OesMark } from './oes-mark';
 import { CompetitionRulesPanel } from './competition-rules-panel';
 import { OfficialDrawPanel } from './official-draw-panel';
+import { ResultsWorkspacePanel } from './results-workspace-panel';
 
 const roleLabels = { ADMIN: 'Administrador', OPERATOR: 'Operador', SUPERADMIN: 'Superadministrador' } as const;
 const statusLabels = { DRAFT: 'Borrador', FINALIZED: 'Finalizada', LOCKED: 'Bloqueada', OPEN: 'Abierta' } as const;
@@ -30,6 +33,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   const [actor, setActor] = useState<Actor | null>(null);
   const [detail, setDetail] = useState<CompetitionDetail | null>(null);
   const [draw, setDraw] = useState<DrawWorkspace | null>(null);
+  const [results, setResults] = useState<ResultsWorkspace | null>(null);
   const [institutionId, setInstitutionId] = useState('');
   const [formatCode, setFormatCode] = useState<'GROUP_STAGE' | 'KNOCKOUT'>('GROUP_STAGE');
   const [groupCount, setGroupCount] = useState(0);
@@ -39,8 +43,8 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
 
   useEffect(() => {
     let active = true;
-    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId)])
-      .then(([current, loaded, loadedDraw]) => {
+    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId), resultsWorkspace(competitionId)])
+      .then(([current, loaded, loadedDraw, loadedResults]) => {
         if (!active) return;
         if (current === null) {
           router.replace('/login');
@@ -49,6 +53,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
         setActor(current);
         setDetail(loaded);
         setDraw(loadedDraw);
+        setResults(loadedResults);
         setFormatCode(loaded.formatCode ?? 'GROUP_STAGE');
         setGroupCount(loaded.groupCount ?? loaded.validGroupCounts[0] ?? 0);
       })
@@ -111,7 +116,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   }
 
   if (loading) return <main className="session-state" aria-live="polite">Recuperando configuración…</main>;
-  if (actor === null || detail === null || draw === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
+  if (actor === null || detail === null || draw === null || results === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
 
   const canEdit = actor.role !== 'OPERATOR' && (detail.status === 'DRAFT' || detail.status === 'OPEN');
   const groupsAvailable = detail.validGroupCounts.length > 0;
@@ -120,6 +125,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   function updateDraw(workspace: DrawWorkspace): void {
     setDraw(workspace);
     setDetail((current) => current === null ? current : { ...current, revision: workspace.competitionRevision, status: workspace.competitionStatus });
+    void resultsWorkspace(competitionId).then(setResults).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No fue posible recuperar los encuentros.'));
   }
 
   return (
@@ -130,8 +136,8 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
           <a className="nav-item" href="/dashboard">Resumen</a>
           <span className="nav-heading">Gestión competitiva</span>
           <a className="nav-item nav-item--active" href="/competitions">Competencias</a>
-          <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
-          <span className="nav-item nav-item--disabled">Resultados <small>Próximo</small></span>
+          <a className="nav-item" href="#official-draw-workspace">Sorteos</a>
+          <a className="nav-item" href="#results-workspace">Resultados</a>
         </nav>
         <div className="sidebar__footer">Sistema oficial · OES 2026</div>
       </aside>
@@ -180,6 +186,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
           <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
+          <ResultsWorkspacePanel workspace={results} />
         </div>
       </main>
     </div>

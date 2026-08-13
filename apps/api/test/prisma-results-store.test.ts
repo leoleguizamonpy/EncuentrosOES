@@ -1,0 +1,41 @@
+import type { PrismaClient } from '@oes/database';
+import { describe, expect, it, vi } from 'vitest';
+
+import { PrismaResultsStore } from '../src/results/prisma-results-store.js';
+
+const competitionId = '20000000-0000-4000-8000-000000000001';
+
+function storeWith(value: unknown): PrismaResultsStore {
+  return new PrismaResultsStore({ competition: { findUnique: vi.fn().mockResolvedValue(value) } } as unknown as PrismaClient);
+}
+
+describe('PrismaResultsStore', () => {
+  it('returns an empty restorable workspace before an official draw is confirmed', async () => {
+    const workspace = await storeWith({ id: competitionId, officialDraws: [], status: 'DRAFT' }).workspace(competitionId);
+    expect(workspace).toEqual({ competitionId, competitionStatus: 'DRAFT', groups: [], matches: [], resultProfile: null });
+  });
+
+  it('maps active results and persisted standings from the confirmed draw', async () => {
+    const participantA = { displayName: 'Colegio A', id: '50000000-0000-4000-8000-000000000001' };
+    const participantB = { displayName: 'Colegio B', id: '50000000-0000-4000-8000-000000000002' };
+    const group = { id: '30000000-0000-4000-8000-000000000001', label: 'A' };
+    const workspace = await storeWith({
+      id: competitionId,
+      officialDraws: [{
+        configuration: { ruleSet: { resultProfile: 'SCORE_BASED' } },
+        groups: [{ ...group, ordinal: 1, standings: [{ draws: 0, losses: 0, participant: participantA, participantId: participantA.id, played: 1, position: 1, scoreAgainst: 1, scoreDifference: 2, scoreFor: 3, setDifference: 0, setsLost: 0, setsWon: 0, sportPointDifference: 2, sportPointsAgainst: 1, sportPointsFor: 3, tablePoints: 3, tied: false, wins: 1 }] }],
+        matches: [{
+          group, id: '40000000-0000-4000-8000-000000000001', ordinal: 1, participantA, participantB, participantAId: participantA.id, participantBId: participantB.id, roundNumber: 0, status: 'RESULT_CONFIRMED', winnerParticipantId: participantA.id,
+          results: [{ confirmedAt: new Date('2026-08-13T18:05:00.000Z'), confirmedBy: { displayName: 'Autoridad Dos', id: '10000000-0000-4000-8000-000000000002' }, detailJson: { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 }, id: '60000000-0000-4000-8000-000000000001', recordedAt: new Date('2026-08-13T18:04:00.000Z'), recordedBy: { displayName: 'Autoridad Uno', id: '10000000-0000-4000-8000-000000000001' }, resolvedJson: { scoreA: 3, scoreB: 1 }, revision: 2, status: 'CONFIRMED' }],
+        }],
+      }],
+      status: 'LOCKED',
+    }).workspace(competitionId);
+    expect(workspace).toMatchObject({
+      competitionStatus: 'LOCKED',
+      groups: [{ complete: true, label: 'A', standings: [{ participant: participantA, tablePoints: 3 }] }],
+      matches: [{ participantA, participantB, result: { confirmedBy: { displayName: 'Autoridad Dos' }, status: 'CONFIRMED' }, status: 'RESULT_CONFIRMED' }],
+      resultProfile: 'SCORE_BASED',
+    });
+  });
+});
