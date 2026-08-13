@@ -185,12 +185,15 @@ function validateConfiguration(configuration: RuleSetConfiguration): void {
       throw new DomainError('RULE_SET_INCOMPATIBLE', 'Outcome descriptions are required.');
     }
     outcomeCodes.add(outcome.code);
-    hasWin ||= outcome.code === 'WIN' || outcome.code.startsWith('WIN_VARIANT_');
-    hasLoss ||= outcome.code === 'LOSS' || outcome.code.startsWith('LOSS_VARIANT_');
+    hasWin ||= outcome.code === 'WIN';
+    hasLoss ||= outcome.code === 'LOSS';
   }
 
   if (!hasWin || !hasLoss) {
-    throw new DomainError('RULE_SET_INCOMPLETE', 'Win and loss outcomes are required.');
+    throw new DomainError(
+      'RULE_SET_INCOMPLETE',
+      'Base WIN and LOSS outcomes are required by the result engine.',
+    );
   }
 
   const allowsDraw =

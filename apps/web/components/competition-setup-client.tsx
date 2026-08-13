@@ -11,6 +11,7 @@ import {
   type CompetitionDetail,
 } from '../lib/competition-api';
 import { OesMark } from './oes-mark';
+import { CompetitionRulesPanel } from './competition-rules-panel';
 
 const roleLabels = { ADMIN: 'Administrador', OPERATOR: 'Operador', SUPERADMIN: 'Superadministrador' } as const;
 const statusLabels = { DRAFT: 'Borrador', FINALIZED: 'Finalizada', LOCKED: 'Bloqueada', OPEN: 'Abierta' } as const;
@@ -167,6 +168,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
               {detail.formatCode === null ? <p className="format-proof">Aún no hay un formato guardado.</p> : <p className="format-proof format-proof--ready">✓ Formato guardado: {detail.formatCode === 'GROUP_STAGE' ? `${String(detail.groupCount)} grupo(s)` : 'eliminación directa'}.</p>}
             </form>
           </section>
+          <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
         </div>
       </main>
     </div>

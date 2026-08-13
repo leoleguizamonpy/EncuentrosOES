@@ -128,4 +128,55 @@ integration('PrismaCompetitionStore', () => {
     expect(await client.auditEntry.count()).toBe(5);
     expect(await client.idempotencyRecord.count()).toBe(5);
   });
+
+  it('persists, replays and irreversibly freezes a scoring template', async () => {
+    const created = await store.create({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      correlationId: '90000000-0000-4000-8000-000000000097',
+      editionId: ids.edition,
+      eventId: ids.event,
+      idempotencyKey: 'integration-rules-create-0001',
+      modalityId: ids.modality,
+      sportId: ids.sport,
+    });
+    const saveInput = {
+      actorId: ids.actor,
+      actorRole: 'ADMIN' as const,
+      allowDraws: true,
+      competitionId: created.id,
+      correlationId: '90000000-0000-4000-8000-000000000098',
+      drawPoints: 1,
+      expectedRevision: null,
+      idempotencyKey: 'integration-rules-save-0001',
+      lossPoints: 0,
+      resultProfile: 'SCORE_BASED' as const,
+      tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'] as const,
+      winPoints: 3,
+    };
+    const saved = await store.saveRuleSet(saveInput);
+    const replay = await store.saveRuleSet(saveInput);
+    expect(replay).toEqual(saved);
+    expect(saved.ruleSet).toMatchObject({ canonicalHash: null, revision: 1, status: 'DRAFT' });
+
+    const frozen = await store.freezeRuleSet({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      competitionId: created.id,
+      correlationId: '90000000-0000-4000-8000-000000000099',
+      expectedRevision: 1,
+      idempotencyKey: 'integration-rules-freeze-0001',
+    });
+    expect(frozen.ruleSet).toMatchObject({ revision: 2, status: 'FROZEN' });
+    expect(frozen.ruleSet?.canonicalHash).toMatch(/^[a-f0-9]{64}$/);
+    await expect(store.saveRuleSet({
+      ...saveInput,
+      correlationId: '90000000-0000-4000-8000-000000000100',
+      expectedRevision: 2,
+      idempotencyKey: 'integration-rules-save-0002',
+    })).rejects.toMatchObject({ code: 'RULE_SET_INVALID' } satisfies Partial<CompetitionStoreError>);
+    expect(await client.competitionRuleSet.count()).toBe(1);
+    expect(await client.auditEntry.count()).toBe(3);
+    expect(await client.idempotencyRecord.count()).toBe(3);
+  });
 });

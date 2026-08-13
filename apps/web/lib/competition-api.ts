@@ -30,8 +30,16 @@ export interface CompetitionSummary {
 export interface CompetitionDetail extends CompetitionSummary {
   readonly institutions: readonly { readonly code: string; readonly id: string; readonly name: string; readonly selected: boolean }[];
   readonly participants: readonly { readonly displayName: string; readonly enabledAt: string; readonly id: string; readonly institutionId: string; readonly status: 'ENABLED' | 'WITHDRAWN' }[];
+  readonly ruleSet: CompetitionRuleSet | null;
   readonly validGroupCounts: readonly number[];
 }
+
+export type ScoreTieBreakCriterion = 'TABLE_POINTS' | 'WINS' | 'HEAD_TO_HEAD_TABLE_POINTS' | 'SCORE_DIFFERENCE' | 'SCORE_FOR';
+export type SetTieBreakCriterion = 'TABLE_POINTS' | 'WINS' | 'HEAD_TO_HEAD_TABLE_POINTS' | 'SET_DIFFERENCE' | 'SETS_WON' | 'SPORT_POINT_DIFFERENCE' | 'SPORT_POINTS_FOR';
+export type RuleSetConfiguration =
+  | Readonly<{ allowDraws: boolean; drawPoints: number | null; lossPoints: number; resultProfile: 'SCORE_BASED'; tieBreakCriteria: readonly ScoreTieBreakCriterion[]; winPoints: number }>
+  | Readonly<{ lossPoints: number; resultProfile: 'SET_BASED'; setsToWin: number; tieBreakCriteria: readonly SetTieBreakCriterion[]; winPoints: number }>;
+export type CompetitionRuleSet = RuleSetConfiguration & Readonly<{ canonicalHash: string | null; frozenAt: string | null; id: string; revision: number; status: 'DRAFT' | 'FROZEN' | 'REPLACED' }>;
 
 export interface CreateCompetitionInput {
   readonly editionId: string;
@@ -108,6 +116,17 @@ export function configureCompetitionFormat(
   input: Readonly<{ expectedRevision: number; formatCode: 'GROUP_STAGE'; groupCount: number }> | Readonly<{ expectedRevision: number; formatCode: 'KNOCKOUT'; groupCount: null }>,
 ): Promise<CompetitionDetail> {
   return mutate(`/competitions/${id}/format`, 'PATCH', input);
+}
+
+export function saveCompetitionRuleSet(
+  id: string,
+  input: RuleSetConfiguration & Readonly<{ expectedRevision: number | null }>,
+): Promise<CompetitionDetail> {
+  return mutate(`/competitions/${id}/rules`, 'PATCH', input);
+}
+
+export function freezeCompetitionRuleSet(id: string, expectedRevision: number): Promise<CompetitionDetail> {
+  return mutate(`/competitions/${id}/rules/freeze`, 'POST', { expectedRevision });
 }
 
 export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> {

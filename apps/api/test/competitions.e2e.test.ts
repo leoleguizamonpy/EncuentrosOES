@@ -16,6 +16,8 @@ import {
   type CompetitionSummary,
   type ConfigureStoredFormatInput,
   type CreateStoredCompetitionInput,
+  type FreezeStoredRuleSetInput,
+  type SaveStoredRuleSetInput,
 } from '../src/competitions/competition-store.js';
 import { API_CONFIG, type ApiConfig } from '../src/config.js';
 import { IDENTITY_STORE, type AccountRecord, type AccountRole } from '../src/identity/identity-store.js';
@@ -62,6 +64,7 @@ function detail(revision = 1): CompetitionDetail {
     modality: combination.modality,
     participantCount: 0,
     participants: [],
+    ruleSet: null,
     revision,
     sport: combination.sport,
     status: 'DRAFT',
@@ -73,6 +76,8 @@ class FakeCompetitionStore implements CompetitionStore {
   public readonly created: CreateStoredCompetitionInput[] = [];
   public readonly participantInputs: AddStoredParticipantInput[] = [];
   public readonly formatInputs: ConfigureStoredFormatInput[] = [];
+  public readonly ruleInputs: SaveStoredRuleSetInput[] = [];
+  public readonly freezeInputs: FreezeStoredRuleSetInput[] = [];
 
   public catalog(): Promise<CompetitionCatalog> { return Promise.resolve(catalog); }
   public list(): Promise<readonly CompetitionSummary[]> { return Promise.resolve([]); }
@@ -84,6 +89,32 @@ class FakeCompetitionStore implements CompetitionStore {
   public configureFormat(input: ConfigureStoredFormatInput): Promise<CompetitionDetail> {
     this.formatInputs.push(input);
     return Promise.resolve({ ...detail(2), formatCode: input.formatCode, groupCount: input.groupCount });
+  }
+  public saveRuleSet(input: SaveStoredRuleSetInput): Promise<CompetitionDetail> {
+    this.ruleInputs.push(input);
+    return Promise.resolve({
+      ...detail(),
+      ruleSet: { ...input, canonicalHash: null, frozenAt: null, id: '22000000-0000-4000-8000-000000000001', revision: 1, status: 'DRAFT' },
+    });
+  }
+  public freezeRuleSet(input: FreezeStoredRuleSetInput): Promise<CompetitionDetail> {
+    this.freezeInputs.push(input);
+    return Promise.resolve({
+      ...detail(),
+      ruleSet: {
+        allowDraws: true,
+        canonicalHash: 'a'.repeat(64),
+        drawPoints: 1,
+        frozenAt: '2026-08-13T18:02:00.000Z',
+        id: '22000000-0000-4000-8000-000000000001',
+        lossPoints: 0,
+        resultProfile: 'SCORE_BASED',
+        revision: 2,
+        status: 'FROZEN',
+        tieBreakCriteria: ['TABLE_POINTS', 'WINS'],
+        winPoints: 3,
+      },
+    });
   }
   public create(input: CreateStoredCompetitionInput): Promise<CompetitionSummary> {
     this.created.push(input);
@@ -248,6 +279,47 @@ describe('competitions HTTP boundary', () => {
       .send({ expectedRevision: 1, formatCode: 'KNOCKOUT', groupCount: null })
       .expect(403);
     expect(operator.store.formatInputs).toHaveLength(0);
+  });
+
+  it('saves and freezes an ordered scoring template with authority evidence', async () => {
+    const { app, store } = await start('ADMIN');
+    const auth = await authenticate(app);
+    const path = '/api/v1/competitions/20000000-0000-4000-8000-000000000001/rules';
+    await request(server(app))
+      .patch(path)
+      .set('Cookie', auth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', auth.csrf)
+      .set('Idempotency-Key', 'rule-set-save-0001')
+      .send({ allowDraws: true, drawPoints: 1, expectedRevision: null, lossPoints: 0, resultProfile: 'SCORE_BASED', tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'], winPoints: 3 })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ ruleSet: { revision: 1, status: 'DRAFT' } }));
+    expect(store.ruleInputs[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: null, winPoints: 3 });
+
+    await request(server(app))
+      .post(`${path}/freeze`)
+      .set('Cookie', auth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', auth.csrf)
+      .set('Idempotency-Key', 'rule-set-freeze-0001')
+      .send({ expectedRevision: 1 })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ ruleSet: { revision: 2, status: 'FROZEN' } }));
+    expect(store.freezeInputs[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: 1 });
+  });
+
+  it('keeps operators from changing scoring rules', async () => {
+    const { app, store } = await start('OPERATOR');
+    const auth = await authenticate(app);
+    await request(server(app))
+      .patch('/api/v1/competitions/20000000-0000-4000-8000-000000000001/rules')
+      .set('Cookie', auth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', auth.csrf)
+      .set('Idempotency-Key', 'rule-set-save-0002')
+      .send({ allowDraws: false, drawPoints: null, expectedRevision: null, lossPoints: 0, resultProfile: 'SCORE_BASED', tieBreakCriteria: ['TABLE_POINTS'], winPoints: 3 })
+      .expect(403);
+    expect(store.ruleInputs).toHaveLength(0);
   });
 });
 

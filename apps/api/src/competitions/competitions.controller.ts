@@ -33,6 +33,27 @@ const formatSchema = z.discriminatedUnion('formatCode', [
   mutationSchema.extend({ formatCode: z.literal('GROUP_STAGE'), groupCount: z.int().positive() }).strict(),
   mutationSchema.extend({ formatCode: z.literal('KNOCKOUT'), groupCount: z.null() }).strict(),
 ]);
+const scoreCriterionSchema = z.enum(['TABLE_POINTS', 'WINS', 'HEAD_TO_HEAD_TABLE_POINTS', 'SCORE_DIFFERENCE', 'SCORE_FOR']);
+const setCriterionSchema = z.enum(['TABLE_POINTS', 'WINS', 'HEAD_TO_HEAD_TABLE_POINTS', 'SET_DIFFERENCE', 'SETS_WON', 'SPORT_POINT_DIFFERENCE', 'SPORT_POINTS_FOR']);
+const ruleSetSchema = z.discriminatedUnion('resultProfile', [
+  z.object({
+    allowDraws: z.boolean(),
+    drawPoints: z.int().nullable(),
+    expectedRevision: z.int().positive().nullable(),
+    lossPoints: z.int(),
+    resultProfile: z.literal('SCORE_BASED'),
+    tieBreakCriteria: z.array(scoreCriterionSchema).min(1),
+    winPoints: z.int(),
+  }).strict(),
+  z.object({
+    expectedRevision: z.int().positive().nullable(),
+    lossPoints: z.int(),
+    resultProfile: z.literal('SET_BASED'),
+    setsToWin: z.int().positive(),
+    tieBreakCriteria: z.array(setCriterionSchema).min(1),
+    winPoints: z.int(),
+  }).strict(),
+]);
 
 @Controller('competitions')
 @RequireRoles('ADMIN', 'OPERATOR', 'SUPERADMIN')
@@ -128,6 +149,60 @@ export class CompetitionsController {
     if (request.actor === undefined) throw new BadRequestException('Authenticated actor is missing.');
     const parsedCorrelationId = uuidSchema.safeParse(correlationId);
     return this.service.configureFormat({
+      ...parsedBody.data,
+      actorId: request.actor.id,
+      actorRole: request.actor.role,
+      competitionId: competitionId.data,
+      correlationId: parsedCorrelationId.success ? parsedCorrelationId.data : randomUUID(),
+      idempotencyKey: key.data,
+    });
+  }
+
+  @HttpCode(200)
+  @Patch(':id/rules')
+  @RequireRoles('ADMIN', 'SUPERADMIN')
+  public saveRuleSet(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<CompetitionsService['saveRuleSet']> {
+    const competitionId = uuidSchema.safeParse(id);
+    const parsedBody = ruleSetSchema.safeParse(body);
+    const key = idempotencySchema.safeParse(idempotencyKey);
+    if (!competitionId.success || !parsedBody.success) throw new BadRequestException('Competition rules are invalid.');
+    if (!key.success) throw new BadRequestException('A valid Idempotency-Key header is required.');
+    if (request.actor === undefined) throw new BadRequestException('Authenticated actor is missing.');
+    const parsedCorrelationId = uuidSchema.safeParse(correlationId);
+    return this.service.saveRuleSet({
+      ...parsedBody.data,
+      actorId: request.actor.id,
+      actorRole: request.actor.role,
+      competitionId: competitionId.data,
+      correlationId: parsedCorrelationId.success ? parsedCorrelationId.data : randomUUID(),
+      idempotencyKey: key.data,
+    });
+  }
+
+  @HttpCode(200)
+  @Post(':id/rules/freeze')
+  @RequireRoles('ADMIN', 'SUPERADMIN')
+  public freezeRuleSet(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<CompetitionsService['freezeRuleSet']> {
+    const competitionId = uuidSchema.safeParse(id);
+    const parsedBody = mutationSchema.safeParse(body);
+    const key = idempotencySchema.safeParse(idempotencyKey);
+    if (!competitionId.success || !parsedBody.success) throw new BadRequestException('Rule-set revision is invalid.');
+    if (!key.success) throw new BadRequestException('A valid Idempotency-Key header is required.');
+    if (request.actor === undefined) throw new BadRequestException('Authenticated actor is missing.');
+    const parsedCorrelationId = uuidSchema.safeParse(correlationId);
+    return this.service.freezeRuleSet({
       ...parsedBody.data,
       actorId: request.actor.id,
       actorRole: request.actor.role,

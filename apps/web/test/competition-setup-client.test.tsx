@@ -10,6 +10,8 @@ const competitionApi = vi.hoisted(() => ({
   addCompetitionParticipant: vi.fn(),
   competitionDetail: vi.fn(),
   configureCompetitionFormat: vi.fn(),
+  freezeCompetitionRuleSet: vi.fn(),
+  saveCompetitionRuleSet: vi.fn(),
 }));
 vi.mock('../lib/auth-api', () => authApi);
 vi.mock('../lib/competition-api', () => competitionApi);
@@ -33,6 +35,7 @@ const base = {
     { displayName: 'Colegio D', enabledAt: '2026-08-13T18:00:00.000Z', id: 'participant-3', institutionId: 'institution-4', status: 'ENABLED' },
   ],
   revision: 4,
+  ruleSet: null,
   sport: { code: 'FUTSAL', id: 'sport-1', name: 'Futsal' },
   status: 'DRAFT',
   validGroupCounts: [1],
