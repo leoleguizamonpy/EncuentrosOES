@@ -68,6 +68,12 @@ export {
   type OfficialDrawStatus,
 } from './draw/official-draw.js';
 export {
+  publicDrawVerificationCode,
+  verifyPublicDrawAct,
+  type PublicDrawAct,
+  type PublicDrawResult,
+} from './draw/draw-publication.js';
+export {
   MatchResult,
   resolveResult,
   type AnnulMatchResultInput,

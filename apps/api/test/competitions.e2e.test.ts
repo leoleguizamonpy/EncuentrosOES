@@ -28,6 +28,8 @@ import {
   type DrawWorkspace,
   type ExecuteDrawInput,
   type PrepareDrawInput,
+  type PublicDrawPublicationView,
+  type PublishDrawInput,
 } from '../src/draws/draw-store.js';
 import { IDENTITY_STORE, type AccountRecord, type AccountRole } from '../src/identity/identity-store.js';
 import { hashPassword } from '../src/identity/password.js';
@@ -159,7 +161,7 @@ function drawWorkspace(state: 'CONFIRMED' | 'EMPTY' | 'PENDING' | 'PREPARED'): D
     revision: state === 'CONFIRMED' ? 2 : 1, seedCommitment: 'c'.repeat(64),
     seedHex: state === 'CONFIRMED' ? 'd'.repeat(64) : null, status: state === 'CONFIRMED' ? 'CONFIRMED' as const : 'PENDING_CONFIRMATION' as const,
   } : null;
-  return { competitionId: detail().id, competitionRevision: state === 'EMPTY' ? 1 : 3, competitionStatus: state === 'EMPTY' ? 'DRAFT' : 'LOCKED', configuration, execution };
+  return { competitionId: detail().id, competitionRevision: state === 'EMPTY' ? 1 : 3, competitionStatus: state === 'EMPTY' ? 'DRAFT' : 'LOCKED', configuration, execution, publication: null };
 }
 
 class FakeDrawStore implements DrawStore {
@@ -167,11 +169,30 @@ class FakeDrawStore implements DrawStore {
   public readonly prepared: PrepareDrawInput[] = [];
   public readonly executed: ExecuteDrawInput[] = [];
   public readonly confirmed: ConfirmDrawInput[] = [];
+  public readonly published: PublishDrawInput[] = [];
   public workspace(): Promise<DrawWorkspace> { return Promise.resolve(drawWorkspace('EMPTY')); }
   public prepare(input: PrepareDrawInput): Promise<DrawWorkspace> { this.prepared.push(input); return Promise.resolve(drawWorkspace('PREPARED')); }
   public execute(input: ExecuteDrawInput): Promise<DrawWorkspace> { this.executed.push(input); return Promise.resolve(drawWorkspace('PENDING')); }
   public confirm(input: ConfirmDrawInput): Promise<DrawWorkspace> { this.confirmed.push(input); return Promise.resolve(drawWorkspace('CONFIRMED')); }
   public annul(input: AnnulDrawInput): Promise<DrawWorkspace> { this.annulled.push(input); return Promise.resolve(drawWorkspace('PREPARED')); }
+  public publish(input: PublishDrawInput): Promise<DrawWorkspace> {
+    this.published.push(input);
+    return Promise.resolve({ ...drawWorkspace('CONFIRMED'), publication: { id: 'c0000000-0000-4000-8000-000000000001', publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: 'e'.repeat(64) } });
+  }
+  public publicDraw(publicationId: string): Promise<PublicDrawPublicationView> {
+    return Promise.resolve({
+      act: {
+        algorithmVersion: 'oes-draw-v1', competition: { edition: 'OES 2026', event: 'Colegiales', id: detail().id, modality: 'Masculina', sport: 'Futsal' },
+        configuration: { canonicalHash: 'a'.repeat(64), formatCode: 'GROUP_STAGE', groupCount: 1, id: 'a0000000-0000-4000-8000-000000000001', participantCount: 3, roundNumber: 0, ruleSetHash: 'f'.repeat(64), ruleSetId: '22000000-0000-4000-8000-000000000001' },
+        confirmedAt: '2026-08-13T18:03:00.000Z', evidenceHash: 'b'.repeat(64), officialDrawId: 'b0000000-0000-4000-8000-000000000001', participants: [],
+        publicationId, publishedAt: '2026-08-13T18:04:00.000Z', result: { formatCode: 'GROUP_STAGE', groups: [] }, schemaVersion: 'oes-public-draw-act-v1', seedHex: 'd'.repeat(64),
+      },
+      id: publicationId, publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: 'e'.repeat(64), verified: true,
+    });
+  }
+  public verify(verificationCode: string): Promise<Readonly<{ publicationId: string | null; valid: boolean }>> {
+    return Promise.resolve({ publicationId: verificationCode === 'e'.repeat(64) ? 'c0000000-0000-4000-8000-000000000001' : null, valid: verificationCode === 'e'.repeat(64) });
+  }
 }
 
 interface RunningApplication {
@@ -404,6 +425,24 @@ describe('competitions HTTP boundary', () => {
       .send({ expectedRevision: 2, reason: 'Intento de anulación sin autoridad suficiente.' })
       .expect(403);
     expect(admin.drawStore.annulled).toHaveLength(0);
+  });
+
+  it('publishes a confirmed draw and exposes its act and verifier without a session', async () => {
+    const { app, drawStore } = await start('ADMIN');
+    const auth = await authenticate(app);
+    const publicationId = 'c0000000-0000-4000-8000-000000000001';
+    await request(server(app)).post('/api/v1/official-draws/b0000000-0000-4000-8000-000000000001/publish')
+      .set({ Cookie: auth.session, Origin: config.webOrigin, 'X-CSRF-Token': auth.csrf, 'Idempotency-Key': 'draw-publish-00001' })
+      .send({ expectedRevision: 2 }).expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ publication: { id: publicationId } }));
+    expect(drawStore.published[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: 2 });
+
+    await request(server(app)).get(`/api/v1/public/draws/${publicationId}`).expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ id: publicationId, verified: true }));
+    await request(server(app)).get(`/api/v1/public/draws/${publicationId}/act`).expect(200)
+      .expect('Content-Disposition', 'attachment; filename="oes-draw-act.json"');
+    await request(server(app)).get(`/api/v1/public/draws/verify/${'e'.repeat(64)}`).expect(200)
+      .expect({ publicationId, valid: true });
   });
 });
 

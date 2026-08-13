@@ -8,12 +8,16 @@ import {
   DrawConfiguration,
   OfficialDraw,
   generateOfficialSeed,
+  publicDrawVerificationCode,
+  verifyPublicDrawAct,
   type AuthorityRole,
   type CompetitionRuleSetSnapshot,
   type DrawConfigurationSnapshot,
   type DrawEvidence,
   type MetricCode,
   type OfficialDrawSnapshot,
+  type PublicDrawAct,
+  type PublicDrawResult,
   type TieBreakCriterion,
 } from '@oes/domain';
 
@@ -27,12 +31,15 @@ import {
   type ExecuteDrawInput,
   type OfficialDrawResultView,
   type PrepareDrawInput,
+  type PublicDrawPublicationView,
+  type PublishDrawInput,
 } from './draw-store.js';
 
 const PREPARE_SCOPE = 'draw:prepare';
 const EXECUTE_SCOPE = 'draw:execute';
 const CONFIRM_SCOPE = 'draw:confirm';
 const ANNUL_SCOPE = 'draw:annul';
+const PUBLISH_SCOPE = 'draw:publish';
 
 type MutationInput = PrepareDrawInput | ExecuteDrawInput | ConfirmDrawInput | AnnulDrawInput;
 
@@ -333,6 +340,15 @@ export class PrismaDrawStore implements DrawStore {
           where: { id: snapshot.id, revision: input.expectedRevision, status: 'CONFIRMED' },
         });
         if (changed.count !== 1) throw new DrawStoreError('CONCURRENCY_CONFLICT', 'The official draw revision is stale.');
+        await transaction.drawPublication.updateMany({
+          data: {
+            revocationReason: snapshot.annulmentReason,
+            revokedAt: snapshot.annulledAt,
+            revision: { increment: 1 },
+            status: 'REVOKED',
+          },
+          where: { officialDrawId: snapshot.id, status: 'PUBLISHED' },
+        });
         await transaction.auditEntry.create({ data: {
           actionCode: 'OFFICIAL_DRAW_ANNULLED', actorId: input.actorId, actorRole: input.actorRole,
           competitionId: snapshot.competitionId, correlationId: input.correlationId, id: randomUUID(),
@@ -349,6 +365,118 @@ export class PrismaDrawStore implements DrawStore {
     }
   }
 
+  public async publish(input: PublishDrawInput): Promise<DrawWorkspace> {
+    try {
+      return await this.client.$transaction(async (transaction) => {
+        const replay = await this.#beginMutation(transaction, input, PUBLISH_SCOPE);
+        if (replay !== null) return replay;
+        const record = await transaction.officialDraw.findUnique({
+          include: {
+            competition: { include: { combination: { include: { event: true, modality: true, sport: true } }, edition: true } },
+            configuration: { include: { participants: { orderBy: { canonicalOrder: 'asc' } }, ruleSet: true } },
+          },
+          where: { id: input.executionId },
+        });
+        if (record === null) throw new DrawStoreError('DRAW_NOT_FOUND', 'The official draw does not exist.');
+        if (record.status !== 'CONFIRMED' || record.revision !== input.expectedRevision || record.confirmedAt === null) {
+          throw new DrawStoreError('DRAW_EXECUTION_INVALID', 'Only the current confirmed draw can be published.');
+        }
+        const existing = await transaction.drawPublication.findUnique({ where: { officialDrawId: record.id } });
+        if (existing !== null) {
+          const response = await this.#workspace(transaction, record.competitionId);
+          await this.#completeMutation(transaction, input, PUBLISH_SCOPE, response);
+          return response;
+        }
+        if (record.configuration.canonicalHash === null || record.configuration.ruleSet.canonicalHash === null) {
+          throw new DrawStoreError('DRAW_EXECUTION_INVALID', 'Frozen publication evidence is incomplete.');
+        }
+        const publicationId = randomUUID();
+        const publishedAt = new Date();
+        const participantNames = new Map(record.configuration.participants.map((item) => [item.competitionParticipantId, item.displayNameSnapshot]));
+        const evidence = record.evidenceJson as unknown as DrawEvidence;
+        const result = this.#publicResult(evidence, participantNames);
+        const act: PublicDrawAct = {
+          algorithmVersion: record.algorithmVersion,
+          competition: {
+            edition: record.competition.edition.name,
+            event: record.competition.combination.event.name,
+            id: record.competitionId,
+            modality: record.competition.combination.modality.name,
+            sport: record.competition.combination.sport.name,
+          },
+          configuration: {
+            canonicalHash: record.configuration.canonicalHash,
+            formatCode: record.configuration.formatCode as 'GROUP_STAGE' | 'KNOCKOUT',
+            groupCount: record.configuration.groupCount,
+            id: record.configuration.id,
+            participantCount: record.configuration.participantCount,
+            roundNumber: record.configuration.roundNumber,
+            ruleSetHash: record.configuration.ruleSet.canonicalHash,
+            ruleSetId: record.configuration.ruleSetId,
+          },
+          confirmedAt: record.confirmedAt.toISOString(),
+          evidenceHash: record.evidenceHash,
+          officialDrawId: record.id,
+          participants: record.configuration.participants.map((item) => ({
+            byeCount: item.byeCountSnapshot,
+            id: item.competitionParticipantId,
+            name: item.displayNameSnapshot,
+          })),
+          publicationId,
+          publishedAt: publishedAt.toISOString(),
+          result,
+          schemaVersion: 'oes-public-draw-act-v1',
+          seedHex: record.seedHex,
+        };
+        const verificationCode = publicDrawVerificationCode(act);
+        await transaction.drawPublication.create({ data: {
+          actJson: structuredClone(act) as unknown as Prisma.InputJsonValue,
+          competitionId: record.competitionId,
+          id: publicationId,
+          officialDrawId: record.id,
+          publishedAt,
+          publishedById: input.actorId,
+          verificationCode,
+        } });
+        await transaction.auditEntry.create({ data: {
+          actionCode: 'OFFICIAL_DRAW_PUBLISHED', actorId: input.actorId, actorRole: input.actorRole,
+          competitionId: record.competitionId, correlationId: input.correlationId, id: randomUUID(),
+          metadata: { evidenceHash: record.evidenceHash, publicationId, verificationCode },
+          resourceId: record.id, resourceType: 'OFFICIAL_DRAW', revisionAfter: record.revision,
+        } });
+        const response = await this.#workspace(transaction, record.competitionId);
+        await this.#completeMutation(transaction, input, PUBLISH_SCOPE, response);
+        return response;
+      }, { isolationLevel: 'Serializable' });
+    } catch (error: unknown) {
+      return this.#recoverMutation(error, input, PUBLISH_SCOPE, 'DRAW_EXECUTION_INVALID');
+    }
+  }
+
+  public async publicDraw(publicationId: string): Promise<PublicDrawPublicationView> {
+    const record = await this.client.drawPublication.findUnique({
+      include: { officialDraw: { select: { evidenceHash: true, status: true } } },
+      where: { id: publicationId },
+    });
+    if (record === null || record.status !== 'PUBLISHED' || record.officialDraw.status !== 'CONFIRMED') {
+      throw new DrawStoreError('DRAW_NOT_FOUND', 'The published draw does not exist.');
+    }
+    const act = record.actJson as unknown as PublicDrawAct;
+    const verified = record.officialDraw.evidenceHash === act.evidenceHash && verifyPublicDrawAct(act, record.verificationCode);
+    return { act, id: record.id, publishedAt: record.publishedAt.toISOString(), verificationCode: record.verificationCode, verified };
+  }
+
+  public async verify(verificationCode: string): Promise<Readonly<{ publicationId: string | null; valid: boolean }>> {
+    const record = await this.client.drawPublication.findUnique({ where: { verificationCode } });
+    if (record === null || record.status !== 'PUBLISHED') return { publicationId: null, valid: false };
+    try {
+      const publication = await this.publicDraw(record.id);
+      return { publicationId: record.id, valid: publication.verified };
+    } catch {
+      return { publicationId: record.id, valid: false };
+    }
+  }
+
   async #workspace(transaction: Prisma.TransactionClient, competitionId: string): Promise<DrawWorkspace> {
     const competition = await transaction.competition.findUnique({ select: { id: true, revision: true, status: true }, where: { id: competitionId } });
     if (competition === null) throw new DrawStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
@@ -358,7 +486,7 @@ export class PrismaDrawStore implements DrawStore {
     });
     if (configurationRecord === null) return {
       competitionId, competitionRevision: competition.revision,
-      competitionStatus: competition.status as DrawWorkspace['competitionStatus'], configuration: null, execution: null,
+      competitionStatus: competition.status as DrawWorkspace['competitionStatus'], configuration: null, execution: null, publication: null,
     };
     if (configurationRecord.canonicalHash === null) throw new DrawStoreError('DRAW_CONFIGURATION_INVALID', 'Frozen draw evidence is missing.');
     const executionRecord = await transaction.officialDraw.findFirst({
@@ -378,8 +506,9 @@ export class PrismaDrawStore implements DrawStore {
     };
     if (executionRecord === null) return {
       competitionId, competitionRevision: competition.revision,
-      competitionStatus: competition.status as DrawWorkspace['competitionStatus'], configuration, execution: null,
+      competitionStatus: competition.status as DrawWorkspace['competitionStatus'], configuration, execution: null, publication: null,
     };
+    const publicationRecord = await transaction.drawPublication.findUnique({ where: { officialDrawId: executionRecord.id } });
     const evidence = executionRecord.evidenceJson as unknown as DrawEvidence;
     return {
       competitionId,
@@ -400,6 +529,29 @@ export class PrismaDrawStore implements DrawStore {
         seedHex: executionRecord.status === 'CONFIRMED' ? executionRecord.seedHex : null,
         status: executionRecord.status as 'CONFIRMED' | 'PENDING_CONFIRMATION',
       },
+      publication: publicationRecord === null || publicationRecord.status !== 'PUBLISHED' ? null : {
+        id: publicationRecord.id,
+        publishedAt: publicationRecord.publishedAt.toISOString(),
+        verificationCode: publicationRecord.verificationCode,
+      },
+    };
+  }
+
+  #publicResult(evidence: DrawEvidence, names: ReadonlyMap<string, string>): PublicDrawResult {
+    const participant = (id: string) => {
+      const name = names.get(id);
+      if (name === undefined) throw new DrawStoreError('DRAW_EXECUTION_INVALID', 'Public evidence references an unknown participant.');
+      return { id, name };
+    };
+    if (evidence.result.formatCode === 'GROUP_STAGE') return {
+      formatCode: 'GROUP_STAGE',
+      groups: evidence.result.groups.map((group) => ({ ...group, members: group.members.map(participant) })),
+    };
+    return {
+      bye: evidence.result.bye === null ? null : { participant: participant(evidence.result.bye.participantId), priorByeCount: evidence.result.bye.priorByeCount },
+      formatCode: 'KNOCKOUT',
+      pairings: evidence.result.pairings.map((pairing) => ({ ordinal: pairing.ordinal, participantA: participant(pairing.participantAId), participantB: participant(pairing.participantBId) })),
+      roundNumber: evidence.result.roundNumber,
     };
   }
 

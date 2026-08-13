@@ -15,6 +15,8 @@ import {
   type DrawWorkspace,
   type ExecuteDrawInput,
   type PrepareDrawInput,
+  type PublicDrawPublicationView,
+  type PublishDrawInput,
 } from './draw-store.js';
 
 @Injectable()
@@ -39,6 +41,27 @@ export class DrawsService {
 
   public annul(input: AnnulDrawInput): Promise<DrawWorkspace> {
     return this.#handle(() => this.store.annul(input));
+  }
+
+  public publicDraw(publicationId: string): Promise<PublicDrawPublicationView> {
+    return this.#handlePublic(() => this.store.publicDraw(publicationId));
+  }
+
+  public publish(input: PublishDrawInput): Promise<DrawWorkspace> {
+    return this.#handle(() => this.store.publish(input));
+  }
+
+  public verify(verificationCode: string): ReturnType<DrawStore['verify']> {
+    return this.store.verify(verificationCode);
+  }
+
+  async #handlePublic(operation: () => Promise<PublicDrawPublicationView>): Promise<PublicDrawPublicationView> {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      if (error instanceof DrawStoreError && error.code === 'DRAW_NOT_FOUND') throw new NotFoundException(error.message);
+      throw error;
+    }
   }
 
   async #handle(operation: () => Promise<DrawWorkspace>): Promise<DrawWorkspace> {

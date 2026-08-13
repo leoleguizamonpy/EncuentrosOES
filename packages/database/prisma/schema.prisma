@@ -38,6 +38,7 @@ model User {
   officialDrawsExecuted OfficialDraw[]         @relation("OfficialDrawExecutedBy")
   officialDrawsConfirmed OfficialDraw[]        @relation("OfficialDrawConfirmedBy")
   officialDrawsAnnulled OfficialDraw[]          @relation("OfficialDrawAnnulledBy")
+  drawPublicationsCreated DrawPublication[]      @relation("DrawPublicationCreatedBy")
   matchResultsRecorded MatchResult[]            @relation("MatchResultRecordedBy")
   matchResultsConfirmed MatchResult[]           @relation("MatchResultConfirmedBy")
   matchResultsAnnulled MatchResult[]             @relation("MatchResultAnnulledBy")
@@ -186,6 +187,7 @@ model Competition {
   officialDraws OfficialDraw[]
   matches       LogicalMatch[]
   groupQualifications GroupQualification[]
+  drawPublications DrawPublication[]
   auditEntries AuditEntry[]
 
   @@unique([editionId, eventId, sportId, modalityId])
@@ -410,10 +412,33 @@ model OfficialDraw {
   groups             DrawGroup[]
   pairings           DrawPairing[]
   matches            LogicalMatch[]
+  publication        DrawPublication?
 
   @@unique([competitionId, id])
   @@index([competitionId, status])
   @@map("official_draws")
+}
+
+model DrawPublication {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitionId    String       @map("competition_id") @db.Uuid
+  officialDrawId   String       @map("official_draw_id") @db.Uuid
+  status           String       @default("PUBLISHED")
+  actJson          Json         @map("act_json") @db.JsonB
+  verificationCode String       @unique(map: "draw_publications_verification_code_key") @map("verification_code") @db.Char(64)
+  publishedAt      DateTime     @map("published_at") @db.Timestamptz(6)
+  publishedById    String       @map("published_by") @db.Uuid
+  revokedAt        DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  revocationReason String?      @map("revocation_reason")
+  revision         Int          @default(1)
+  competition      Competition  @relation(fields: [competitionId], references: [id], onDelete: Restrict)
+  officialDraw     OfficialDraw @relation(fields: [competitionId, officialDrawId], references: [competitionId, id], onDelete: Restrict)
+  publishedBy      User         @relation("DrawPublicationCreatedBy", fields: [publishedById], references: [id], onDelete: Restrict)
+
+  @@unique([officialDrawId])
+  @@unique([competitionId, officialDrawId])
+  @@index([competitionId, status, publishedAt(sort: Desc)])
+  @@map("draw_publications")
 }
 
 model DrawGroup {

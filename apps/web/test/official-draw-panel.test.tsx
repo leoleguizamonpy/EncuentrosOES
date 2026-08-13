@@ -8,6 +8,8 @@ const api = vi.hoisted(() => ({
   confirmOfficialDraw: vi.fn(),
   executeOfficialDraw: vi.fn(),
   prepareOfficialDraw: vi.fn(),
+  publishOfficialDraw: vi.fn(),
+  publicDrawActUrl: vi.fn((id: string) => `/act/${id}`),
 }));
 vi.mock('../lib/competition-api', () => api);
 
@@ -20,7 +22,7 @@ const detail: CompetitionDetail = {
   sport: { code: 'FUTSAL', id: 'sport-1', name: 'Futsal' }, status: 'DRAFT', validGroupCounts: [1],
 };
 
-const empty: DrawWorkspace = { competitionId: detail.id, competitionRevision: 7, competitionStatus: 'DRAFT', configuration: null, execution: null };
+const empty: DrawWorkspace = { competitionId: detail.id, competitionRevision: 7, competitionStatus: 'DRAFT', configuration: null, execution: null, publication: null };
 const prepared: DrawWorkspace = {
   ...empty, competitionRevision: 9, competitionStatus: 'LOCKED',
   configuration: { canonicalHash: '2'.repeat(64), formatCode: 'GROUP_STAGE', groupCount: 1, id: 'configuration-1', participantCount: 3, revision: 2, roundNumber: 0, status: 'FROZEN' },
@@ -64,5 +66,19 @@ describe('OfficialDrawPanel', () => {
     render(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar sorteo y generar encuentros' }));
     await waitFor(() => expect(api.confirmOfficialDraw).toHaveBeenCalledWith('execution-1', 1));
+  });
+
+  it('publishes the confirmed result and exposes its public evidence', async () => {
+    if (pending.execution === null) throw new Error('Expected execution');
+    const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Dos', id: 'actor-2' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
+    const published: DrawWorkspace = { ...confirmed, publication: { id: 'publication-1', publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: '6'.repeat(64) } };
+    api.publishOfficialDraw.mockResolvedValue(published);
+    const onChange = vi.fn();
+    const { rerender } = render(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar sorteo y acta' }));
+    await waitFor(() => expect(api.publishOfficialDraw).toHaveBeenCalledWith('execution-1', 2));
+    rerender(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={published} />);
+    expect(screen.getByRole('link', { name: 'Abrir vista pública' })).toHaveAttribute('href', '/draws/publication-1');
+    expect(screen.getByRole('link', { name: 'Descargar acta JSON' })).toHaveAttribute('href', '/act/publication-1');
   });
 });

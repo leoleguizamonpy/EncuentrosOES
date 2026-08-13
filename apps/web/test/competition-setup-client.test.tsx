@@ -51,7 +51,7 @@ describe('CompetitionSetupClient', () => {
     authApi.currentActor.mockResolvedValue({ displayName: 'Autoridad OES', id: 'actor-1', role: 'ADMIN' });
     authApi.logout.mockResolvedValue(undefined);
     competitionApi.competitionDetail.mockResolvedValue(base);
-    competitionApi.drawWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionRevision: 4, competitionStatus: 'DRAFT', configuration: null, execution: null });
+    competitionApi.drawWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionRevision: 4, competitionStatus: 'DRAFT', configuration: null, execution: null, publication: null });
     competitionApi.addCompetitionParticipant.mockResolvedValue({ ...base, participantCount: 4, revision: 5 });
     competitionApi.configureCompetitionFormat.mockResolvedValue({ ...base, formatCode: 'GROUP_STAGE', groupCount: 1, revision: 5 });
   });

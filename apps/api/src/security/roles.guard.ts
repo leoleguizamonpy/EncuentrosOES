@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 
 import type { AccountRole } from '../identity/identity-store.js';
-import { REQUIRED_ROLES } from './metadata.js';
+import { PUBLIC_ROUTE, REQUIRED_ROLES } from './metadata.js';
 import type { AuthenticatedRequest } from './request.js';
 
 @Injectable()
@@ -16,6 +16,11 @@ export class RolesGuard implements CanActivate {
   public constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   public canActivate(context: ExecutionContext): boolean {
+    const publicRoute = this.reflector.getAllAndOverride<boolean | undefined>(PUBLIC_ROUTE, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (publicRoute === true) return true;
     const roles = this.reflector.getAllAndOverride<readonly AccountRole[] | undefined>(REQUIRED_ROLES, [
       context.getHandler(),
       context.getClass(),

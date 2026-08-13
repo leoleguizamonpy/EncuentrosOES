@@ -64,6 +64,29 @@ export interface DrawWorkspace {
     seedHex: string | null;
     status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
   }> | null;
+  readonly publication: Readonly<{ id: string; publishedAt: string; verificationCode: string }> | null;
+}
+export interface PublicDrawPublication {
+  readonly act: Readonly<{
+    algorithmVersion: string;
+    competition: Readonly<{ edition: string; event: string; id: string; modality: string; sport: string }>;
+    configuration: Readonly<{ canonicalHash: string; formatCode: 'GROUP_STAGE' | 'KNOCKOUT'; groupCount: number | null; id: string; participantCount: number; roundNumber: number; ruleSetHash: string; ruleSetId: string }>;
+    confirmedAt: string;
+    evidenceHash: string;
+    officialDrawId: string;
+    participants: readonly Readonly<{ byeCount: number; id: string; name: string }>[];
+    publicationId: string;
+    publishedAt: string;
+    result:
+      | Readonly<{ formatCode: 'GROUP_STAGE'; groups: readonly Readonly<{ label: string; members: readonly Readonly<{ id: string; name: string }>[]; ordinal: number }>[] }>
+      | Readonly<{ bye: Readonly<{ participant: Readonly<{ id: string; name: string }>; priorByeCount: number }> | null; formatCode: 'KNOCKOUT'; pairings: readonly Readonly<{ ordinal: number; participantA: Readonly<{ id: string; name: string }>; participantB: Readonly<{ id: string; name: string }> }>[]; roundNumber: number }>;
+    schemaVersion: 'oes-public-draw-act-v1';
+    seedHex: string;
+  }>;
+  readonly id: string;
+  readonly publishedAt: string;
+  readonly verificationCode: string;
+  readonly verified: boolean;
 }
 
 export interface CreateCompetitionInput {
@@ -168,6 +191,18 @@ export function executeOfficialDraw(configurationId: string, expectedRevision: n
 
 export function confirmOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
   return mutate(`/official-draws/${executionId}/confirm`, 'POST', { expectedRevision });
+}
+
+export function publishOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
+  return mutate(`/official-draws/${executionId}/publish`, 'POST', { expectedRevision });
+}
+
+export function publicDraw(publicationId: string): Promise<PublicDrawPublication> {
+  return get(`/public/draws/${publicationId}`);
+}
+
+export function publicDrawActUrl(publicationId: string): string {
+  return `${apiUrl}/public/draws/${publicationId}/act`;
 }
 
 export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> {
