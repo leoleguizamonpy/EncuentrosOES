@@ -88,6 +88,87 @@ describe('Competition', () => {
     expect(competition.toSnapshot().revision).toBe(2);
   });
 
+  it('configures a validated group stage and stores its group count', () => {
+    const competition = createCompetition();
+    for (const [index, institutionId] of Array.from({ length: 7 }, (_, value) => `institution-${String(value + 1)}`).entries()) {
+      competition.addParticipant({
+        actorId: actorA,
+        displayName: `Equipo ${String(index + 1)}`,
+        eventId: key.eventId,
+        expectedRevision: index + 1,
+        id: `participant-${String(index + 1)}`,
+        institutionId,
+        occurredAt: createdAt,
+      });
+    }
+
+    competition.configureFormat({
+      actorId: actorB,
+      expectedRevision: 8,
+      formatCode: 'GROUP_STAGE',
+      groupCount: 2,
+      occurredAt: createdAt,
+    });
+
+    expect(competition.toSnapshot()).toMatchObject({
+      formatCode: 'GROUP_STAGE',
+      groupCount: 2,
+      revision: 9,
+      updatedBy: actorB,
+    });
+  });
+
+  it('rejects invalid group sizes and knockout with fewer than two participants', () => {
+    const competition = createCompetition();
+    expectDomainError(
+      () => competition.configureFormat({
+        actorId: actorA,
+        expectedRevision: 1,
+        formatCode: 'GROUP_STAGE',
+        groupCount: 2,
+        occurredAt: createdAt,
+      }),
+      'INVALID_PARTICIPANT_COUNT',
+    );
+    expectDomainError(
+      () => competition.configureFormat({
+        actorId: actorA,
+        expectedRevision: 1,
+        formatCode: 'KNOCKOUT',
+        groupCount: null,
+        occurredAt: createdAt,
+      }),
+      'DRAW_CONFIGURATION_INCOMPATIBLE',
+    );
+  });
+
+  it('clears a configured format when the participant list changes', () => {
+    const competition = createCompetition();
+    for (let index = 0; index < 3; index += 1) {
+      competition.addParticipant({
+        actorId: actorA,
+        displayName: `Equipo ${String(index + 1)}`,
+        eventId: key.eventId,
+        expectedRevision: index + 1,
+        id: `participant-${String(index + 1)}`,
+        institutionId: `institution-${String(index + 1)}`,
+        occurredAt: createdAt,
+      });
+    }
+    competition.configureFormat({ actorId: actorA, expectedRevision: 4, formatCode: 'GROUP_STAGE', groupCount: 1, occurredAt: createdAt });
+    competition.addParticipant({
+      actorId: actorB,
+      displayName: 'Equipo 4',
+      eventId: key.eventId,
+      expectedRevision: 5,
+      id: 'participant-4',
+      institutionId: 'institution-4',
+      occurredAt: createdAt,
+    });
+
+    expect(competition.toSnapshot()).toMatchObject({ formatCode: null, groupCount: null, revision: 6 });
+  });
+
   it('rejects stale revisions without mutating state', () => {
     const competition = createCompetition();
 
@@ -169,7 +250,8 @@ describe('Competition', () => {
   it('rejects participant changes after locking', () => {
     const snapshot: CompetitionSnapshot = {
       ...createCompetition().toSnapshot(),
-      formatCode: 'GROUP_STAGE',
+      formatCode: 'KNOCKOUT',
+      groupCount: null,
       lockedAt: createdAt,
       lockedBy: actorA,
       status: 'LOCKED',
@@ -253,6 +335,7 @@ describe('Competition', () => {
       drawConfiguration: {
         competitionId: competition.toSnapshot().id,
         formatCode: 'GROUP_STAGE',
+        groupCount: 1,
         participantCount: 3,
         participants: [
           { byeCount: 0, displayName: 'Equipo 1', id: 'participant-1' },
@@ -289,6 +372,7 @@ describe('Competition', () => {
           drawConfiguration: {
             competitionId: competition.toSnapshot().id,
             formatCode: 'KNOCKOUT',
+            groupCount: null,
             participantCount: 2,
             participants: [
               { byeCount: 0, displayName: 'Equipo 1', id: 'participant-1' },

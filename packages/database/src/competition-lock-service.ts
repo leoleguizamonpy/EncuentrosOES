@@ -23,6 +23,7 @@ export class PrismaCompetitionLockService {
       UPDATE "competitions" AS competition
       SET
         "format_code" = draw."format_code",
+        "group_count" = draw."group_count",
         "locked_at" = ${input.occurredAt},
         "locked_by" = ${input.actorId}::uuid,
         "revision" = competition."revision" + 1,

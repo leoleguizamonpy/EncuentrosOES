@@ -64,6 +64,7 @@ export class PrismaCompetitionRepository {
         editionId: snapshot.key.editionId,
         eventId: snapshot.key.eventId,
         formatCode: snapshot.formatCode,
+        groupCount: snapshot.groupCount,
         id: snapshot.id,
         lockedAt: snapshot.lockedAt,
         lockedById: snapshot.lockedBy,
@@ -114,6 +115,7 @@ export class PrismaCompetitionRepository {
       createdBy: record.createdById,
       id: record.id,
       formatCode: parseDrawFormat(record.formatCode),
+      groupCount: record.groupCount,
       key: {
         editionId: record.editionId,
         eventId: record.eventId,
@@ -142,6 +144,7 @@ export class PrismaCompetitionRepository {
       const update = await transaction.competition.updateMany({
         data: {
           formatCode: snapshot.formatCode,
+          groupCount: snapshot.groupCount,
           lockedAt: snapshot.lockedAt,
           lockedById: snapshot.lockedBy,
           revision: snapshot.revision,

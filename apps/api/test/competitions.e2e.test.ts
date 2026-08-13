@@ -9,9 +9,12 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import {
   COMPETITION_STORE,
+  type AddStoredParticipantInput,
   type CompetitionCatalog,
+  type CompetitionDetail,
   type CompetitionStore,
   type CompetitionSummary,
+  type ConfigureStoredFormatInput,
   type CreateStoredCompetitionInput,
 } from '../src/competitions/competition-store.js';
 import { API_CONFIG, type ApiConfig } from '../src/config.js';
@@ -45,12 +48,43 @@ const catalog: CompetitionCatalog = {
   combinations: [combination],
   editions: [edition],
 };
+const institution = { code: 'CN1', id: '70000000-0000-4000-8000-000000000001', name: 'Colegio Nacional', selected: false };
+
+function detail(revision = 1): CompetitionDetail {
+  return {
+    createdAt: '2026-08-13T18:00:00.000Z',
+    edition,
+    event: combination.event,
+    formatCode: null,
+    groupCount: null,
+    id: '20000000-0000-4000-8000-000000000001',
+    institutions: [institution],
+    modality: combination.modality,
+    participantCount: 0,
+    participants: [],
+    revision,
+    sport: combination.sport,
+    status: 'DRAFT',
+    validGroupCounts: [],
+  };
+}
 
 class FakeCompetitionStore implements CompetitionStore {
   public readonly created: CreateStoredCompetitionInput[] = [];
+  public readonly participantInputs: AddStoredParticipantInput[] = [];
+  public readonly formatInputs: ConfigureStoredFormatInput[] = [];
 
   public catalog(): Promise<CompetitionCatalog> { return Promise.resolve(catalog); }
   public list(): Promise<readonly CompetitionSummary[]> { return Promise.resolve([]); }
+  public detail(): Promise<CompetitionDetail> { return Promise.resolve(detail()); }
+  public addParticipant(input: AddStoredParticipantInput): Promise<CompetitionDetail> {
+    this.participantInputs.push(input);
+    return Promise.resolve({ ...detail(2), institutions: [{ ...institution, selected: true }], participantCount: 1, participants: [{ displayName: institution.name, enabledAt: '2026-08-13T18:01:00.000Z', id: '71000000-0000-4000-8000-000000000001', institutionId: institution.id, status: 'ENABLED' }] });
+  }
+  public configureFormat(input: ConfigureStoredFormatInput): Promise<CompetitionDetail> {
+    this.formatInputs.push(input);
+    return Promise.resolve({ ...detail(2), formatCode: input.formatCode, groupCount: input.groupCount });
+  }
   public create(input: CreateStoredCompetitionInput): Promise<CompetitionSummary> {
     this.created.push(input);
     return Promise.resolve({
@@ -58,6 +92,7 @@ class FakeCompetitionStore implements CompetitionStore {
       edition,
       event: combination.event,
       formatCode: null,
+      groupCount: null,
       id: '20000000-0000-4000-8000-000000000001',
       modality: combination.modality,
       participantCount: 0,
@@ -166,6 +201,53 @@ describe('competitions HTTP boundary', () => {
       .send({ editionId: ids.edition, eventId: ids.event, modalityId: ids.modality, sportId: ids.sport })
       .expect(403);
     expect(store.created).toHaveLength(0);
+  });
+
+  it('loads setup details and lets administrators add a participant', async () => {
+    const { app, store } = await start('ADMIN');
+    const auth = await authenticate(app);
+    await request(server(app))
+      .get('/api/v1/competitions/20000000-0000-4000-8000-000000000001')
+      .set('Cookie', auth.session)
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ revision: 1, institutions: [institution] }));
+    await request(server(app))
+      .post('/api/v1/competitions/20000000-0000-4000-8000-000000000001/participants')
+      .set('Cookie', auth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', auth.csrf)
+      .set('Idempotency-Key', 'participant-add-0001')
+      .send({ expectedRevision: 1, institutionId: institution.id })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ participantCount: 1, revision: 2 }));
+    expect(store.participantInputs[0]).toMatchObject({ actorRole: 'ADMIN', expectedRevision: 1, institutionId: institution.id });
+  });
+
+  it('configures the selected format and keeps operators from mutating setup', async () => {
+    const admin = await start('SUPERADMIN');
+    const adminAuth = await authenticate(admin.app);
+    await request(server(admin.app))
+      .patch('/api/v1/competitions/20000000-0000-4000-8000-000000000001/format')
+      .set('Cookie', adminAuth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', adminAuth.csrf)
+      .set('Idempotency-Key', 'format-configure-0001')
+      .send({ expectedRevision: 1, formatCode: 'KNOCKOUT', groupCount: null })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ formatCode: 'KNOCKOUT', groupCount: null }));
+    expect(admin.store.formatInputs[0]).toMatchObject({ actorRole: 'SUPERADMIN', formatCode: 'KNOCKOUT' });
+
+    const operator = await start('OPERATOR');
+    const operatorAuth = await authenticate(operator.app);
+    await request(server(operator.app))
+      .patch('/api/v1/competitions/20000000-0000-4000-8000-000000000001/format')
+      .set('Cookie', operatorAuth.session)
+      .set('Origin', config.webOrigin)
+      .set('X-CSRF-Token', operatorAuth.csrf)
+      .set('Idempotency-Key', 'format-configure-0002')
+      .send({ expectedRevision: 1, formatCode: 'KNOCKOUT', groupCount: null })
+      .expect(403);
+    expect(operator.store.formatInputs).toHaveLength(0);
   });
 });
 

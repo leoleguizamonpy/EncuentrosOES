@@ -140,12 +140,12 @@ export function CompetitionsClient(): React.JSX.Element {
             ) : (
               <div className="competition-rows">
                 {items.map((item) => (
-                  <article className="competition-row" key={item.id}>
+                  <a className="competition-row" href={`/competitions/${item.id}`} key={item.id}>
                     <div className="competition-monogram" aria-hidden="true">{item.sport.name.charAt(0)}</div>
                     <div><h4>{item.sport.name} · {item.modality.name}</h4><p>{item.edition.name} / {item.event.name}</p></div>
                     <div className="competition-count"><strong>{item.participantCount}</strong><span>participantes</span></div>
                     <span className={`competition-status competition-status--${item.status.toLowerCase()}`}>{statusLabels[item.status]}</span>
-                  </article>
+                  </a>
                 ))}
               </div>
             )}

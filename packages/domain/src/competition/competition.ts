@@ -1,6 +1,7 @@
 import { DomainError } from '../errors/domain-error.js';
 import type { DrawConfigurationSnapshot, DrawFormatCode } from '../draw/draw-configuration.js';
 import type { CompetitionRuleSetSnapshot } from '../rules/competition-rule-set.js';
+import { planGroupDistribution } from './group-distribution.js';
 
 export type CompetitionStatus = 'DRAFT' | 'FINALIZED' | 'LOCKED' | 'OPEN';
 export type ParticipantStatus = 'ENABLED' | 'WITHDRAWN';
@@ -28,6 +29,7 @@ export interface CompetitionSnapshot {
   readonly createdBy: string;
   readonly id: string;
   readonly formatCode: DrawFormatCode | null;
+  readonly groupCount: number | null;
   readonly key: CompetitionKey;
   readonly lockedAt: Date | null;
   readonly lockedBy: string | null;
@@ -61,12 +63,29 @@ export interface OpenCompetitionInput {
   readonly occurredAt: Date;
 }
 
+export type ConfigureCompetitionFormatInput =
+  | Readonly<{
+      actorId: string;
+      expectedRevision: number;
+      formatCode: 'GROUP_STAGE';
+      groupCount: number;
+      occurredAt: Date;
+    }>
+  | Readonly<{
+      actorId: string;
+      expectedRevision: number;
+      formatCode: 'KNOCKOUT';
+      groupCount: null;
+      occurredAt: Date;
+    }>;
+
 export interface LockCompetitionInput {
   readonly actorId: string;
   readonly drawConfiguration: Pick<
     DrawConfigurationSnapshot,
     | 'competitionId'
     | 'formatCode'
+    | 'groupCount'
     | 'participantCount'
     | 'participants'
     | 'ruleSetId'
@@ -104,6 +123,7 @@ export class Competition {
   readonly #key: CompetitionKey;
   readonly #participants: ParticipantSnapshot[];
   #formatCode: DrawFormatCode | null;
+  #groupCount: number | null;
   #lockedAt: Date | null;
   #lockedBy: string | null;
   #revision: number;
@@ -116,6 +136,7 @@ export class Competition {
     this.#key = Object.freeze({ ...snapshot.key });
     this.#status = snapshot.status;
     this.#formatCode = snapshot.formatCode;
+    this.#groupCount = snapshot.groupCount;
     this.#lockedAt = snapshot.lockedAt === null ? null : new Date(snapshot.lockedAt);
     this.#lockedBy = snapshot.lockedBy;
     this.#revision = snapshot.revision;
@@ -132,6 +153,7 @@ export class Competition {
       createdBy: input.actorId,
       id: input.id,
       formatCode: null,
+      groupCount: null,
       key: input.key,
       lockedAt: null,
       lockedBy: null,
@@ -159,6 +181,31 @@ export class Competition {
         'INVALID_COMPETITION_STATE',
         'Persisted lock evidence is inconsistent with competition status.',
       );
+    }
+
+    const enabledParticipantCount = snapshot.participants.filter(
+      ({ status }) => status === 'ENABLED',
+    ).length;
+    if (snapshot.formatCode === null && snapshot.groupCount !== null) {
+      throw new DomainError(
+        'INVALID_COMPETITION_STATE',
+        'A competition without a format cannot retain a group count.',
+      );
+    }
+    if (snapshot.formatCode === 'KNOCKOUT' && snapshot.groupCount !== null) {
+      throw new DomainError(
+        'INVALID_COMPETITION_STATE',
+        'A knockout competition cannot retain a group count.',
+      );
+    }
+    if (snapshot.formatCode === 'GROUP_STAGE') {
+      if (snapshot.groupCount === null) {
+        throw new DomainError(
+          'INVALID_COMPETITION_STATE',
+          'A group-stage competition must retain its group count.',
+        );
+      }
+      planGroupDistribution(enabledParticipantCount, snapshot.groupCount);
     }
 
     const institutionIds = new Set<string>();
@@ -218,6 +265,29 @@ export class Competition {
         status: 'ENABLED',
       }),
     );
+    this.#formatCode = null;
+    this.#groupCount = null;
+    this.#recordMutation(input.actorId, input.occurredAt);
+  }
+
+  public configureFormat(input: ConfigureCompetitionFormatInput): void {
+    this.#assertRevision(input.expectedRevision);
+    this.#assertEditable();
+
+    const participantCount = this.#participants.filter(
+      ({ status }) => status === 'ENABLED',
+    ).length;
+    if (input.formatCode === 'GROUP_STAGE') {
+      planGroupDistribution(participantCount, input.groupCount);
+    } else if (participantCount < 2) {
+      throw new DomainError(
+        'DRAW_CONFIGURATION_INCOMPATIBLE',
+        'Knockout competition setup requires at least two participants.',
+      );
+    }
+
+    this.#formatCode = input.formatCode;
+    this.#groupCount = input.groupCount;
     this.#recordMutation(input.actorId, input.occurredAt);
   }
 
@@ -268,6 +338,7 @@ export class Competition {
     }
 
     this.#formatCode = input.drawConfiguration.formatCode;
+    this.#groupCount = input.drawConfiguration.groupCount;
     this.#lockedAt = new Date(input.occurredAt);
     this.#lockedBy = input.actorId;
     this.#status = 'LOCKED';
@@ -279,6 +350,7 @@ export class Competition {
       createdAt: new Date(this.#createdAt),
       createdBy: this.#createdBy,
       formatCode: this.#formatCode,
+      groupCount: this.#groupCount,
       id: this.#id,
       key: Object.freeze({ ...this.#key }),
       lockedAt: this.#lockedAt === null ? null : new Date(this.#lockedAt),

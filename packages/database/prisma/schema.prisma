@@ -164,6 +164,7 @@ model Competition {
   modalityId    String    @map("modality_id") @db.Uuid
   status        String    @default("DRAFT")
   formatCode    String?   @map("format_code")
+  groupCount    Int?      @map("group_count")
   lockedAt      DateTime? @map("locked_at") @db.Timestamptz(6)
   lockedById    String?   @map("locked_by") @db.Uuid
   finalizedAt   DateTime? @map("finalized_at") @db.Timestamptz(6)

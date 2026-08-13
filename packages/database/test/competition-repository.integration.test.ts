@@ -594,6 +594,7 @@ integration('PrismaCompetitionRepository', () => {
 
     expect((await repository.findById(ids.competition))?.toSnapshot()).toMatchObject({
       formatCode: 'GROUP_STAGE',
+      groupCount: 1,
       lockedBy: ids.actor,
       revision: 6,
       status: 'LOCKED',
