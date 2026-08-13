@@ -5,6 +5,7 @@ import { OfficialDrawPanel } from '../components/official-draw-panel';
 import type { CompetitionDetail, DrawWorkspace } from '../lib/competition-api';
 
 const api = vi.hoisted(() => ({
+  annulOfficialDraw: vi.fn(),
   confirmOfficialDraw: vi.fn(),
   executeOfficialDraw: vi.fn(),
   prepareOfficialDraw: vi.fn(),
@@ -42,7 +43,7 @@ describe('OfficialDrawPanel', () => {
 
   it('requires explicit confirmation before locking the official configuration', async () => {
     api.prepareOfficialDraw.mockResolvedValue(prepared);
-    render(<OfficialDrawPanel actorId="actor-1" canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={empty} />);
+    render(<OfficialDrawPanel actorId="actor-1" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={empty} />);
     fireEvent.click(screen.getByRole('button', { name: 'Preparar sorteo oficial' }));
     expect(api.prepareOfficialDraw).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar y bloquear' }));
@@ -51,10 +52,10 @@ describe('OfficialDrawPanel', () => {
 
   it('executes on the server and prevents the executor from self-confirming', async () => {
     api.executeOfficialDraw.mockResolvedValue(pending);
-    const { rerender } = render(<OfficialDrawPanel actorId="actor-1" canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={prepared} />);
+    const { rerender } = render(<OfficialDrawPanel actorId="actor-1" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={prepared} />);
     fireEvent.click(screen.getByRole('button', { name: 'Ejecutar sorteo' }));
     await waitFor(() => expect(api.executeOfficialDraw).toHaveBeenCalledWith('configuration-1', 2));
-    rerender(<OfficialDrawPanel actorId="actor-1" canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
+    rerender(<OfficialDrawPanel actorId="actor-1" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
     expect(screen.getByText(/no puede confirmarlo/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirmar sorteo y generar encuentros' })).not.toBeInTheDocument();
   });
@@ -63,7 +64,7 @@ describe('OfficialDrawPanel', () => {
     if (pending.execution === null) throw new Error('Expected pending execution');
     const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Dos', id: 'actor-2' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
     api.confirmOfficialDraw.mockResolvedValue(confirmed);
-    render(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
+    render(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar sorteo y generar encuentros' }));
     await waitFor(() => expect(api.confirmOfficialDraw).toHaveBeenCalledWith('execution-1', 1));
   });
@@ -74,11 +75,30 @@ describe('OfficialDrawPanel', () => {
     const published: DrawWorkspace = { ...confirmed, publication: { id: 'publication-1', publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: '6'.repeat(64) } };
     api.publishOfficialDraw.mockResolvedValue(published);
     const onChange = vi.fn();
-    const { rerender } = render(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
+    const { rerender } = render(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
     fireEvent.click(screen.getByRole('button', { name: 'Publicar sorteo y acta' }));
     await waitFor(() => expect(api.publishOfficialDraw).toHaveBeenCalledWith('execution-1', 2));
-    rerender(<OfficialDrawPanel actorId="actor-2" canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={published} />);
+    rerender(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={published} />);
     expect(screen.getByRole('link', { name: 'Abrir vista pública' })).toHaveAttribute('href', '/draws/publication-1');
     expect(screen.getByRole('link', { name: 'Descargar acta JSON' })).toHaveAttribute('href', '/act/publication-1');
+  });
+
+  it('requires a formal reason and lets only a superadministrator annul', async () => {
+    if (pending.execution === null) throw new Error('Expected execution');
+    const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Dos', id: 'actor-2' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
+    api.annulOfficialDraw.mockResolvedValue(prepared);
+    const onChange = vi.fn();
+    const { rerender } = render(<OfficialDrawPanel actorId="super-1" canAnnul canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Anular sorteo oficial' }));
+    const submit = screen.getByRole('button', { name: 'Confirmar anulación' });
+    expect(submit).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Motivo formal de anulación'), { target: { value: 'Error formal en la nómina congelada.' } });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    await waitFor(() => expect(api.annulOfficialDraw).toHaveBeenCalledWith('execution-1', 2, 'Error formal en la nómina congelada.'));
+    expect(onChange).toHaveBeenCalledWith(prepared);
+
+    rerender(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
+    expect(screen.queryByRole('button', { name: 'Anular sorteo oficial' })).not.toBeInTheDocument();
   });
 });

@@ -220,6 +220,16 @@ button,a { -webkit-tap-highlight-color:transparent; }
 .draw-publication-proof code { font-size:9px; overflow-wrap:anywhere; }
 .draw-publication-proof div { display:flex; flex-wrap:wrap; gap:10px; }
 .draw-publication-proof a { color:#195d38; font-size:10px; font-weight:900; text-decoration:underline; }
+.draw-annulment { border-top:1px solid #e4c7c7; margin-top:8px; padding-top:16px; }
+.danger-button { background:#8f1d24; border:0; border-radius:8px; color:#fff; cursor:pointer; font-size:10px; font-weight:900; padding:12px 16px; text-transform:uppercase; }
+.danger-button:disabled { cursor:not-allowed; opacity:.48; }
+.draw-annulment__form { background:#fff2f1; border:1px solid #e8b8b5; border-radius:10px; display:grid; gap:10px; padding:16px; }
+.draw-annulment__form strong { color:#7b1b21; font-size:11px; }
+.draw-annulment__form label { font-size:10px; font-weight:900; text-transform:uppercase; }
+.draw-annulment__form textarea { background:#fff; border:1px solid #d9aaaa; border-radius:8px; min-height:96px; padding:12px; resize:vertical; }
+.draw-annulment__form small { color:#865b5b; font-size:9px; }
+.draw-annulment__form div { display:flex; flex-wrap:wrap; gap:8px; }
+.draw-annulment__form div button:not(.danger-button) { background:transparent; border:1px solid #b88d8d; border-radius:8px; color:#623b3b; cursor:pointer; font-size:10px; font-weight:800; padding:11px 15px; }
 
 .public-draw-shell { background:#f4f1ea; color:#16202e; min-height:100vh; padding:36px clamp(20px,5vw,72px) 64px; }
 .public-draw-header { align-items:center; border-bottom:1px solid #cfc9bc; display:grid; gap:24px; grid-template-columns:auto 1fr auto; padding-bottom:28px; }

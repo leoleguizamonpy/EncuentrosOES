@@ -193,6 +193,10 @@ export function confirmOfficialDraw(executionId: string, expectedRevision: numbe
   return mutate(`/official-draws/${executionId}/confirm`, 'POST', { expectedRevision });
 }
 
+export function annulOfficialDraw(executionId: string, expectedRevision: number, reason: string): Promise<DrawWorkspace> {
+  return mutate(`/official-draws/${executionId}/annul`, 'POST', { expectedRevision, reason });
+}
+
 export function publishOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
   return mutate(`/official-draws/${executionId}/publish`, 'POST', { expectedRevision });
 }
