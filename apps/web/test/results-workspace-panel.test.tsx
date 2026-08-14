@@ -1,8 +1,11 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResultsWorkspacePanel } from '../components/results-workspace-panel';
 import type { ResultsWorkspace } from '../lib/competition-api';
+
+const api = vi.hoisted(() => ({ confirmMatchResult: vi.fn(), recordMatchResult: vi.fn() }));
+vi.mock('../lib/competition-api', async (importOriginal) => ({ ...await importOriginal(), ...api }));
 
 const participantA = { displayName: 'Colegio A', id: 'participant-a' };
 const participantB = { displayName: 'Colegio B', id: 'participant-b' };
@@ -26,8 +29,10 @@ const workspace: ResultsWorkspace = {
 };
 
 describe('ResultsWorkspacePanel', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it('shows persisted matches and the automatically calculated table', () => {
-    render(<ResultsWorkspacePanel workspace={workspace} />);
+    render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('Resultado confirmado')).toBeInTheDocument();
     expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
@@ -38,7 +43,31 @@ describe('ResultsWorkspacePanel', () => {
   });
 
   it('explains why there are no matches before draw confirmation', () => {
-    render(<ResultsWorkspacePanel workspace={{ competitionId: 'competition-1', competitionStatus: 'LOCKED', groups: [], matches: [], resultProfile: null }} />);
+    render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={vi.fn()} onError={vi.fn()} workspace={{ competitionId: 'competition-1', competitionStatus: 'LOCKED', groups: [], matches: [], resultProfile: null }} />);
     expect(screen.getByText(/otra autoridad confirme el sorteo oficial/i)).toBeInTheDocument();
+  });
+
+  it('records a score and requires a different authority to confirm it', async () => {
+    const sourceGroup = workspace.groups[0];
+    const sourceMatch = workspace.matches[0];
+    const sourceResult = sourceMatch?.result;
+    if (sourceGroup === undefined || sourceMatch === undefined || sourceResult === undefined || sourceResult === null) throw new Error('Expected result fixture');
+    const empty: ResultsWorkspace = { ...workspace, groups: [{ ...sourceGroup, standings: [] }], matches: [{ ...sourceMatch, result: null, status: 'PENDING_RESULT', winnerParticipantId: null }] };
+    api.recordMatchResult.mockResolvedValue(empty);
+    const onChange = vi.fn();
+    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={onChange} onError={vi.fn()} workspace={empty} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar resultado' }));
+    fireEvent.change(screen.getByLabelText('Marcador de Colegio A'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('Marcador de Colegio B'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar a confirmación' }));
+    await waitFor(() => expect(api.recordMatchResult).toHaveBeenCalledWith('match-1', { profile: 'SCORE_BASED', scoreA: 4, scoreB: 2 }));
+
+    const emptyMatch = empty.matches[0];
+    if (emptyMatch === undefined) throw new Error('Expected empty result fixture');
+    const pending: ResultsWorkspace = { ...empty, matches: [{ ...emptyMatch, result: { ...sourceResult, confirmedAt: null, confirmedBy: null, revision: 1, status: 'PENDING_CONFIRMATION' }, status: 'RESULT_PENDING_CONFIRMATION' }] };
+    api.confirmMatchResult.mockResolvedValue(workspace);
+    rerender(<ResultsWorkspacePanel actorId="actor-2" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar resultado' }));
+    await waitFor(() => expect(api.confirmMatchResult).toHaveBeenCalledWith('result-1', 1));
   });
 });

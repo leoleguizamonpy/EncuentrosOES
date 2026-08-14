@@ -1,10 +1,14 @@
+import { randomUUID } from 'node:crypto';
+
 import { Inject, Injectable } from '@nestjs/common';
-import type { PrismaClient } from '@oes/database';
+import { PrismaMatchResultService, type PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
 import {
   ResultsStoreError,
+  type ConfirmResultInput,
   type MatchResultView,
+  type RecordResultInput,
   type ResultMatchView,
   type ResultsStore,
   type ResultsWorkspace,
@@ -33,7 +37,40 @@ function matchStatus(value: string): ResultMatchView['status'] {
 
 @Injectable()
 export class PrismaResultsStore implements ResultsStore {
-  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
+  readonly #matchResultService: PrismaMatchResultService;
+
+  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
+    this.#matchResultService = new PrismaMatchResultService(client);
+  }
+
+  public async record(input: RecordResultInput): Promise<ResultsWorkspace> {
+    const match = await this.client.logicalMatch.findUnique({ select: { competitionId: true }, where: { id: input.matchId } });
+    if (match === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The match does not exist.');
+    await this.#matchResultService.record({
+      actorId: input.actorId,
+      correlationId: input.correlationId,
+      detail: input.detail,
+      idempotencyKey: input.idempotencyKey,
+      matchId: input.matchId,
+      occurredAt: new Date(),
+      resultId: randomUUID(),
+    });
+    return this.workspace(match.competitionId);
+  }
+
+  public async confirm(input: ConfirmResultInput): Promise<ResultsWorkspace> {
+    const result = await this.client.matchResult.findUnique({ select: { competitionId: true }, where: { id: input.resultId } });
+    if (result === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The result does not exist.');
+    await this.#matchResultService.confirm({
+      actorId: input.actorId,
+      correlationId: input.correlationId,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: input.idempotencyKey,
+      occurredAt: new Date(),
+      resultId: input.resultId,
+    });
+    return this.workspace(result.competitionId);
+  }
 
   public async workspace(competitionId: string): Promise<ResultsWorkspace> {
     const competition = await this.client.competition.findUnique({

@@ -256,6 +256,14 @@ button,a { -webkit-tap-highlight-color:transparent; }
 .standing-card th:nth-child(2) { text-align:left; }
 .standing-card thead th { color:#6c706b; font-size:8px; text-transform:uppercase; }
 .standing-card > p { color:#73766f; font-size:10px; margin:12px 0 0; }
+.result-entry-form { background:#f4f1e9; border-radius:9px; display:grid; gap:12px; padding:12px; }
+.result-entry-form > div:last-child { display:flex; flex-wrap:wrap; gap:8px; }
+.result-entry-form > div:last-child button:not(.primary-button),.result-entry-form > button { background:#fff; border:1px solid #bdb8aa; border-radius:7px; cursor:pointer; font-size:9px; font-weight:900; padding:10px 12px; }
+.result-score-row,.result-set-row { align-items:end; display:grid; gap:8px; grid-template-columns:1fr auto 1fr; }
+.result-score-row label,.result-set-row label { color:#575b56; display:grid; font-size:8px; font-weight:900; gap:5px; text-transform:uppercase; }
+.result-score-row input,.result-set-row input { background:#fff; border:1px solid #c9c4b7; border-radius:7px; font:inherit; min-width:0; padding:10px; text-align:center; }
+.result-score-row > span,.result-set-row > span { padding-bottom:10px; }
+.sr-only { height:1px; margin:-1px; overflow:hidden; padding:0; position:absolute; width:1px; clip:rect(0,0,0,0); white-space:nowrap; }
 
 .public-draw-shell { background:#f4f1ea; color:#16202e; min-height:100vh; padding:36px clamp(20px,5vw,72px) 64px; }
 .public-draw-header { align-items:center; border-bottom:1px solid #cfc9bc; display:grid; gap:24px; grid-template-columns:auto 1fr auto; padding-bottom:28px; }

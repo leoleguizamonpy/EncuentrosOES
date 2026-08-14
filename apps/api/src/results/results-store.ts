@@ -63,6 +63,24 @@ export interface ResultsWorkspace {
   readonly resultProfile: 'SCORE_BASED' | 'SET_BASED' | null;
 }
 
+interface ResultMutationInput {
+  readonly actorId: string;
+  readonly correlationId: string;
+  readonly idempotencyKey: string;
+}
+
+export interface RecordResultInput extends ResultMutationInput {
+  readonly detail:
+    | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number }>
+    | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>;
+  readonly matchId: string;
+}
+
+export interface ConfirmResultInput extends ResultMutationInput {
+  readonly expectedRevision: number;
+  readonly resultId: string;
+}
+
 export class ResultsStoreError extends Error {
   public constructor(public readonly code: 'COMPETITION_NOT_FOUND' | 'RESULTS_INTEGRITY_FAILURE', message: string) {
     super(message);
@@ -71,6 +89,8 @@ export class ResultsStoreError extends Error {
 }
 
 export interface ResultsStore {
+  confirm(input: ConfirmResultInput): Promise<ResultsWorkspace>;
+  record(input: RecordResultInput): Promise<ResultsWorkspace>;
   workspace(competitionId: string): Promise<ResultsWorkspace>;
 }
 
