@@ -94,6 +94,10 @@ export interface ConfirmResultInput extends ResultMutationInput {
   readonly resultId: string;
 }
 
+export interface AnnulResultInput extends ConfirmResultInput {
+  readonly reason: string;
+}
+
 export interface ConfirmQualificationInput extends ResultMutationInput {
   readonly expectedRevision: number;
   readonly qualificationId: string;
@@ -107,6 +111,7 @@ export class ResultsStoreError extends Error {
 }
 
 export interface ResultsStore {
+  annul(input: AnnulResultInput): Promise<ResultsWorkspace>;
   confirm(input: ConfirmResultInput): Promise<ResultsWorkspace>;
   confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace>;
   record(input: RecordResultInput): Promise<ResultsWorkspace>;

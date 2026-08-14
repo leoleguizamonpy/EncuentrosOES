@@ -2,7 +2,7 @@
 
 import { type SyntheticEvent, useState } from 'react';
 
-import { confirmGroupQualification, confirmMatchResult, recordMatchResult, type GroupQualificationView, type MatchResultView, type ResultMatchView, type ResultsWorkspace } from '../lib/competition-api';
+import { annulMatchResult, confirmGroupQualification, confirmMatchResult, recordMatchResult, type GroupQualificationView, type MatchResultView, type ResultMatchView, type ResultsWorkspace } from '../lib/competition-api';
 
 const statusLabels = { PENDING_RESULT: 'Pendiente de resultado', RESULT_CONFIRMED: 'Resultado confirmado', RESULT_PENDING_CONFIRMATION: 'Pendiente de confirmación' } as const;
 
@@ -11,8 +11,9 @@ function ResultScore({ result }: { readonly result: MatchResultView }): React.JS
   return <strong>{result.resolved.setsWonA} — {result.resolved.setsWonB} <small>sets</small></strong>;
 }
 
-function MatchCard({ actorId, canOperate, match, onChange, onError, profile }: {
+function MatchCard({ actorId, canAnnul, canOperate, match, onChange, onError, profile }: {
   readonly actorId: string;
+  readonly canAnnul: boolean;
   readonly canOperate: boolean;
   readonly match: ResultMatchView;
   readonly onChange: (workspace: ResultsWorkspace) => void;
@@ -20,10 +21,12 @@ function MatchCard({ actorId, canOperate, match, onChange, onError, profile }: {
   readonly profile: ResultsWorkspace['resultProfile'];
 }): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const [annulmentOpen, setAnnulmentOpen] = useState(false);
+  const [annulmentReason, setAnnulmentReason] = useState('');
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
   const [sets, setSets] = useState([{ pointsA: 0, pointsB: 0 }]);
-  const [submitting, setSubmitting] = useState<'confirm' | 'record' | null>(null);
+  const [submitting, setSubmitting] = useState<'annul' | 'confirm' | 'record' | null>(null);
 
   async function record(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault(); onError(null); setSubmitting('record');
@@ -42,6 +45,14 @@ function MatchCard({ actorId, canOperate, match, onChange, onError, profile }: {
     finally { setSubmitting(null); }
   }
 
+  async function annul(): Promise<void> {
+    if (match.result === null || annulmentReason.trim().length < 10) return;
+    onError(null); setSubmitting('annul');
+    try { onChange(await annulMatchResult(match.result.id, match.result.revision, annulmentReason.trim())); setAnnulmentOpen(false); setAnnulmentReason(''); }
+    catch (caught: unknown) { onError(caught instanceof Error ? caught.message : 'No fue posible anular el resultado.'); }
+    finally { setSubmitting(null); }
+  }
+
   return <article className="result-match">
     <header><span>{match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`} · Encuentro {match.ordinal}</span><small className={`match-state match-state--${match.status.toLowerCase()}`}>{statusLabels[match.status]}</small></header>
     <div><b>{match.participantA.displayName}</b>{match.result === null ? <i>VS</i> : <ResultScore result={match.result} />}<b>{match.participantB.displayName}</b></div>
@@ -50,6 +61,7 @@ function MatchCard({ actorId, canOperate, match, onChange, onError, profile }: {
       <div><button className="primary-button" disabled={submitting !== null} type="submit">{submitting === 'record' ? 'Registrando…' : 'Enviar a confirmación'}</button><button disabled={submitting !== null} onClick={() => setOpen(false)} type="button">Cancelar</button></div>
     </form>}</> : null : <footer>Registrado por {match.result.recordedBy.displayName}{match.result.confirmedBy === null ? '' : ` · confirmado por ${match.result.confirmedBy.displayName}`}</footer>}
     {match.result?.status === 'PENDING_CONFIRMATION' ? match.result.recordedBy.id === actorId ? <p className="readonly-note">Otra autoridad debe confirmar este resultado.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : 'Confirmar resultado'}</button> : null : null}
+    {match.result?.status === 'CONFIRMED' && canAnnul ? <div className="result-annulment">{!annulmentOpen ? <button className="danger-button" disabled={submitting !== null} onClick={() => setAnnulmentOpen(true)} type="button">Anular resultado</button> : <div className="draw-annulment__form"><strong>Anulación oficial del resultado</strong><label htmlFor={`result-annulment-${match.result.id}`}>Motivo formal de anulación</label><textarea id={`result-annulment-${match.result.id}`} maxLength={500} minLength={10} onChange={(event) => setAnnulmentReason(event.target.value)} placeholder="Explica el error que obliga a cargar nuevamente este resultado…" value={annulmentReason} /><small>{annulmentReason.trim().length}/500 · mínimo 10 caracteres</small><div><button className="danger-button" disabled={submitting !== null || annulmentReason.trim().length < 10} onClick={() => void annul()} type="button">{submitting === 'annul' ? 'Anulando…' : 'Confirmar anulación'}</button><button disabled={submitting !== null} onClick={() => { setAnnulmentOpen(false); setAnnulmentReason(''); }} type="button">Cancelar</button></div></div>}</div> : null}
   </article>;
 }
 
@@ -81,10 +93,10 @@ function QualificationPanel({ actorId, canOperate, onChange, onError, qualificat
   </section>;
 }
 
-export function ResultsWorkspacePanel({ actorId, canOperate, onChange, onError, workspace }: { readonly actorId: string; readonly canOperate: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
+export function ResultsWorkspacePanel({ actorId, canAnnul, canOperate, onChange, onError, workspace }: { readonly actorId: string; readonly canAnnul: boolean; readonly canOperate: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
   const setBased = workspace.resultProfile === 'SET_BASED';
   return <section className="setup-card results-workspace" id="results-workspace" aria-labelledby="results-workspace-title">
     <div className="section-title"><div><span className="eyebrow eyebrow--dark">Paso 5</span><h3 id="results-workspace-title">Encuentros y tabla</h3></div><span>{workspace.matches.length}</span></div>
-    {workspace.matches.length === 0 ? <div className="setup-empty">Los encuentros aparecerán cuando otra autoridad confirme el sorteo oficial.</div> : <><div className="result-match-list">{workspace.matches.map((match) => <MatchCard actorId={actorId} canOperate={canOperate} key={match.id} match={match} onChange={onChange} onError={onError} profile={workspace.resultProfile} />)}</div>{workspace.groups.map((group) => <article className="standing-card" key={group.id}><header><div><span>Tabla automática</span><strong>Grupo {group.label}</strong></div><small>{group.complete ? 'Completa' : 'Parcial'}</small></header><div className="standing-scroll"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead><tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setsWon}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody></table></div>{group.standings.length === 0 ? <p>La tabla se calculará al confirmar el primer resultado.</p> : null}{group.qualification === null ? group.complete ? <p>La tabla tiene un empate sin resolver en el corte de clasificación.</p> : null : <QualificationPanel actorId={actorId} canOperate={canOperate} onChange={onChange} onError={onError} qualification={group.qualification} />}</article>)}</>}
+    {workspace.matches.length === 0 ? <div className="setup-empty">Los encuentros aparecerán cuando otra autoridad confirme el sorteo oficial.</div> : <><div className="result-match-list">{workspace.matches.map((match) => <MatchCard actorId={actorId} canAnnul={canAnnul} canOperate={canOperate} key={match.id} match={match} onChange={onChange} onError={onError} profile={workspace.resultProfile} />)}</div>{workspace.groups.map((group) => <article className="standing-card" key={group.id}><header><div><span>Tabla automática</span><strong>Grupo {group.label}</strong></div><small>{group.complete ? 'Completa' : 'Parcial'}</small></header><div className="standing-scroll"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead><tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setsWon}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody></table></div>{group.standings.length === 0 ? <p>La tabla se calculará al confirmar el primer resultado.</p> : null}{group.qualification === null ? group.complete ? <p>La tabla tiene un empate sin resolver en el corte de clasificación.</p> : null : <QualificationPanel actorId={actorId} canOperate={canOperate} onChange={onChange} onError={onError} qualification={group.qualification} />}</article>)}</>}
   </section>;
 }

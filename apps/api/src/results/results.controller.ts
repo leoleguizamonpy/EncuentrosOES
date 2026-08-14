@@ -71,6 +71,26 @@ export class ResultsController {
     });
   }
 
+  @HttpCode(200)
+  @Post('results/:resultId/annul')
+  @RequireRoles('SUPERADMIN')
+  public annul(
+    @Param('resultId') resultId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<ResultsService['annul']> {
+    const parsed = z.object({ expectedRevision: z.int().positive(), reason: z.string().trim().min(10).max(500) }).strict().safeParse(body);
+    if (!parsed.success) throw new BadRequestException('An annulment reason between 10 and 500 characters is required.');
+    return this.service.annul({
+      ...this.#mutation(resultId, idempotencyKey, correlationId, request),
+      expectedRevision: parsed.data.expectedRevision,
+      reason: parsed.data.reason,
+      resultId,
+    });
+  }
+
   #mutation(identifier: string, idempotencyKey: string | undefined, correlationId: string | undefined, request: AuthenticatedRequest) {
     const parsedIdentifier = z.uuid().safeParse(identifier);
     const parsedKey = z.string().min(16).max(120).regex(/^[A-Za-z0-9._:-]+$/).safeParse(idempotencyKey);

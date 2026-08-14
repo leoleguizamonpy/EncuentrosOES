@@ -813,7 +813,9 @@ integration('PrismaCompetitionRepository', () => {
     await matchResultService.confirm({ actorId: ids.confirmer, expectedRevision: 1, occurredAt, resultId: ids.resultA });
     await matchResultService.annul({
       actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000004',
       expectedRevision: 2,
+      idempotencyKey: 'result-annul-command-0001',
       occurredAt,
       reason: 'Error formal de mesa',
       resultId: ids.resultA,
@@ -826,6 +828,17 @@ integration('PrismaCompetitionRepository', () => {
     expect(await client.groupStanding.findMany()).toEqual(
       expect.arrayContaining([expect.objectContaining({ played: 0, tablePoints: 0 })]),
     );
+    const replayed = await matchResultService.annul({
+      actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000004',
+      expectedRevision: 2,
+      idempotencyKey: 'result-annul-command-0001',
+      occurredAt,
+      reason: 'Error formal de mesa',
+      resultId: ids.resultA,
+    });
+    expect(replayed.toSnapshot()).toMatchObject({ revision: 3, status: 'ANNULLED' });
+    expect(await client.auditEntry.count({ where: { actionCode: 'MATCH_RESULT_ANNULLED', resourceId: ids.resultA } })).toBe(1);
   });
 
   it('creates and independently confirms two qualifiers only when the group is complete', async () => {

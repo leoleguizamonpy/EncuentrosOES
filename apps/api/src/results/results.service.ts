@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { DomainError } from '@oes/domain';
 
-import { RESULTS_STORE, ResultsStoreError, type ConfirmQualificationInput, type ConfirmResultInput, type RecordResultInput, type ResultsStore, type ResultsWorkspace } from './results-store.js';
+import { RESULTS_STORE, ResultsStoreError, type AnnulResultInput, type ConfirmQualificationInput, type ConfirmResultInput, type RecordResultInput, type ResultsStore, type ResultsWorkspace } from './results-store.js';
 
 @Injectable()
 export class ResultsService {
@@ -27,6 +27,10 @@ export class ResultsService {
 
   public confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace> {
     return this.#mutation(() => this.store.confirmQualification(input));
+  }
+
+  public annul(input: AnnulResultInput): Promise<ResultsWorkspace> {
+    return this.#mutation(() => this.store.annul(input));
   }
 
   async #mutation(operation: () => Promise<ResultsWorkspace>): Promise<ResultsWorkspace> {

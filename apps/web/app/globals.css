@@ -269,6 +269,8 @@ button,a { -webkit-tap-highlight-color:transparent; }
 .qualification-panel li strong { font-size:11px; }
 .qualification-panel footer { color:#747970; font-size:9px; }
 .qualification-panel > .primary-button { justify-self:start; }
+.result-annulment { border-top:1px solid #ead0cd; display:block !important; padding-top:10px; text-align:left !important; }
+.result-annulment > .danger-button { padding:9px 12px; }
 .result-entry-form { background:#f4f1e9; border-radius:9px; display:grid; gap:12px; padding:12px; }
 .result-entry-form > div:last-child { display:flex; flex-wrap:wrap; gap:8px; }
 .result-entry-form > div:last-child button:not(.primary-button),.result-entry-form > button { background:#fff; border:1px solid #bdb8aa; border-radius:7px; cursor:pointer; font-size:9px; font-weight:900; padding:10px 12px; }

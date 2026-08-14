@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   addCompetitionParticipant,
+  annulMatchResult,
   annulOfficialDraw,
   configureCompetitionFormat,
   confirmGroupQualification,
@@ -53,16 +54,19 @@ describe('competition API client', () => {
   it('uses protected commands to record and confirm results and group qualification', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ competitionId: 'competition-1' }), { status: 200 })));
     vi.stubGlobal('fetch', fetchMock);
-    vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce('00000000-0000-4000-8000-000000000011').mockReturnValueOnce('00000000-0000-4000-8000-000000000012').mockReturnValueOnce('00000000-0000-4000-8000-000000000013');
+    vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce('00000000-0000-4000-8000-000000000011').mockReturnValueOnce('00000000-0000-4000-8000-000000000012').mockReturnValueOnce('00000000-0000-4000-8000-000000000013').mockReturnValueOnce('00000000-0000-4000-8000-000000000014');
     await recordMatchResult('match-1', { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 });
     await confirmMatchResult('result-1', 1);
     await confirmGroupQualification('qualification-1', 1);
+    await annulMatchResult('result-1', 2, 'Error formal de mesa');
     expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/matches/match-1/results');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 }), method: 'POST' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/results/result-1/confirm');
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
     expect(fetchMock.mock.calls[2]?.[0]).toBe('http://localhost:3001/api/v1/group-qualifications/qualification-1/confirm');
     expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('http://localhost:3001/api/v1/results/result-1/annul');
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 2, reason: 'Error formal de mesa' }), method: 'POST' });
   });
 
   it('sends the persisted revision when mutating competition setup', async () => {
