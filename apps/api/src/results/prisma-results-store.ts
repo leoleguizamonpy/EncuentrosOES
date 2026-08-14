@@ -6,6 +6,7 @@ import { PrismaGroupQualificationService, PrismaMatchResultService, type PrismaC
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
 import {
   ResultsStoreError,
+  type AnnulResultInput,
   type ConfirmResultInput,
   type ConfirmQualificationInput,
   type MatchResultView,
@@ -58,6 +59,21 @@ export class PrismaResultsStore implements ResultsStore {
       qualificationId: input.qualificationId,
     });
     return this.workspace(qualification.competitionId);
+  }
+
+  public async annul(input: AnnulResultInput): Promise<ResultsWorkspace> {
+    const result = await this.client.matchResult.findUnique({ select: { competitionId: true }, where: { id: input.resultId } });
+    if (result === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The result does not exist.');
+    await this.#matchResultService.annul({
+      actorId: input.actorId,
+      correlationId: input.correlationId,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: input.idempotencyKey,
+      occurredAt: new Date(),
+      reason: input.reason,
+      resultId: input.resultId,
+    });
+    return this.workspace(result.competitionId);
   }
 
   public async record(input: RecordResultInput): Promise<ResultsWorkspace> {

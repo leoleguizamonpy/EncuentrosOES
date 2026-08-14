@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResultsWorkspacePanel } from '../components/results-workspace-panel';
 import type { ResultsWorkspace } from '../lib/competition-api';
 
-const api = vi.hoisted(() => ({ confirmGroupQualification: vi.fn(), confirmMatchResult: vi.fn(), recordMatchResult: vi.fn() }));
+const api = vi.hoisted(() => ({ annulMatchResult: vi.fn(), confirmGroupQualification: vi.fn(), confirmMatchResult: vi.fn(), recordMatchResult: vi.fn() }));
 vi.mock('../lib/competition-api', async (importOriginal) => ({ ...await importOriginal(), ...api }));
 
 const participantA = { displayName: 'Colegio A', id: 'participant-a' };
@@ -33,7 +33,7 @@ describe('ResultsWorkspacePanel', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('shows persisted matches and the automatically calculated table', () => {
-    render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('Resultado confirmado')).toBeInTheDocument();
     expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('ResultsWorkspacePanel', () => {
   });
 
   it('explains why there are no matches before draw confirmation', () => {
-    render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={vi.fn()} onError={vi.fn()} workspace={{ competitionId: 'competition-1', competitionStatus: 'LOCKED', groups: [], matches: [], resultProfile: null }} />);
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={{ competitionId: 'competition-1', competitionStatus: 'LOCKED', groups: [], matches: [], resultProfile: null }} />);
     expect(screen.getByText(/otra autoridad confirme el sorteo oficial/i)).toBeInTheDocument();
   });
 
@@ -56,7 +56,7 @@ describe('ResultsWorkspacePanel', () => {
     const empty: ResultsWorkspace = { ...workspace, groups: [{ ...sourceGroup, standings: [] }], matches: [{ ...sourceMatch, result: null, status: 'PENDING_RESULT', winnerParticipantId: null }] };
     api.recordMatchResult.mockResolvedValue(empty);
     const onChange = vi.fn();
-    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={onChange} onError={vi.fn()} workspace={empty} />);
+    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={onChange} onError={vi.fn()} workspace={empty} />);
     fireEvent.click(screen.getByRole('button', { name: 'Cargar resultado' }));
     fireEvent.change(screen.getByLabelText('Marcador de Colegio A'), { target: { value: '4' } });
     fireEvent.change(screen.getByLabelText('Marcador de Colegio B'), { target: { value: '2' } });
@@ -67,7 +67,7 @@ describe('ResultsWorkspacePanel', () => {
     if (emptyMatch === undefined) throw new Error('Expected empty result fixture');
     const pending: ResultsWorkspace = { ...empty, matches: [{ ...emptyMatch, result: { ...sourceResult, confirmedAt: null, confirmedBy: null, revision: 1, status: 'PENDING_CONFIRMATION' }, status: 'RESULT_PENDING_CONFIRMATION' }] };
     api.confirmMatchResult.mockResolvedValue(workspace);
-    rerender(<ResultsWorkspacePanel actorId="actor-2" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    rerender(<ResultsWorkspacePanel actorId="actor-2" canAnnul={false} canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar resultado' }));
     await waitFor(() => expect(api.confirmMatchResult).toHaveBeenCalledWith('result-1', 1));
   });
@@ -90,13 +90,27 @@ describe('ResultsWorkspacePanel', () => {
     };
     api.confirmGroupQualification.mockResolvedValue(pending);
     const onChange = vi.fn();
-    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
     expect(screen.getByText('Clasificación propuesta')).toBeInTheDocument();
     expect(screen.getByText(/Otra autoridad debe confirmar estos clasificados/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirmar clasificados' })).not.toBeInTheDocument();
 
-    rerender(<ResultsWorkspacePanel actorId="actor-2" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    rerender(<ResultsWorkspacePanel actorId="actor-2" canAnnul={false} canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar clasificados' }));
     await waitFor(() => expect(api.confirmGroupQualification).toHaveBeenCalledWith('qualification-1', 1));
+  });
+
+  it('lets a superadministrator annul a confirmed result with a formal reason', async () => {
+    const sourceMatch = workspace.matches[0];
+    if (sourceMatch === undefined) throw new Error('Expected match fixture');
+    const next: ResultsWorkspace = { ...workspace, matches: [{ ...sourceMatch, result: null, status: 'PENDING_RESULT', winnerParticipantId: null }] };
+    api.annulMatchResult.mockResolvedValue(next);
+    const onChange = vi.fn();
+    render(<ResultsWorkspacePanel actorId="super-1" canAnnul canOperate onChange={onChange} onError={vi.fn()} workspace={workspace} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Anular resultado' }));
+    fireEvent.change(screen.getByLabelText('Motivo formal de anulación'), { target: { value: 'Error formal de mesa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar anulación' }));
+    await waitFor(() => expect(api.annulMatchResult).toHaveBeenCalledWith('result-1', 2, 'Error formal de mesa'));
+    expect(onChange).toHaveBeenCalledWith(next);
   });
 });

@@ -256,6 +256,10 @@ export function confirmMatchResult(resultId: string, expectedRevision: number): 
   return mutate(`/results/${resultId}/confirm`, 'POST', { expectedRevision });
 }
 
+export function annulMatchResult(resultId: string, expectedRevision: number, reason: string): Promise<ResultsWorkspace> {
+  return mutate(`/results/${resultId}/annul`, 'POST', { expectedRevision, reason });
+}
+
 export function confirmGroupQualification(qualificationId: string, expectedRevision: number): Promise<ResultsWorkspace> {
   return mutate(`/group-qualifications/${qualificationId}/confirm`, 'POST', { expectedRevision });
 }
