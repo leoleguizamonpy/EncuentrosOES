@@ -133,10 +133,21 @@ export interface StandingRowView {
   readonly tied: boolean;
   readonly wins: number;
 }
+export interface GroupQualificationView {
+  readonly confirmedAt: string | null;
+  readonly confirmedBy: DrawParticipantView | null;
+  readonly firstParticipant: DrawParticipantView;
+  readonly id: string;
+  readonly proposedAt: string;
+  readonly proposedBy: DrawParticipantView;
+  readonly revision: number;
+  readonly secondParticipant: DrawParticipantView;
+  readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
+}
 export interface ResultsWorkspace {
   readonly competitionId: string;
   readonly competitionStatus: CompetitionSummary['status'];
-  readonly groups: readonly Readonly<{ complete: boolean; id: string; label: string; ordinal: number; standings: readonly StandingRowView[] }>[];
+  readonly groups: readonly Readonly<{ complete: boolean; id: string; label: string; ordinal: number; qualification: GroupQualificationView | null; standings: readonly StandingRowView[] }>[];
   readonly matches: readonly ResultMatchView[];
   readonly resultProfile: 'SCORE_BASED' | 'SET_BASED' | null;
 }
@@ -243,6 +254,10 @@ export function recordMatchResult(matchId: string, detail: ResultDetail): Promis
 
 export function confirmMatchResult(resultId: string, expectedRevision: number): Promise<ResultsWorkspace> {
   return mutate(`/results/${resultId}/confirm`, 'POST', { expectedRevision });
+}
+
+export function confirmGroupQualification(qualificationId: string, expectedRevision: number): Promise<ResultsWorkspace> {
+  return mutate(`/group-qualifications/${qualificationId}/confirm`, 'POST', { expectedRevision });
 }
 
 export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> {

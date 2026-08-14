@@ -256,6 +256,19 @@ button,a { -webkit-tap-highlight-color:transparent; }
 .standing-card th:nth-child(2) { text-align:left; }
 .standing-card thead th { color:#6c706b; font-size:8px; text-transform:uppercase; }
 .standing-card > p { color:#73766f; font-size:10px; margin:12px 0 0; }
+.qualification-panel { border:1px solid #dfd8c8; border-radius:10px; display:grid; gap:12px; margin-top:18px; padding:15px; }
+.qualification-panel--pending { background:#fff9e9; border-color:#ead7a3; }
+.qualification-panel--confirmed { background:#edf7f0; border-color:#bfddc7; }
+.qualification-panel > header { align-items:center; display:flex; justify-content:space-between; }
+.qualification-panel > header div { display:grid; gap:3px; }
+.qualification-panel > header span,.qualification-panel > header small { color:#70766d; font-size:8px; font-weight:900; text-transform:uppercase; }
+.qualification-panel > header strong { font-size:12px; }
+.qualification-panel ol { display:grid; gap:7px; list-style:none; margin:0; padding:0; }
+.qualification-panel li { align-items:center; background:#fff; border-radius:7px; display:flex; gap:10px; min-height:38px; padding:0 11px; }
+.qualification-panel li span { color:#80867b; font-size:9px; font-weight:900; }
+.qualification-panel li strong { font-size:11px; }
+.qualification-panel footer { color:#747970; font-size:9px; }
+.qualification-panel > .primary-button { justify-self:start; }
 .result-entry-form { background:#f4f1e9; border-radius:9px; display:grid; gap:12px; padding:12px; }
 .result-entry-form > div:last-child { display:flex; flex-wrap:wrap; gap:8px; }
 .result-entry-form > div:last-child button:not(.primary-button),.result-entry-form > button { background:#fff; border:1px solid #bdb8aa; border-radius:7px; cursor:pointer; font-size:9px; font-weight:900; padding:10px 12px; }
