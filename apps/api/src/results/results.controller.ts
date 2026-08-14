@@ -52,6 +52,25 @@ export class ResultsController {
     return this.service.confirm({ ...this.#mutation(resultId, idempotencyKey, correlationId, request), expectedRevision: parsed.data.expectedRevision, resultId });
   }
 
+  @HttpCode(200)
+  @Post('group-qualifications/:qualificationId/confirm')
+  @RequireRoles('ADMIN', 'SUPERADMIN')
+  public confirmQualification(
+    @Param('qualificationId') qualificationId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): ReturnType<ResultsService['confirmQualification']> {
+    const parsed = z.object({ expectedRevision: z.int().positive() }).strict().safeParse(body);
+    if (!parsed.success) throw new BadRequestException('The qualification revision is invalid.');
+    return this.service.confirmQualification({
+      ...this.#mutation(qualificationId, idempotencyKey, correlationId, request),
+      expectedRevision: parsed.data.expectedRevision,
+      qualificationId,
+    });
+  }
+
   #mutation(identifier: string, idempotencyKey: string | undefined, correlationId: string | undefined, request: AuthenticatedRequest) {
     const parsedIdentifier = z.uuid().safeParse(identifier);
     const parsedKey = z.string().min(16).max(120).regex(/^[A-Za-z0-9._:-]+$/).safeParse(idempotencyKey);

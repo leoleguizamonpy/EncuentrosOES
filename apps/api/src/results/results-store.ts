@@ -52,7 +52,20 @@ export interface ResultGroupView {
   readonly id: string;
   readonly label: string;
   readonly ordinal: number;
+  readonly qualification: GroupQualificationView | null;
   readonly standings: readonly StandingRowView[];
+}
+
+export interface GroupQualificationView {
+  readonly confirmedAt: string | null;
+  readonly confirmedBy: ResultParticipantView | null;
+  readonly firstParticipant: ResultParticipantView;
+  readonly id: string;
+  readonly proposedAt: string;
+  readonly proposedBy: ResultParticipantView;
+  readonly revision: number;
+  readonly secondParticipant: ResultParticipantView;
+  readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
 }
 
 export interface ResultsWorkspace {
@@ -81,6 +94,11 @@ export interface ConfirmResultInput extends ResultMutationInput {
   readonly resultId: string;
 }
 
+export interface ConfirmQualificationInput extends ResultMutationInput {
+  readonly expectedRevision: number;
+  readonly qualificationId: string;
+}
+
 export class ResultsStoreError extends Error {
   public constructor(public readonly code: 'COMPETITION_NOT_FOUND' | 'RESULTS_INTEGRITY_FAILURE', message: string) {
     super(message);
@@ -90,6 +108,7 @@ export class ResultsStoreError extends Error {
 
 export interface ResultsStore {
   confirm(input: ConfirmResultInput): Promise<ResultsWorkspace>;
+  confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace>;
   record(input: RecordResultInput): Promise<ResultsWorkspace>;
   workspace(competitionId: string): Promise<ResultsWorkspace>;
 }

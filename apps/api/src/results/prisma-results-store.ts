@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { PrismaMatchResultService, type PrismaClient } from '@oes/database';
+import { PrismaGroupQualificationService, PrismaMatchResultService, type PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
 import {
   ResultsStoreError,
   type ConfirmResultInput,
+  type ConfirmQualificationInput,
   type MatchResultView,
   type RecordResultInput,
   type ResultMatchView,
@@ -37,10 +38,26 @@ function matchStatus(value: string): ResultMatchView['status'] {
 
 @Injectable()
 export class PrismaResultsStore implements ResultsStore {
+  readonly #groupQualificationService: PrismaGroupQualificationService;
   readonly #matchResultService: PrismaMatchResultService;
 
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
+    this.#groupQualificationService = new PrismaGroupQualificationService(client);
     this.#matchResultService = new PrismaMatchResultService(client);
+  }
+
+  public async confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace> {
+    const qualification = await this.client.groupQualification.findUnique({ select: { competitionId: true }, where: { id: input.qualificationId } });
+    if (qualification === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The qualification does not exist.');
+    await this.#groupQualificationService.confirm({
+      actorId: input.actorId,
+      correlationId: input.correlationId,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: input.idempotencyKey,
+      occurredAt: new Date(),
+      qualificationId: input.qualificationId,
+    });
+    return this.workspace(qualification.competitionId);
   }
 
   public async record(input: RecordResultInput): Promise<ResultsWorkspace> {
@@ -80,6 +97,12 @@ export class PrismaResultsStore implements ResultsStore {
             configuration: { include: { ruleSet: true } },
             groups: {
               include: {
+                qualifications: {
+                  include: { confirmedBy: true, firstParticipant: true, proposedBy: true, secondParticipant: true },
+                  orderBy: { proposedAt: 'desc' },
+                  take: 1,
+                  where: { status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+                },
                 standings: { include: { participant: true }, orderBy: [{ position: 'asc' }, { participantId: 'asc' }] },
               },
               orderBy: { ordinal: 'asc' },
@@ -145,11 +168,23 @@ export class PrismaResultsStore implements ResultsStore {
       competitionStatus: competitionStatus(competition.status),
       groups: execution.groups.map((group) => {
         const groupMatches = matches.filter((match) => match.group?.id === group.id);
+        const qualification = group.qualifications[0];
         return {
           complete: groupMatches.length > 0 && groupMatches.every((match) => match.status === 'RESULT_CONFIRMED'),
           id: group.id,
           label: group.label,
           ordinal: group.ordinal,
+          qualification: qualification === undefined ? null : {
+            confirmedAt: qualification.confirmedAt?.toISOString() ?? null,
+            confirmedBy: qualification.confirmedBy === null ? null : { displayName: qualification.confirmedBy.displayName, id: qualification.confirmedBy.id },
+            firstParticipant: { displayName: qualification.firstParticipant.displayName, id: qualification.firstParticipant.id },
+            id: qualification.id,
+            proposedAt: qualification.proposedAt.toISOString(),
+            proposedBy: { displayName: qualification.proposedBy.displayName, id: qualification.proposedBy.id },
+            revision: qualification.revision,
+            secondParticipant: { displayName: qualification.secondParticipant.displayName, id: qualification.secondParticipant.id },
+            status: qualification.status === 'CONFIRMED' ? 'CONFIRMED' as const : 'PENDING_CONFIRMATION' as const,
+          },
           standings: group.standings.map((standing): StandingRowView => ({
             draws: standing.draws,
             losses: standing.losses,

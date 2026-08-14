@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResultsWorkspacePanel } from '../components/results-workspace-panel';
 import type { ResultsWorkspace } from '../lib/competition-api';
 
-const api = vi.hoisted(() => ({ confirmMatchResult: vi.fn(), recordMatchResult: vi.fn() }));
+const api = vi.hoisted(() => ({ confirmGroupQualification: vi.fn(), confirmMatchResult: vi.fn(), recordMatchResult: vi.fn() }));
 vi.mock('../lib/competition-api', async (importOriginal) => ({ ...await importOriginal(), ...api }));
 
 const participantA = { displayName: 'Colegio A', id: 'participant-a' };
@@ -17,6 +17,7 @@ const workspace: ResultsWorkspace = {
     id: 'group-a',
     label: 'A',
     ordinal: 1,
+    qualification: null,
     standings: [{ draws: 0, losses: 0, participant: participantA, played: 1, position: 1, scoreAgainst: 1, scoreDifference: 2, scoreFor: 3, setDifference: 0, setsLost: 0, setsWon: 0, sportPointDifference: 2, sportPointsAgainst: 1, sportPointsFor: 3, tablePoints: 3, tied: false, wins: 1 }],
   }],
   matches: [{
@@ -69,5 +70,33 @@ describe('ResultsWorkspacePanel', () => {
     rerender(<ResultsWorkspacePanel actorId="actor-2" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar resultado' }));
     await waitFor(() => expect(api.confirmMatchResult).toHaveBeenCalledWith('result-1', 1));
+  });
+
+  it('shows the proposed qualifiers and lets another authority confirm them', async () => {
+    const sourceGroup = workspace.groups[0];
+    if (sourceGroup === undefined) throw new Error('Expected group fixture');
+    const pending: ResultsWorkspace = {
+      ...workspace,
+      groups: [{
+        ...sourceGroup,
+        complete: true,
+        qualification: {
+          confirmedAt: null, confirmedBy: null,
+          firstParticipant: participantA, id: 'qualification-1',
+          proposedAt: '2026-08-13T18:06:00.000Z', proposedBy: { displayName: 'Autoridad Uno', id: 'actor-1' },
+          revision: 1, secondParticipant: participantB, status: 'PENDING_CONFIRMATION',
+        },
+      }],
+    };
+    api.confirmGroupQualification.mockResolvedValue(pending);
+    const onChange = vi.fn();
+    const { rerender } = render(<ResultsWorkspacePanel actorId="actor-1" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    expect(screen.getByText('Clasificación propuesta')).toBeInTheDocument();
+    expect(screen.getByText(/Otra autoridad debe confirmar estos clasificados/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirmar clasificados' })).not.toBeInTheDocument();
+
+    rerender(<ResultsWorkspacePanel actorId="actor-2" canOperate onChange={onChange} onError={vi.fn()} workspace={pending} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar clasificados' }));
+    await waitFor(() => expect(api.confirmGroupQualification).toHaveBeenCalledWith('qualification-1', 1));
   });
 });

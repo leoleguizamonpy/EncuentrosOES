@@ -849,7 +849,9 @@ integration('PrismaCompetitionRepository', () => {
     } satisfies Partial<DomainError>);
     const confirmed = await qualificationService.confirm({
       actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000003',
       expectedRevision: 1,
+      idempotencyKey: 'qualification-confirm-command-0001',
       occurredAt,
       qualificationId: proposal.id,
     });
@@ -858,6 +860,16 @@ integration('PrismaCompetitionRepository', () => {
       status: 'CONFIRMED',
       revision: 2,
     });
+    const replayed = await qualificationService.confirm({
+      actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000003',
+      expectedRevision: 1,
+      idempotencyKey: 'qualification-confirm-command-0001',
+      occurredAt,
+      qualificationId: proposal.id,
+    });
+    expect(replayed.toSnapshot()).toMatchObject({ status: 'CONFIRMED', revision: 2 });
+    expect(await client.auditEntry.count({ where: { actionCode: 'GROUP_QUALIFICATION_CONFIRMED', resourceId: proposal.id } })).toBe(1);
   });
 
   it('invalidates a qualification when one of its source results is annulled', async () => {

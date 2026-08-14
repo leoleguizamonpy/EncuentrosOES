@@ -10,7 +10,7 @@ import { configureApp } from '../src/bootstrap.js';
 import { API_CONFIG, type ApiConfig } from '../src/config.js';
 import { IDENTITY_STORE, type AccountRecord } from '../src/identity/identity-store.js';
 import { hashPassword } from '../src/identity/password.js';
-import { RESULTS_STORE, type ConfirmResultInput, type RecordResultInput, type ResultsStore, type ResultsWorkspace } from '../src/results/results-store.js';
+import { RESULTS_STORE, type ConfirmQualificationInput, type ConfirmResultInput, type RecordResultInput, type ResultsStore, type ResultsWorkspace } from '../src/results/results-store.js';
 import { FakeIdentityStore } from './fake-identity-store.js';
 
 const config: ApiConfig = { apiPort: 3001, databaseUrl: 'postgresql://unused:unused@localhost:5432/unused', production: false, sessionAbsoluteMinutes: 60, sessionIdleMinutes: 15, webOrigin: 'http://localhost:3000' };
@@ -18,15 +18,17 @@ const competitionId = '20000000-0000-4000-8000-000000000001';
 const expected: ResultsWorkspace = {
   competitionId,
   competitionStatus: 'LOCKED',
-  groups: [{ complete: false, id: '30000000-0000-4000-8000-000000000001', label: 'A', ordinal: 1, standings: [] }],
+  groups: [{ complete: false, id: '30000000-0000-4000-8000-000000000001', label: 'A', ordinal: 1, qualification: null, standings: [] }],
   matches: [{ group: { id: '30000000-0000-4000-8000-000000000001', label: 'A' }, id: '40000000-0000-4000-8000-000000000001', ordinal: 1, participantA: { displayName: 'Colegio A', id: '50000000-0000-4000-8000-000000000001' }, participantB: { displayName: 'Colegio B', id: '50000000-0000-4000-8000-000000000002' }, result: null, roundNumber: 0, status: 'PENDING_RESULT', winnerParticipantId: null }],
   resultProfile: 'SCORE_BASED',
 };
 
 class FakeResultsStore implements ResultsStore {
   public readonly confirmed: ConfirmResultInput[] = [];
+  public readonly confirmedQualifications: ConfirmQualificationInput[] = [];
   public readonly recorded: RecordResultInput[] = [];
   public confirm(input: ConfirmResultInput): Promise<ResultsWorkspace> { this.confirmed.push(input); return Promise.resolve(expected); }
+  public confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace> { this.confirmedQualifications.push(input); return Promise.resolve(expected); }
   public record(input: RecordResultInput): Promise<ResultsWorkspace> { this.recorded.push(input); return Promise.resolve(expected); }
   public workspace(id: string): Promise<ResultsWorkspace> {
     expect(id).toBe(competitionId);
@@ -80,5 +82,8 @@ describe('results HTTP boundary', () => {
     const resultId = '60000000-0000-4000-8000-000000000001';
     await request(app.getHttpServer() as Server).post(`/api/v1/results/${resultId}/confirm`).set({ ...headers, 'Idempotency-Key': 'result-command-0002' }).send({ expectedRevision: 1 }).expect(200);
     expect(store.confirmed[0]).toMatchObject({ actorId: account.id, expectedRevision: 1, idempotencyKey: 'result-command-0002', resultId });
+    const qualificationId = '70000000-0000-4000-8000-000000000001';
+    await request(app.getHttpServer() as Server).post(`/api/v1/group-qualifications/${qualificationId}/confirm`).set({ ...headers, 'Idempotency-Key': 'qualification-command-0001' }).send({ expectedRevision: 1 }).expect(200);
+    expect(store.confirmedQualifications[0]).toMatchObject({ actorId: account.id, expectedRevision: 1, idempotencyKey: 'qualification-command-0001', qualificationId });
   });
 });
