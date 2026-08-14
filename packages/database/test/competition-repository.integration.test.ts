@@ -741,12 +741,25 @@ integration('PrismaCompetitionRepository', () => {
     const match = await client.logicalMatch.findFirstOrThrow({ orderBy: { ordinal: 'asc' } });
     const result = await matchResultService.record({
       actorId: ids.actor,
+      correlationId: 'd0000000-0000-4000-8000-000000000001',
       detail: { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 },
+      idempotencyKey: 'result-record-integration-0001',
       matchId: match.id,
       occurredAt,
       resultId: ids.resultA,
     });
     expect(result.toSnapshot().status).toBe('PENDING_CONFIRMATION');
+    const replayed = await matchResultService.record({
+      actorId: ids.actor,
+      correlationId: 'd0000000-0000-4000-8000-000000000001',
+      detail: { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 },
+      idempotencyKey: 'result-record-integration-0001',
+      matchId: match.id,
+      occurredAt,
+      resultId: 'c0000000-0000-4000-8000-000000000099',
+    });
+    expect(replayed.toSnapshot().id).toBe(ids.resultA);
+    expect(await client.matchResult.count()).toBe(1);
     expect(await client.groupStanding.count()).toBe(0);
     await expect(
       matchResultService.confirm({
@@ -759,10 +772,21 @@ integration('PrismaCompetitionRepository', () => {
 
     await matchResultService.confirm({
       actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000002',
       expectedRevision: 1,
+      idempotencyKey: 'result-confirm-integration-0001',
       occurredAt,
       resultId: ids.resultA,
     });
+    await matchResultService.confirm({
+      actorId: ids.confirmer,
+      correlationId: 'd0000000-0000-4000-8000-000000000002',
+      expectedRevision: 1,
+      idempotencyKey: 'result-confirm-integration-0001',
+      occurredAt,
+      resultId: ids.resultA,
+    });
+    expect(await client.auditEntry.count({ where: { resourceId: ids.resultA } })).toBe(2);
     expect(await client.groupStanding.count()).toBe(3);
     expect(await client.groupStanding.findFirst({ orderBy: { position: 'asc' } })).toMatchObject({
       participantId: match.participantAId,

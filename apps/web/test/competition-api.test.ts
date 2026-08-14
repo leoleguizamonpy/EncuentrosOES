@@ -5,11 +5,13 @@ import {
   annulOfficialDraw,
   configureCompetitionFormat,
   confirmOfficialDraw,
+  confirmMatchResult,
   createCompetition,
   executeOfficialDraw,
   freezeCompetitionRuleSet,
   prepareOfficialDraw,
   publishOfficialDraw,
+  recordMatchResult,
   resultsWorkspace,
   saveCompetitionRuleSet,
 } from '../lib/competition-api';
@@ -45,6 +47,18 @@ describe('competition API client', () => {
       cache: 'no-store',
       credentials: 'include',
     });
+  });
+
+  it('uses protected commands to record and confirm a match result', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ competitionId: 'competition-1' }), { status: 200 })));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce('00000000-0000-4000-8000-000000000011').mockReturnValueOnce('00000000-0000-4000-8000-000000000012');
+    await recordMatchResult('match-1', { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 });
+    await confirmMatchResult('result-1', 1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3001/api/v1/matches/match-1/results');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: JSON.stringify({ profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 }), method: 'POST' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('http://localhost:3001/api/v1/results/result-1/confirm');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ body: JSON.stringify({ expectedRevision: 1 }), method: 'POST' });
   });
 
   it('sends the persisted revision when mutating competition setup', async () => {

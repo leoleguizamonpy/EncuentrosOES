@@ -237,6 +237,14 @@ export function resultsWorkspace(competitionId: string): Promise<ResultsWorkspac
   return get(`/competitions/${competitionId}/results-workspace`);
 }
 
+export function recordMatchResult(matchId: string, detail: ResultDetail): Promise<ResultsWorkspace> {
+  return mutate(`/matches/${matchId}/results`, 'POST', detail);
+}
+
+export function confirmMatchResult(resultId: string, expectedRevision: number): Promise<ResultsWorkspace> {
+  return mutate(`/results/${resultId}/confirm`, 'POST', { expectedRevision });
+}
+
 export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> {
   return mutate(`/competitions/${competitionId}/draw-workspace/prepare`, 'POST', { expectedRevision });
 }

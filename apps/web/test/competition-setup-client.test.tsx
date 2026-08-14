@@ -9,12 +9,14 @@ const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const competitionApi = vi.hoisted(() => ({
   addCompetitionParticipant: vi.fn(),
   confirmOfficialDraw: vi.fn(),
+  confirmMatchResult: vi.fn(),
   competitionDetail: vi.fn(),
   configureCompetitionFormat: vi.fn(),
   drawWorkspace: vi.fn(),
   executeOfficialDraw: vi.fn(),
   freezeCompetitionRuleSet: vi.fn(),
   prepareOfficialDraw: vi.fn(),
+  recordMatchResult: vi.fn(),
   resultsWorkspace: vi.fn(),
   saveCompetitionRuleSet: vi.fn(),
 }));

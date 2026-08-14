@@ -1,6 +1,7 @@
-import { Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { DomainError } from '@oes/domain';
 
-import { RESULTS_STORE, ResultsStoreError, type ResultsStore, type ResultsWorkspace } from './results-store.js';
+import { RESULTS_STORE, ResultsStoreError, type ConfirmResultInput, type RecordResultInput, type ResultsStore, type ResultsWorkspace } from './results-store.js';
 
 @Injectable()
 export class ResultsService {
@@ -12,6 +13,24 @@ export class ResultsService {
     } catch (error: unknown) {
       if (error instanceof ResultsStoreError && error.code === 'COMPETITION_NOT_FOUND') throw new NotFoundException(error.message);
       if (error instanceof ResultsStoreError) throw new UnprocessableEntityException(error.message);
+      throw error;
+    }
+  }
+
+  public record(input: RecordResultInput): Promise<ResultsWorkspace> {
+    return this.#mutation(() => this.store.record(input));
+  }
+
+  public confirm(input: ConfirmResultInput): Promise<ResultsWorkspace> {
+    return this.#mutation(() => this.store.confirm(input));
+  }
+
+  async #mutation(operation: () => Promise<ResultsWorkspace>): Promise<ResultsWorkspace> {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      if (error instanceof DomainError && (error.code === 'CONCURRENCY_CONFLICT' || error.code.startsWith('IDEMPOTENCY_'))) throw new ConflictException(error.message);
+      if (error instanceof DomainError || error instanceof ResultsStoreError) throw new UnprocessableEntityException(error.message);
       throw error;
     }
   }
