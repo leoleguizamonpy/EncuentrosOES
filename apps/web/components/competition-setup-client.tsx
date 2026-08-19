@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { type SyntheticEvent, useEffect, useMemo, useState } from 'react';
 
 import { currentActor, logout, type Actor } from '../lib/auth-api';
+import { champion as championApi, type ChampionView } from '../lib/champion-api';
 import {
   addCompetitionParticipant,
   competitionDetail,
@@ -14,6 +15,7 @@ import {
   type DrawWorkspace,
   type ResultsWorkspace,
 } from '../lib/competition-api';
+import { ChampionPanel } from './champion-panel';
 import { CompetitionRulesPanel } from './competition-rules-panel';
 import { NextRoundPanel } from './next-round-panel';
 import { OesMark } from './oes-mark';
@@ -35,6 +37,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   const [detail, setDetail] = useState<CompetitionDetail | null>(null);
   const [draw, setDraw] = useState<DrawWorkspace | null>(null);
   const [results, setResults] = useState<ResultsWorkspace | null>(null);
+  const [champion, setChampion] = useState<ChampionView | null>(null);
   const [institutionId, setInstitutionId] = useState('');
   const [formatCode, setFormatCode] = useState<'GROUP_STAGE' | 'KNOCKOUT'>('GROUP_STAGE');
   const [groupCount, setGroupCount] = useState(0);
@@ -44,8 +47,8 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
 
   useEffect(() => {
     let active = true;
-    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId), resultsWorkspace(competitionId)])
-      .then(([current, loaded, loadedDraw, loadedResults]) => {
+    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId), resultsWorkspace(competitionId), championApi(competitionId)])
+      .then(([current, loaded, loadedDraw, loadedResults, loadedChampion]) => {
         if (!active) return;
         if (current === null) {
           router.replace('/login');
@@ -55,6 +58,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
         setDetail(loaded);
         setDraw(loadedDraw);
         setResults(loadedResults);
+        setChampion(loadedChampion);
         setFormatCode(loaded.formatCode ?? 'GROUP_STAGE');
         setGroupCount(loaded.groupCount ?? loaded.validGroupCounts[0] ?? 0);
       })
@@ -129,6 +133,20 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
     void resultsWorkspace(competitionId).then(setResults).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No fue posible recuperar los encuentros.'));
   }
 
+  function updateChampion(next: ChampionView): void {
+    setChampion(next);
+    setDetail((current) => current === null ? current : {
+      ...current,
+      revision: next.competitionRevision,
+      status: next.status === 'CONFIRMED' ? 'FINALIZED' : current.status,
+    });
+    setDraw((current) => current === null ? current : {
+      ...current,
+      competitionRevision: next.competitionRevision,
+      competitionStatus: next.status === 'CONFIRMED' ? 'FINALIZED' : current.competitionStatus,
+    });
+  }
+
   return (
     <div className="dashboard-shell">
       <aside className="sidebar">
@@ -186,9 +204,10 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
             </form>
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
-          <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
-          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} onChange={setResults} onError={setError} workspace={results} />
-          <NextRoundPanel canOperate={actor.role !== 'OPERATOR'} competitionId={competitionId} draw={draw} onChange={updateDraw} onError={setError} results={results} />
+          <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
+          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN' && detail.status !== 'FINALIZED'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} onChange={setResults} onError={setError} workspace={results} />
+          <NextRoundPanel canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} competitionId={competitionId} draw={draw} onChange={updateDraw} onError={setError} results={results} />
+          <ChampionPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} champion={champion} competitionId={competitionId} draw={draw} onChange={updateChampion} onError={setError} results={results} />
         </div>
       </main>
     </div>
