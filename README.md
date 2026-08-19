@@ -4,11 +4,15 @@ Sistema web para gestionar competencias OES de fase de grupos y eliminación dir
 
 ## Fuente de verdad
 
-La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md) y de las especificaciones en [`docs/`](./docs/). Ante una contradicción, se aplica la jerarquía documental definida en Foundation.
+La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md), del estado de implementación registrado en [`ROADMAP.md`](./ROADMAP.md) y de las especificaciones en [`docs/`](./docs/). Ante una contradicción funcional, se aplica la jerarquía documental definida en Foundation.
 
 ## Estado
 
-El núcleo competitivo ya persiste competencias, plantillas congeladas, configuraciones y sorteos oficiales; genera encuentros; confirma resultados con doble autoridad; recalcula tablas; aplica desempates por mini-tabla; y propone dos clasificados por grupo para confirmación independiente. La API NestJS cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La aplicación Next.js incorpora acceso institucional, restauración de sesión y un registro responsive de competencias. Administradores y superadministradores pueden crear competencias desde combinaciones activas; operadores conservan acceso de solo lectura. Cada creación es transaccional, idempotente y auditada. El siguiente vertical habilitará catálogo, participantes y configuración del formato desde la web.
+El sistema ya cubre persistencia de competencias y participantes, plantillas competitivas congeladas, configuración y bloqueo del formato, motor determinista de sorteo, ejecución y doble confirmación, generación automática de encuentros, publicación pública verificable, carga y doble confirmación de resultados, recálculo de tablas, desempates por mini-tabla, propuesta de dos clasificados por grupo, confirmación independiente de esos clasificados y anulación auditable de sorteos y resultados.
+
+La API NestJS cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La aplicación Next.js incorpora acceso institucional, restauración de sesión, registro responsive de competencias y workspaces para preparación del sorteo, resultados y clasificación.
+
+El siguiente vertical prioritario es **NEXT-ROUND-CONTINUITY-001**: derivar exclusivamente desde avances confirmados el conjunto elegible de la siguiente ronda, crear una nueva configuración eliminatoria congelada y reutilizar el motor existente para el re-sorteo obligatorio entre rondas. Después de cerrar esa continuidad se implementará la finalización explícita de la competencia y la confirmación del campeón.
 
 ## Requisitos
 
