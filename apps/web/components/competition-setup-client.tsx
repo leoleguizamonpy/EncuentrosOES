@@ -14,8 +14,9 @@ import {
   type DrawWorkspace,
   type ResultsWorkspace,
 } from '../lib/competition-api';
-import { OesMark } from './oes-mark';
 import { CompetitionRulesPanel } from './competition-rules-panel';
+import { NextRoundPanel } from './next-round-panel';
+import { OesMark } from './oes-mark';
 import { OfficialDrawPanel } from './official-draw-panel';
 import { ResultsWorkspacePanel } from './results-workspace-panel';
 
@@ -187,6 +188,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
           <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
           <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR'} onChange={setResults} onError={setError} workspace={results} />
+          <NextRoundPanel canOperate={actor.role !== 'OPERATOR'} competitionId={competitionId} draw={draw} onChange={updateDraw} onError={setError} results={results} />
         </div>
       </main>
     </div>
