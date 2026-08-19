@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveChampionCandidate } from '../src/index.js';
+import { deriveChampionCandidate, type ChampionSource } from '../src/index.js';
 
-const confirmedFinal = {
+const finalMatch = {
+  id: 'match-final',
+  resultId: 'result-final',
+  status: 'RESULT_CONFIRMED' as const,
+  winnerParticipantId: 'participant-champion',
+};
+
+const confirmedFinal: ChampionSource = {
   byeParticipantIds: [],
   executionId: 'execution-final',
-  formatCode: 'KNOCKOUT' as const,
-  matches: [{
-    id: 'match-final',
-    resultId: 'result-final',
-    status: 'RESULT_CONFIRMED' as const,
-    winnerParticipantId: 'participant-champion',
-  }],
+  formatCode: 'KNOCKOUT',
+  matches: [finalMatch],
   roundNumber: 3,
 };
 
@@ -29,7 +31,12 @@ describe('deriveChampionCandidate', () => {
   it('rejects a semifinal or any round with more than one playable match', () => {
     expect(() => deriveChampionCandidate({
       ...confirmedFinal,
-      matches: [...confirmedFinal.matches, { ...confirmedFinal.matches[0], id: 'match-2', resultId: 'result-2' }],
+      matches: [finalMatch, {
+        id: 'match-2',
+        resultId: 'result-2',
+        status: 'RESULT_CONFIRMED',
+        winnerParticipantId: 'participant-other',
+      }],
     })).toThrow(/exactly one playable match/i);
   });
 
@@ -40,7 +47,12 @@ describe('deriveChampionCandidate', () => {
   it('rejects an unconfirmed final result', () => {
     expect(() => deriveChampionCandidate({
       ...confirmedFinal,
-      matches: [{ ...confirmedFinal.matches[0], resultId: null, status: 'RESULT_PENDING_CONFIRMATION', winnerParticipantId: null }],
+      matches: [{
+        id: 'match-final',
+        resultId: null,
+        status: 'RESULT_PENDING_CONFIRMATION',
+        winnerParticipantId: null,
+      }],
     })).toThrow(/confirmed result and winner/i);
   });
 });
