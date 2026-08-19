@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **91%**
+> Desarrollo estimado del producto v1 competitivo: **92%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -115,8 +115,8 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
 - [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
-- [~] Prueba de recuperación después de reinicio de API/web — siguiente incremento.
-- [ ] Backups automáticos y restauración ensayada.
+- [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
+- [~] Backups automáticos y restauración ensayada — siguiente incremento.
 - [ ] Variables y secretos de producción separados del entorno local.
 - [ ] HTTPS, cookies seguras y política de origen de producción verificadas.
 - [ ] Observabilidad mínima: logs estructurados, correlación y alertas de errores críticos.
@@ -158,11 +158,12 @@ Competencia
 ├── [x] Inmutabilidad competitiva post-finalización
 ├── [x] Consulta pública de campeón y recorrido
 ├── [x] Recuperación de derivados después de anulación fuente
-└── [x] Concurrencia crítica serializada y normalizada
+├── [x] Concurrencia crítica serializada y normalizada
+└── [x] Recuperación completa después de reinicio de proceso
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / RESTART-RECOVERY-E2E**
+**PRODUCTION-ROBUSTNESS-001 / BACKUP-RESTORE-DRILL**
 
-Recrear las capas de servicio con conexiones nuevas contra la misma base PostgreSQL y demostrar que competencia, reglas, sorteo, resultados, avances y estado final pueden restaurarse y continuar sin depender de memoria de proceso, cachés locales ni estado efímero de API/web.
+Implementar una estrategia reproducible de backup PostgreSQL con artefacto verificable y un ensayo automatizado de restauración sobre una base aislada. El mecanismo de producción debe usar secretos externos y almacenamiento seguro; no se considerará completo solo por generar un dump local.
