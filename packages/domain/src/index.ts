@@ -21,6 +21,12 @@ export {
   type ParticipantStatus,
 } from './competition/competition.js';
 export {
+  deriveNextRoundParticipantIds,
+  type ConfirmedGroupAdvance,
+  type KnockoutAdvanceMatch,
+  type NextRoundSource,
+} from './competition/next-round.js';
+export {
   DomainError,
   type DomainErrorCode,
 } from './errors/domain-error.js';
