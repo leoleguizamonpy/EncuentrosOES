@@ -104,20 +104,36 @@ async function seed(): Promise<void> {
     institutionId: ids.institutions[index] ?? ids.institutions[0],
   })) });
   await client.competitionRuleSet.create({ data: {
-    canonicalHash: hash,
+    canonicalHash: null,
     competitionId: ids.competition,
     createdById: ids.recorder,
-    frozenAt: occurredAt,
-    frozenById: ids.recorder,
+    frozenAt: null,
+    frozenById: null,
     id: ids.ruleSet,
     knockoutResolutionCode: 'HIGHER_SCORE',
     profileConfig: { allowDraws: false, profile: 'SCORE_BASED' },
     resultProfile: 'SCORE_BASED',
     revisionNumber: 1,
     schemaVersion: 1,
-    status: 'FROZEN',
+    status: 'DRAFT',
     updatedById: ids.recorder,
   } });
+  await client.ruleSetOutcome.createMany({ data: [
+    { description: 'Victoria', outcomeCode: 'WIN', ruleSetId: ids.ruleSet, tablePoints: 3 },
+    { description: 'Derrota', outcomeCode: 'LOSS', ruleSetId: ids.ruleSet, tablePoints: 0 },
+  ] });
+  await client.ruleSetMetric.createMany({ data: [
+    'PLAYED', 'WINS', 'LOSSES', 'TABLE_POINTS', 'SCORE_FOR', 'SCORE_AGAINST', 'SCORE_DIFFERENCE',
+  ].map((metricCode) => ({ enabled: true, metricCode, ruleSetId: ids.ruleSet })) });
+  await client.ruleSetTiebreak.createMany({ data: [
+    { criterionCode: 'TABLE_POINTS', position: 1, ruleSetId: ids.ruleSet },
+    { criterionCode: 'WINS', position: 2, ruleSetId: ids.ruleSet },
+    { criterionCode: 'SCORE_DIFFERENCE', position: 3, ruleSetId: ids.ruleSet },
+  ] });
+  await client.competitionRuleSet.update({
+    data: { canonicalHash: hash, frozenAt: occurredAt, frozenById: ids.recorder, revision: 2, status: 'FROZEN' },
+    where: { id: ids.ruleSet },
+  });
   await client.drawConfiguration.createMany({ data: [
     {
       canonicalHash: hash,
