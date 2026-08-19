@@ -11,6 +11,7 @@ import {
   type ChampionView,
   type ConfirmChampionInput,
   type ProposeChampionInput,
+  type PublicCompetitionJourney,
 } from './champion-store.js';
 
 const PROPOSE_SCOPE = 'champion:propose';
@@ -76,6 +77,84 @@ export class PrismaChampionStore implements ChampionStore {
   public async find(competitionId: string): Promise<ChampionView | null> {
     const champion = await this.#service.find(competitionId);
     return champion === null ? null : view(champion);
+  }
+
+  public async publicJourney(competitionId: string): Promise<PublicCompetitionJourney | null> {
+    const [competition, champion] = await Promise.all([
+      this.client.competition.findUnique({
+        include: {
+          combination: { include: { event: true, modality: true, sport: true } },
+          edition: true,
+          officialDraws: {
+            include: {
+              configuration: { select: { formatCode: true, roundNumber: true } },
+              matches: {
+                include: {
+                  group: { select: { label: true } },
+                  participantA: { select: { displayName: true, id: true } },
+                  participantB: { select: { displayName: true, id: true } },
+                  results: {
+                    orderBy: { confirmedAt: 'desc' },
+                    select: { detailJson: true, resolvedJson: true },
+                    take: 1,
+                    where: { status: 'CONFIRMED' },
+                  },
+                },
+                orderBy: { ordinal: 'asc' },
+              },
+            },
+            orderBy: { confirmedAt: 'asc' },
+            where: { status: 'CONFIRMED' },
+          },
+        },
+        where: { id: competitionId },
+      }),
+      this.#service.find(competitionId),
+    ]);
+    if (
+      competition === null ||
+      competition.status !== 'FINALIZED' ||
+      competition.finalizedAt === null ||
+      champion === null ||
+      champion.status !== 'CONFIRMED' ||
+      champion.confirmedAt === null
+    ) return null;
+
+    return {
+      champion: {
+        confirmedAt: champion.confirmedAt.toISOString(),
+        participantDisplayName: champion.participantDisplayName,
+        participantId: champion.participantId,
+      },
+      competition: {
+        edition: competition.edition.name,
+        event: competition.combination.event.name,
+        finalizedAt: competition.finalizedAt.toISOString(),
+        id: competition.id,
+        modality: competition.combination.modality.name,
+        sport: competition.combination.sport.name,
+        status: 'FINALIZED',
+      },
+      rounds: competition.officialDraws.map((execution) => ({
+        confirmedAt: execution.confirmedAt?.toISOString() ?? execution.executedAt.toISOString(),
+        executionId: execution.id,
+        formatCode: execution.configuration.formatCode as 'GROUP_STAGE' | 'KNOCKOUT',
+        matches: execution.matches.flatMap((match) => {
+          const result = match.results[0];
+          if (match.status !== 'RESULT_CONFIRMED' || result === undefined) return [];
+          return [{
+            groupLabel: match.group?.label ?? null,
+            id: match.id,
+            ordinal: match.ordinal,
+            participantA: match.participantA,
+            participantB: match.participantB,
+            result: { detail: result.detailJson, resolved: result.resolvedJson },
+            winnerParticipantId: match.winnerParticipantId,
+          }];
+        }),
+        roundNumber: execution.configuration.roundNumber,
+      })),
+    };
   }
 
   public propose(input: ProposeChampionInput): Promise<ChampionView> {
