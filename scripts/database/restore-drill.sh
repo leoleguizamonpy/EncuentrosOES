@@ -25,7 +25,7 @@ case "$RESTORE_DB_NAME" in
 esac
 
 SERVER_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E 's#/[^/]+$#/postgres#')
-RESTORE_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E "s#/[^/]+$#/$RESTORE_DB_NAME#")
+RESTORE_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E "s#/[^/]+\$#/$RESTORE_DB_NAME#")
 
 if [ ! -f "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH.sha256" ]; then
   echo "Backup and checksum are required before restore." >&2
