@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
 
-import { RequireRoles } from '../security/metadata.js';
+import { Public, RequireRoles } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
 import { ChampionService } from './champion.service.js';
 
@@ -21,6 +21,14 @@ export class ChampionController {
     const parsed = uuidSchema.safeParse(competitionId);
     if (!parsed.success) throw new BadRequestException('Competition identifier is invalid.');
     return this.service.find(parsed.data);
+  }
+
+  @Get('public/competitions/:competitionId/journey')
+  @Public()
+  public publicJourney(@Param('competitionId') competitionId: string): ReturnType<ChampionService['publicJourney']> {
+    const parsed = uuidSchema.safeParse(competitionId);
+    if (!parsed.success) throw new BadRequestException('Competition identifier is invalid.');
+    return this.service.publicJourney(parsed.data);
   }
 
   @HttpCode(200)
