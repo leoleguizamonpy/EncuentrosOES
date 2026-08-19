@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **89%**
+> Desarrollo estimado del producto v1 competitivo: **90%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -113,8 +113,8 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
 - [x] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — CI #116 verde.
 - [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
-- [~] Ensayo de anulaciones y reemplazos sin residuos derivados — siguiente incremento.
-- [ ] Prueba de concurrencia sobre operaciones críticas.
+- [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
+- [~] Prueba de concurrencia sobre operaciones críticas — siguiente incremento.
 - [ ] Prueba de recuperación después de reinicio de API/web.
 - [ ] Backups automáticos y restauración ensayada.
 - [ ] Variables y secretos de producción separados del entorno local.
@@ -156,11 +156,12 @@ Competencia
 ├── [x] Propuesta y doble confirmación del campeón
 ├── [x] Finalización transaccional de competencia
 ├── [x] Inmutabilidad competitiva post-finalización
-└── [x] Consulta pública de campeón y recorrido
+├── [x] Consulta pública de campeón y recorrido
+└── [x] Recuperación de derivados después de anulación fuente
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / ANNULMENT-RECOVERY-E2E**
+**PRODUCTION-ROBUSTNESS-001 / CONCURRENCY-STRESS**
 
-Ensayar anulaciones de resultados y sorteos oficiales seguidas de sus reemplazos válidos, verificando que tablas, clasificaciones, ganadores, configuraciones de siguiente ronda y evidencia no dejen residuos activos ni permitan avanzar desde una fuente anulada.
+Ejecutar operaciones competitivas críticas en paralelo contra PostgreSQL real para demostrar que la revisión optimista, los índices únicos y las transacciones serializables producen exactamente un ganador de la carrera, sin duplicar rondas, confirmaciones ni cierres.
