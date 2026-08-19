@@ -15,6 +15,10 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "../../eslint.config.mjs"]
     },
+    "@oes/database#lint": {
+      "dependsOn": ["@oes/database#build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../eslint.config.mjs"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "../../packages/config/**"],
