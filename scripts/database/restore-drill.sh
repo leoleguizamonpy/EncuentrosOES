@@ -10,10 +10,18 @@ BACKUP_PATH="${1:-./artifacts/database/oes.dump}"
 RESTORE_DB_NAME="${RESTORE_DB_NAME:-oes_restore}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:17-alpine}"
 DATABASE_URL_LIBPQ="${DATABASE_URL%%\?*}"
-SERVER_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E 's#/[^/]+$#/postgres#')
-RESTORE_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E "s#/[^/]+$#/$RESTORE_DB_NAME#")
 BACKUP_DIR=$(dirname "$BACKUP_PATH")
 BACKUP_FILE=$(basename "$BACKUP_PATH")
+
+case "$RESTORE_DB_NAME" in
+  ''|*[!A-Za-z0-9_]*)
+    echo "RESTORE_DB_NAME may contain only letters, numbers and underscores." >&2
+    exit 1
+    ;;
+esac
+
+SERVER_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E 's#/[^/]+$#/postgres#')
+RESTORE_URL=$(printf '%s' "$DATABASE_URL_LIBPQ" | sed -E "s#/[^/]+$#/$RESTORE_DB_NAME#")
 
 if [ ! -f "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH.sha256" ]; then
   echo "Backup and checksum are required before restore." >&2
