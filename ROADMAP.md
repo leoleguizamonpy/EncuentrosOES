@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **92%**
+> Desarrollo estimado del producto v1 competitivo: **93%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -116,8 +116,9 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
-- [~] Backups automáticos y restauración ensayada — siguiente incremento.
-- [ ] Variables y secretos de producción separados del entorno local.
+- [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde.
+- [ ] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio.
+- [~] Variables y secretos de producción separados del entorno local — siguiente incremento.
 - [ ] HTTPS, cookies seguras y política de origen de producción verificadas.
 - [ ] Observabilidad mínima: logs estructurados, correlación y alertas de errores críticos.
 
@@ -159,11 +160,12 @@ Competencia
 ├── [x] Consulta pública de campeón y recorrido
 ├── [x] Recuperación de derivados después de anulación fuente
 ├── [x] Concurrencia crítica serializada y normalizada
-└── [x] Recuperación completa después de reinicio de proceso
+├── [x] Recuperación completa después de reinicio de proceso
+└── [x] Backup restaurable y verificado en base aislada
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / BACKUP-RESTORE-DRILL**
+**PRODUCTION-ROBUSTNESS-001 / PRODUCTION-CONFIG-SECRETS**
 
-Implementar una estrategia reproducible de backup PostgreSQL con artefacto verificable y un ensayo automatizado de restauración sobre una base aislada. El mecanismo de producción debe usar secretos externos y almacenamiento seguro; no se considerará completo solo por generar un dump local.
+Separar configuración local, CI y producción; validar variables obligatorias al arranque; impedir defaults inseguros en producción; documentar secretos externos requeridos y preparar la frontera para backup automático sin almacenar credenciales ni dumps de producción en el repositorio.
