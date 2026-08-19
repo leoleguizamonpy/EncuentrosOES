@@ -75,7 +75,7 @@ export function deriveNextRoundParticipantIds(source: NextRoundSource): readonly
       );
     }
     participantIds = [
-      ...source.matches.map((match) => match.winnerParticipantId as string),
+      ...source.matches.map((match) => match.winnerParticipantId!),
       ...source.byeParticipantIds,
     ];
   }
