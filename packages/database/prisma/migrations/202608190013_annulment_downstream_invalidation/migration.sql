@@ -1,38 +1,3 @@
--- A replaced draw remains historical frozen evidence. It must retain its hash,
--- authority and participant snapshot while ceasing to be the active round.
-ALTER TABLE draw_configurations
-  DROP CONSTRAINT draw_configurations_status_check,
-  DROP CONSTRAINT draw_configurations_freeze_evidence_check;
-
-ALTER TABLE draw_configurations
-  ADD CONSTRAINT draw_configurations_status_check CHECK (
-    status IN ('DRAFT', 'FROZEN', 'DISCARDED', 'REPLACED')
-  ),
-  ADD CONSTRAINT draw_configurations_freeze_evidence_check CHECK (
-    (status = 'DRAFT' AND canonical_hash IS NULL AND frozen_at IS NULL AND frozen_by IS NULL)
-    OR
-    (status IN ('FROZEN', 'DISCARDED', 'REPLACED') AND canonical_hash IS NOT NULL AND frozen_at IS NOT NULL AND frozen_by IS NOT NULL)
-  );
-
-CREATE OR REPLACE FUNCTION prevent_frozen_draw_participant_mutation()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  parent_status TEXT;
-BEGIN
-  SELECT status INTO parent_status
-  FROM draw_configurations
-  WHERE id = OLD.draw_configuration_id;
-
-  IF parent_status IN ('FROZEN', 'DISCARDED', 'REPLACED') THEN
-    RAISE EXCEPTION 'Frozen draw participant snapshots are immutable';
-  END IF;
-
-  RETURN OLD;
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION invalidate_downstream_after_result_annulment()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -152,7 +117,7 @@ BEGIN
   GET DIAGNOSTICS affected_draws = ROW_COUNT;
 
   UPDATE draw_configurations dc
-  SET status = 'REPLACED',
+  SET status = 'DISCARDED',
       revision = dc.revision + 1,
       updated_at = NEW.annulled_at,
       updated_by = NEW.annulled_by
@@ -198,7 +163,7 @@ BEGIN
         'sourceMatchId', NEW.match_id,
         'sourceRoundNumber', source_round_number,
         'firstInvalidRound', first_invalid_round,
-        'configurationsInvalidated', affected_configurations,
+        'configurationsDiscarded', affected_configurations,
         'drawsAnnulled', affected_draws,
         'resultsAnnulled', affected_results
       )
