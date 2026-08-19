@@ -7,6 +7,7 @@ import {
   type ChampionView,
   type ConfirmChampionInput,
   type ProposeChampionInput,
+  type PublicCompetitionJourney,
 } from './champion-store.js';
 
 @Injectable()
@@ -15,6 +16,10 @@ export class ChampionService {
 
   public find(competitionId: string): Promise<ChampionView | null> {
     return this.store.find(competitionId);
+  }
+
+  public publicJourney(competitionId: string): Promise<PublicCompetitionJourney | null> {
+    return this.store.publicJourney(competitionId);
   }
 
   public async propose(input: ProposeChampionInput): Promise<ChampionView> {
