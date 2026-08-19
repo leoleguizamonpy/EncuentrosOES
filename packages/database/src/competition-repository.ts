@@ -64,8 +64,6 @@ export class PrismaCompetitionRepository {
           createdById: snapshot.createdBy,
           editionId: snapshot.key.editionId,
           eventId: snapshot.key.eventId,
-          finalizedAt: snapshot.finalizedAt,
-          finalizedById: snapshot.finalizedBy,
           formatCode: snapshot.formatCode,
           groupCount: snapshot.groupCount,
           id: snapshot.id,
@@ -121,8 +119,6 @@ export class PrismaCompetitionRepository {
     const snapshot: CompetitionSnapshot = {
       createdAt: record.createdAt,
       createdBy: record.createdById,
-      finalizedAt: record.finalizedAt,
-      finalizedBy: record.finalizedById,
       id: record.id,
       formatCode: parseDrawFormat(record.formatCode),
       groupCount: record.groupCount,
@@ -153,8 +149,6 @@ export class PrismaCompetitionRepository {
     await this.#client.$transaction(async (transaction) => {
       const update = await transaction.competition.updateMany({
         data: {
-          finalizedAt: snapshot.finalizedAt,
-          finalizedById: snapshot.finalizedBy,
           formatCode: snapshot.formatCode,
           groupCount: snapshot.groupCount,
           lockedAt: snapshot.lockedAt,
@@ -170,13 +164,22 @@ export class PrismaCompetitionRepository {
       if (update.count !== 1) {
         throw new DomainError(
           'CONCURRENCY_CONFLICT',
-          'The persisted competition revision changed before save.',
+          'The persisted competition revision no longer matches.',
         );
       }
 
-      for (const participant of snapshot.participants) {
-        await transaction.competitionParticipant.upsert({
-          create: {
+      const persisted = await transaction.competitionParticipant.findMany({
+        select: { id: true },
+        where: { competitionId: snapshot.id },
+      });
+      const persistedIds = new Set(persisted.map(({ id }) => id));
+      const additions = snapshot.participants.filter(
+        ({ id }) => !persistedIds.has(id),
+      );
+
+      if (additions.length > 0) {
+        await transaction.competitionParticipant.createMany({
+          data: additions.map((participant) => ({
             competitionId: snapshot.id,
             displayName: participant.displayName,
             enabledAt: participant.enabledAt,
@@ -186,13 +189,7 @@ export class PrismaCompetitionRepository {
             institutionId: participant.institutionId,
             revision: participant.revision,
             status: participant.status,
-          },
-          update: {
-            displayName: participant.displayName,
-            revision: participant.revision,
-            status: participant.status,
-          },
-          where: { id: participant.id },
+          })),
         });
       }
     });
