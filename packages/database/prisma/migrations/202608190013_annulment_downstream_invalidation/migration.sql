@@ -123,7 +123,7 @@ BEGIN
     SELECT od.id
     FROM official_draws od
     JOIN invalid_configurations dc ON dc.id = od.configuration_id
-    WHERE od.status IN ('PENDING_CONFIRMIRMATION', 'CONFIRMED')
+    WHERE od.status IN ('PENDING_CONFIRMATION', 'CONFIRMED')
   )
   UPDATE draw_publications publication
   SET status = 'REVOKED',
