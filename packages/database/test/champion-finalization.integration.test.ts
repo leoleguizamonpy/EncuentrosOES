@@ -23,6 +23,7 @@ const ids = {
   ruleSet: '90000000-0000-4000-8000-000000000001',
   configuration: 'a0000000-0000-4000-8000-000000000001',
   execution: 'b0000000-0000-4000-8000-000000000001',
+  pairing: 'b1000000-0000-4000-8000-000000000001',
   match: 'c0000000-0000-4000-8000-000000000001',
   result: 'd0000000-0000-4000-8000-000000000001',
 } as const;
@@ -70,8 +71,12 @@ async function seedFinal(): Promise<void> {
     executedById: ids.proposer, id: ids.execution, resultHash: '4'.repeat(64), revision: 2, seedCommitment: '5'.repeat(64),
     seedHex: '6'.repeat(64), status: 'CONFIRMED',
   } });
+  await client.drawPairing.create({ data: {
+    competitionId: ids.competition, executionId: ids.execution, id: ids.pairing, ordinal: 1,
+    pairingType: 'MATCH', participantAId: ids.participantA, participantBId: ids.participantB,
+  } });
   await client.logicalMatch.create({ data: {
-    competitionId: ids.competition, executionId: ids.execution, id: ids.match, ordinal: 1,
+    competitionId: ids.competition, executionId: ids.execution, id: ids.match, ordinal: 1, pairingId: ids.pairing,
     participantAId: ids.participantA, participantBId: ids.participantB, roundNumber: 3,
     status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participantA,
   } });
@@ -119,9 +124,15 @@ integration('PrismaChampionFinalizationService', () => {
   });
 
   it('does not propose a champion while the latest knockout round has more than one match', async () => {
+    const secondPairingId = 'b1000000-0000-4000-8000-000000000002';
+    await client.drawPairing.create({ data: {
+      competitionId: ids.competition, executionId: ids.execution, id: secondPairingId, ordinal: 2,
+      pairingType: 'MATCH', participantAId: ids.participantA, participantBId: ids.participantB,
+    } });
     await client.logicalMatch.create({ data: {
       competitionId: ids.competition, executionId: ids.execution, id: 'c0000000-0000-4000-8000-000000000002', ordinal: 2,
-      participantAId: ids.participantA, participantBId: ids.participantB, roundNumber: 3, status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participantA,
+      pairingId: secondPairingId, participantAId: ids.participantA, participantBId: ids.participantB, roundNumber: 3,
+      status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participantA,
     } });
     await expect(service.propose({
       actorId: ids.proposer, actorRole: 'ADMIN', competitionId: ids.competition,
