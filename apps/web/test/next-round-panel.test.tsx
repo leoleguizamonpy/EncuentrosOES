@@ -83,9 +83,11 @@ describe('NextRoundPanel', () => {
   });
 
   it('stays hidden while a group qualification is pending', () => {
+    const sourceGroup = results.groups[0];
+    if (sourceGroup === undefined) throw new Error('Expected group fixture');
     const pending: ResultsWorkspace = {
       ...results,
-      groups: [{ ...results.groups[0], qualification: { ...qualification, confirmedAt: null, confirmedBy: null, status: 'PENDING_CONFIRMATION' } }],
+      groups: [{ ...sourceGroup, qualification: { ...qualification, confirmedAt: null, confirmedBy: null, status: 'PENDING_CONFIRMATION' } }],
     };
     const { container } = render(<NextRoundPanel canOperate competitionId="competition-1" draw={draw} onChange={vi.fn()} onError={vi.fn()} results={pending} />);
     expect(container).toBeEmptyDOMElement();
