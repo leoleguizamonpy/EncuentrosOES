@@ -6,6 +6,10 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
+
 OUTPUT_PATH="${1:-./artifacts/database/oes.dump}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:17-alpine}"
 DATABASE_URL_LIBPQ="${DATABASE_URL%%\?*}"
