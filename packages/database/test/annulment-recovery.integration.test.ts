@@ -1,10 +1,17 @@
+import { CompetitionRuleSet } from '@oes/domain';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createPrismaClient, PrismaMatchResultService, PrismaNextRoundService } from '../src/index.js';
+import {
+  createPrismaClient,
+  PrismaCompetitionRuleSetRepository,
+  PrismaMatchResultService,
+  PrismaNextRoundService,
+} from '../src/index.js';
 
 const databaseUrl = process.env.DATABASE_URL ?? 'postgresql://oes:oes@localhost:5432/oes?schema=public';
 const integration = process.env.DATABASE_URL === undefined ? describe.skip : describe;
 const client = createPrismaClient(databaseUrl);
+const ruleSetRepository = new PrismaCompetitionRuleSetRepository(client);
 const resultService = new PrismaMatchResultService(client);
 const nextRoundService = new PrismaNextRoundService(client);
 const occurredAt = new Date('2026-08-19T20:00:00.000Z');
@@ -103,37 +110,27 @@ async function seed(): Promise<void> {
     id,
     institutionId: ids.institutions[index] ?? ids.institutions[0],
   })) });
-  await client.competitionRuleSet.create({ data: {
-    canonicalHash: null,
+
+  const ruleSet = CompetitionRuleSet.create({
+    actorId: ids.recorder,
     competitionId: ids.competition,
-    createdById: ids.recorder,
-    frozenAt: null,
-    frozenById: null,
     id: ids.ruleSet,
     knockoutResolutionCode: 'HIGHER_SCORE',
+    metrics: ['PLAYED', 'WINS', 'LOSSES', 'TABLE_POINTS', 'SCORE_DIFFERENCE'],
+    occurredAt,
+    outcomes: [
+      { code: 'WIN', description: 'Victoria', tablePoints: 3 },
+      { code: 'LOSS', description: 'Derrota', tablePoints: 0 },
+    ],
     profileConfig: { allowDraws: false, profile: 'SCORE_BASED' },
     resultProfile: 'SCORE_BASED',
     revisionNumber: 1,
     schemaVersion: 1,
-    status: 'DRAFT',
-    updatedById: ids.recorder,
-  } });
-  await client.ruleSetOutcome.createMany({ data: [
-    { description: 'Victoria', outcomeCode: 'WIN', ruleSetId: ids.ruleSet, tablePoints: 3 },
-    { description: 'Derrota', outcomeCode: 'LOSS', ruleSetId: ids.ruleSet, tablePoints: 0 },
-  ] });
-  await client.ruleSetMetric.createMany({ data: [
-    'PLAYED', 'WINS', 'LOSSES', 'TABLE_POINTS', 'SCORE_FOR', 'SCORE_AGAINST', 'SCORE_DIFFERENCE',
-  ].map((metricCode) => ({ enabled: true, metricCode, ruleSetId: ids.ruleSet })) });
-  await client.ruleSetTiebreak.createMany({ data: [
-    { criterionCode: 'TABLE_POINTS', position: 1, ruleSetId: ids.ruleSet },
-    { criterionCode: 'WINS', position: 2, ruleSetId: ids.ruleSet },
-    { criterionCode: 'SCORE_DIFFERENCE', position: 3, ruleSetId: ids.ruleSet },
-  ] });
-  await client.competitionRuleSet.update({
-    data: { canonicalHash: hash, frozenAt: occurredAt, frozenById: ids.recorder, revision: 2, status: 'FROZEN' },
-    where: { id: ids.ruleSet },
+    tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'],
   });
+  ruleSet.freeze({ actorId: ids.recorder, expectedRevision: 1, occurredAt });
+  await ruleSetRepository.insert(ruleSet);
+
   await client.drawConfiguration.createMany({ data: [
     {
       canonicalHash: hash,
