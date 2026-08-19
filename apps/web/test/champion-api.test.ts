@@ -18,8 +18,21 @@ describe('champion API client', () => {
   });
 
   it('proposes and confirms with CSRF, revisions and unique idempotency keys', async () => {
-    const response = { competitionId: 'competition-1', competitionRevision: 8, participantId: 'participant-1', proposalId: 'proposal-1', status: 'PENDING_CONFIRMATION' };
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(response), { status: 200 }));
+    const proposalResponse = {
+      competitionId: 'competition-1',
+      competitionRevision: 8,
+      participantId: 'participant-1',
+      proposalId: 'proposal-1',
+      status: 'PENDING_CONFIRMATION',
+    };
+    const confirmationResponse = {
+      ...proposalResponse,
+      competitionRevision: 9,
+      status: 'CONFIRMED',
+    };
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify(proposalResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(confirmationResponse), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(crypto, 'randomUUID')
       .mockReturnValueOnce('00000000-0000-4000-8000-000000000041')
