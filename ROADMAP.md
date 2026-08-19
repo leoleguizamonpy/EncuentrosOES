@@ -71,7 +71,7 @@ Este roadmap registra el estado real del producto. No reemplaza Foundation ni la
 
 ## Gate 5 — Continuidad eliminatoria
 
-Bloque activo: `NEXT-ROUND-CONTINUITY-001` en PR #31.
+Bloque completado: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 
 - [x] Derivar el conjunto elegible de la siguiente ronda exclusivamente desde avances confirmados.
 - [x] Para transición grupos → eliminación: incluir solo primer y segundo clasificado confirmados de cada grupo.
@@ -80,15 +80,19 @@ Bloque activo: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 - [x] Crear una nueva `DrawConfiguration` congelada con `formatCode=KNOCKOUT` y `roundNumber` incremental.
 - [x] Congelar snapshot de nombres e historial de pases libres de los participantes elegibles.
 - [x] Evitar dos configuraciones activas para la misma ronda desde la frontera transaccional.
-- [ ] Completar idempotencia HTTP del comando; revisión optimista y auditoría PostgreSQL ya están implementadas en el servicio de persistencia.
-- [ ] Exponer el comando por API únicamente a ADMIN/SUPERADMIN.
-- [ ] Exponer la preparación de nueva ronda en el workspace web.
-- [ ] Ejecutar, confirmar, publicar y restaurar la nueva ronda usando el motor existente.
-- [ ] Validar el servicio transaccional completo en CI/PostgreSQL antes de cerrar el bloque.
+- [x] Idempotencia HTTP, revisión optimista y auditoría PostgreSQL del comando.
+- [x] Endpoint ADMIN/SUPERADMIN para preparar la siguiente ronda.
+- [x] Acción de preparación de nueva ronda en el workspace web.
+- [x] Reutilización del flujo existente para ejecutar, confirmar, publicar y restaurar cada nueva ronda con `oes-draw-v1`.
+- [x] Prueba PostgreSQL específica: clasificados confirmados → ronda KNOCKOUT congelada; clasificación pendiente → cero mutaciones.
+- [x] CI completa con lint, typecheck, esquema, migraciones, PostgreSQL, coverage y build.
+- [x] Pipeline estabilizado para impedir la carrera entre `prisma generate` y lint type-aware de `@oes/database`.
 
 **Gate de salida:** la competencia puede avanzar desde grupos hasta una ronda eliminatoria y encadenar rondas eliminatorias sin carga manual de clasificados.
 
 ## Gate 6 — Finalización competitiva
+
+Bloque siguiente: `CHAMPION-FINALIZATION-001`.
 
 - [ ] Detectar cuándo una ronda eliminatoria deja exactamente un ganador confirmado.
 - [ ] Registrar el campeón como avance final confirmado y auditable.
@@ -142,14 +146,14 @@ Competencia
 ├── [x] Desempates
 ├── [x] Clasificados de grupos propuestos
 ├── [x] Clasificados de grupos confirmados
-├── [~] Construcción automática de la siguiente ronda — backend implementado, pendiente gate CI/API
-├── [ ] Re-sorteo de ganadores entre rondas
+├── [x] Construcción automática de la siguiente ronda
+├── [x] Re-sorteo de clasificados/ganadores entre rondas
 ├── [ ] Confirmación del campeón
 └── [ ] Finalización de competencia
 ```
 
 ## Prioridad inmediata
 
-**NEXT-ROUND-CONTINUITY-001**
+**CHAMPION-FINALIZATION-001**
 
-Cerrar el contrato API idempotente que invoca `PrismaNextRoundService`, validar el flujo con PostgreSQL real y conectar la acción al workspace. El motor `oes-draw-v1` debe reutilizar la nueva configuración congelada; no se crea una llave fija ni se permite seleccionar manualmente los clasificados.
+Cerrar el ciclo competitivo cuando quede exactamente un ganador confirmado: persistir el campeón y su evidencia, impedir una ronda artificial de un solo participante, finalizar la competencia y restaurar/publicar ese estado sin borrar el recorrido previo.
