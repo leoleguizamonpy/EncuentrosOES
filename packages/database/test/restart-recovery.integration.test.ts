@@ -28,10 +28,12 @@ const ids = {
   institutions: [
     '75000000-0000-4000-8000-000000000001',
     '75000000-0000-4000-8000-000000000002',
+    '75000000-0000-4000-8000-000000000003',
   ],
   participants: [
     '85000000-0000-4000-8000-000000000001',
     '85000000-0000-4000-8000-000000000002',
+    '85000000-0000-4000-8000-000000000003',
   ],
   ruleSet: '95000000-0000-4000-8000-000000000001',
   groupConfiguration: 'a5000000-0000-4000-8000-000000000001',
@@ -264,7 +266,7 @@ integration('restart recovery', () => {
         status: 'FROZEN',
       });
       expect(restoredFinalConfiguration?.toSnapshot().participants.map(({ id }) => id).sort()).toEqual(
-        [...ids.participants].sort(),
+        [ids.participants[0], ids.participants[1]].sort(),
       );
 
       await drawService.execute({
