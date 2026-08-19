@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/champion-finalization-001`  
-> Desarrollo estimado del producto v1 competitivo: **86%**
+> Desarrollo estimado del producto v1 competitivo: **87%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -93,7 +93,7 @@ Bloque completado: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 
 ## Gate 6 — Finalización competitiva
 
-Bloque activo: `CHAMPION-FINALIZATION-001` en PR #32.
+Bloque completado: `CHAMPION-FINALIZATION-001` en PR #32.
 
 - [x] Definir la regla pura que distingue una final real de una semifinal/ronda con BYE y deriva un único candidato desde un resultado confirmado.
 - [x] Persistir la propuesta de campeón con ejecución, encuentro y resultado fuente exactos.
@@ -103,11 +103,13 @@ Bloque activo: `CHAMPION-FINALIZATION-001` en PR #32.
 - [x] Impedir nuevos sorteos y mutaciones competitivas incompatibles después de finalizar mediante barrera de aplicación y PostgreSQL.
 - [x] Exponer propuesta/confirmación de campeón por API y workspace web.
 - [x] Exponer campeón y recorrido competitivo confirmado en consulta pública sin datos administrativos.
-- [ ] Revalidar el head final con PostgreSQL real, idempotencia, concurrencia, coverage y build después del incremento público.
+- [x] Revalidar el head funcional con PostgreSQL real, idempotencia, concurrencia, coverage y build: CI #113 verde.
 
 **Gate de salida:** una competencia completa puede terminar de forma explícita, verificable, restaurable y públicamente consultable.
 
 ## Gate 7 — Robustez operativa previa a producción
+
+Bloque siguiente: `PRODUCTION-ROBUSTNESS-001`.
 
 - [ ] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real.
 - [ ] Flujo E2E eliminación directa desde primera ronda → campeón.
@@ -154,11 +156,11 @@ Competencia
 ├── [x] Propuesta y doble confirmación del campeón
 ├── [x] Finalización transaccional de competencia
 ├── [x] Inmutabilidad competitiva post-finalización
-└── [~] Consulta pública del recorrido — implementada, pendiente gate final de CI
+└── [x] Consulta pública de campeón y recorrido
 ```
 
 ## Prioridad inmediata
 
-**Cerrar `CHAMPION-FINALIZATION-001`**
+**PRODUCTION-ROBUSTNESS-001**
 
-Ejecutar CI completa sobre el head que incorpora la consulta pública. Si formato, lint, tipos, esquema, migraciones, PostgreSQL real, coverage y build quedan verdes, Gate 6 se considera completado y el siguiente bloque pasa a Gate 7: robustez operativa previa a producción.
+Validar el ciclo competitivo completo como una única operación E2E contra PostgreSQL real, reforzar concurrencia y recuperación, y preparar las garantías operativas necesarias para usar el sistema en una competencia oficial.
