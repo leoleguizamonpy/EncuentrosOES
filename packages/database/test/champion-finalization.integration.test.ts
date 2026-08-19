@@ -121,6 +121,15 @@ integration('PrismaChampionFinalizationService', () => {
     });
     expect(await client.auditEntry.count({ where: { competitionId: ids.competition, actionCode: { in: ['CHAMPION_PROPOSED', 'CHAMPION_CONFIRMED'] } } })).toBe(2);
     expect((await service.find(ids.competition))?.status).toBe('CONFIRMED');
+
+    await expect(client.matchResult.update({
+      data: { revision: { increment: 1 } },
+      where: { id: ids.result },
+    })).rejects.toThrow(/immutable/i);
+    await expect(client.officialDraw.update({
+      data: { revision: { increment: 1 } },
+      where: { id: ids.execution },
+    })).rejects.toThrow(/immutable/i);
   });
 
   it('does not propose a champion while the latest knockout round has more than one match', async () => {
