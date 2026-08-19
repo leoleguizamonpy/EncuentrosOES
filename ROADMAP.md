@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **87%**
+> Desarrollo estimado del producto v1 competitivo: **89%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -109,11 +109,11 @@ Bloque completado: `CHAMPION-FINALIZATION-001` en PR #32.
 
 ## Gate 7 — Robustez operativa previa a producción
 
-Bloque activo: `PRODUCTION-ROBUSTNESS-001` en `agent/production-robustness-001`.
+Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
-- [~] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — test integral en construcción.
-- [ ] Flujo E2E eliminación directa desde primera ronda → campeón.
-- [ ] Ensayo de anulaciones y reemplazos sin residuos derivados.
+- [x] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — CI #116 verde.
+- [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
+- [~] Ensayo de anulaciones y reemplazos sin residuos derivados — siguiente incremento.
 - [ ] Prueba de concurrencia sobre operaciones críticas.
 - [ ] Prueba de recuperación después de reinicio de API/web.
 - [ ] Backups automáticos y restauración ensayada.
@@ -161,6 +161,6 @@ Competencia
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / FULL-LIFECYCLE-E2E**
+**PRODUCTION-ROBUSTNESS-001 / ANNULMENT-RECOVERY-E2E**
 
-Ejecutar en una sola prueba contra PostgreSQL real la ruta grupos → resultados → clasificados → eliminación → final → campeón → `FINALIZED`, verificando que cada transición derive exclusivamente del estado confirmado anterior y que ninguna fase requiera inyección manual de clasificados.
+Ensayar anulaciones de resultados y sorteos oficiales seguidas de sus reemplazos válidos, verificando que tablas, clasificaciones, ganadores, configuraciones de siguiente ronda y evidencia no dejen residuos activos ni permitan avanzar desde una fuente anulada.
