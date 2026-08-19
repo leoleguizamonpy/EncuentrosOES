@@ -29,3 +29,9 @@ export {
   type PreparePersistedNextRoundInput,
   type PreparedNextRound,
 } from './next-round-service.js';
+export {
+  PrismaChampionFinalizationService,
+  type ConfirmPersistedChampionInput,
+  type PersistedChampionView,
+  type ProposePersistedChampionInput,
+} from './champion-finalization-service.js';
