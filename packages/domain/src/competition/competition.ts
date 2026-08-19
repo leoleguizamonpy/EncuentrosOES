@@ -27,6 +27,8 @@ export interface ParticipantSnapshot {
 export interface CompetitionSnapshot {
   readonly createdAt: Date;
   readonly createdBy: string;
+  readonly finalizedAt: Date | null;
+  readonly finalizedBy: string | null;
   readonly id: string;
   readonly formatCode: DrawFormatCode | null;
   readonly groupCount: number | null;
@@ -122,6 +124,8 @@ export class Competition {
   readonly #id: string;
   readonly #key: CompetitionKey;
   readonly #participants: ParticipantSnapshot[];
+  #finalizedAt: Date | null;
+  #finalizedBy: string | null;
   #formatCode: DrawFormatCode | null;
   #groupCount: number | null;
   #lockedAt: Date | null;
@@ -135,6 +139,8 @@ export class Competition {
     this.#id = snapshot.id;
     this.#key = Object.freeze({ ...snapshot.key });
     this.#status = snapshot.status;
+    this.#finalizedAt = snapshot.finalizedAt === null ? null : new Date(snapshot.finalizedAt);
+    this.#finalizedBy = snapshot.finalizedBy;
     this.#formatCode = snapshot.formatCode;
     this.#groupCount = snapshot.groupCount;
     this.#lockedAt = snapshot.lockedAt === null ? null : new Date(snapshot.lockedAt);
@@ -151,6 +157,8 @@ export class Competition {
     return new Competition({
       createdAt: input.occurredAt,
       createdBy: input.actorId,
+      finalizedAt: null,
+      finalizedBy: null,
       id: input.id,
       formatCode: null,
       groupCount: null,
@@ -180,6 +188,15 @@ export class Competition {
       throw new DomainError(
         'INVALID_COMPETITION_STATE',
         'Persisted lock evidence is inconsistent with competition status.',
+      );
+    }
+
+    const finalized = snapshot.status === 'FINALIZED';
+    const hasFinalizationEvidence = snapshot.finalizedAt !== null && snapshot.finalizedBy !== null;
+    if (finalized !== hasFinalizationEvidence) {
+      throw new DomainError(
+        'INVALID_COMPETITION_STATE',
+        'Persisted finalization evidence is inconsistent with competition status.',
       );
     }
 
@@ -349,6 +366,8 @@ export class Competition {
     return Object.freeze({
       createdAt: new Date(this.#createdAt),
       createdBy: this.#createdBy,
+      finalizedAt: this.#finalizedAt === null ? null : new Date(this.#finalizedAt),
+      finalizedBy: this.#finalizedBy,
       formatCode: this.#formatCode,
       groupCount: this.#groupCount,
       id: this.#id,
