@@ -2,7 +2,7 @@
 
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
-> Rama de trabajo auditada: `agent/champion-finalization-001`  
+> Rama de trabajo auditada: `agent/production-robustness-001`  
 > Desarrollo estimado del producto v1 competitivo: **87%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
@@ -109,9 +109,9 @@ Bloque completado: `CHAMPION-FINALIZATION-001` en PR #32.
 
 ## Gate 7 — Robustez operativa previa a producción
 
-Bloque siguiente: `PRODUCTION-ROBUSTNESS-001`.
+Bloque activo: `PRODUCTION-ROBUSTNESS-001` en `agent/production-robustness-001`.
 
-- [ ] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real.
+- [~] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — test integral en construcción.
 - [ ] Flujo E2E eliminación directa desde primera ronda → campeón.
 - [ ] Ensayo de anulaciones y reemplazos sin residuos derivados.
 - [ ] Prueba de concurrencia sobre operaciones críticas.
@@ -161,6 +161,6 @@ Competencia
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001**
+**PRODUCTION-ROBUSTNESS-001 / FULL-LIFECYCLE-E2E**
 
-Validar el ciclo competitivo completo como una única operación E2E contra PostgreSQL real, reforzar concurrencia y recuperación, y preparar las garantías operativas necesarias para usar el sistema en una competencia oficial.
+Ejecutar en una sola prueba contra PostgreSQL real la ruta grupos → resultados → clasificados → eliminación → final → campeón → `FINALIZED`, verificando que cada transición derive exclusivamente del estado confirmado anterior y que ninguna fase requiera inyección manual de clasificados.
