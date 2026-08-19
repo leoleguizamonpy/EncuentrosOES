@@ -6,7 +6,11 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.production.example
 packages/database/src/generated/
 *.log
 *.tsbuildinfo
 .DS_Store
+artifacts/database/
+*.dump
+*.dump.sha256
