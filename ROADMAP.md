@@ -71,19 +71,20 @@ Este roadmap registra el estado real del producto. No reemplaza Foundation ni la
 
 ## Gate 5 — Continuidad eliminatoria
 
-Este es el siguiente bloque funcional prioritario.
+Bloque activo: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 
-- [ ] Derivar el conjunto elegible de la siguiente ronda exclusivamente desde avances confirmados.
-- [ ] Para transición grupos → eliminación: incluir solo primer y segundo clasificado confirmados de cada grupo.
-- [ ] Para eliminación → siguiente eliminación: incluir solo ganadores derivados de resultados confirmados y pases libres válidos de la ronda anterior.
-- [ ] Impedir abrir una ronda si falta un resultado o una confirmación requerida.
-- [ ] Crear una nueva `DrawConfiguration` congelada con `formatCode=KNOCKOUT` y `roundNumber` incremental.
-- [ ] Congelar snapshot de nombres e historial de pases libres de los participantes elegibles.
-- [ ] Evitar dos configuraciones activas para la misma ronda.
-- [ ] Registrar idempotencia, revisión optimista y auditoría del comando.
+- [x] Derivar el conjunto elegible de la siguiente ronda exclusivamente desde avances confirmados.
+- [x] Para transición grupos → eliminación: incluir solo primer y segundo clasificado confirmados de cada grupo.
+- [x] Para eliminación → siguiente eliminación: incluir solo ganadores derivados de resultados confirmados y pases libres válidos de la ronda anterior.
+- [x] Impedir abrir una ronda si falta un resultado o una confirmación requerida.
+- [x] Crear una nueva `DrawConfiguration` congelada con `formatCode=KNOCKOUT` y `roundNumber` incremental.
+- [x] Congelar snapshot de nombres e historial de pases libres de los participantes elegibles.
+- [x] Evitar dos configuraciones activas para la misma ronda desde la frontera transaccional.
+- [ ] Completar idempotencia HTTP del comando; revisión optimista y auditoría PostgreSQL ya están implementadas en el servicio de persistencia.
 - [ ] Exponer el comando por API únicamente a ADMIN/SUPERADMIN.
 - [ ] Exponer la preparación de nueva ronda en el workspace web.
 - [ ] Ejecutar, confirmar, publicar y restaurar la nueva ronda usando el motor existente.
+- [ ] Validar el servicio transaccional completo en CI/PostgreSQL antes de cerrar el bloque.
 
 **Gate de salida:** la competencia puede avanzar desde grupos hasta una ronda eliminatoria y encadenar rondas eliminatorias sin carga manual de clasificados.
 
@@ -141,7 +142,7 @@ Competencia
 ├── [x] Desempates
 ├── [x] Clasificados de grupos propuestos
 ├── [x] Clasificados de grupos confirmados
-├── [ ] Construcción automática de la siguiente ronda
+├── [~] Construcción automática de la siguiente ronda — backend implementado, pendiente gate CI/API
 ├── [ ] Re-sorteo de ganadores entre rondas
 ├── [ ] Confirmación del campeón
 └── [ ] Finalización de competencia
@@ -151,4 +152,4 @@ Competencia
 
 **NEXT-ROUND-CONTINUITY-001**
 
-Construir la frontera transaccional que toma el último estado competitivo confirmado y crea la configuración congelada de la siguiente ronda eliminatoria. Este incremento debe reutilizar el motor de sorteo ya existente; no debe inventar una llave fija ni permitir seleccionar manualmente los clasificados.
+Cerrar el contrato API idempotente que invoca `PrismaNextRoundService`, validar el flujo con PostgreSQL real y conectar la acción al workspace. El motor `oes-draw-v1` debe reutilizar la nueva configuración congelada; no se crea una llave fija ni se permite seleccionar manualmente los clasificados.
