@@ -66,6 +66,29 @@ async function clean(): Promise<void> {
   await client.$executeRawUnsafe('TRUNCATE TABLE "users", "events", "sports", "modalities" RESTART IDENTITY CASCADE');
 }
 
+async function confirmSeedResult(
+  resultId: string,
+  matchId: string,
+  scoreA: number,
+  scoreB: number,
+  minuteOffset: number,
+): Promise<void> {
+  const recordedAt = new Date(occurredAt.getTime() + minuteOffset * 60_000);
+  await resultService.record({
+    actorId: ids.recorder,
+    detail: { profile: 'SCORE_BASED', scoreA, scoreB },
+    matchId,
+    occurredAt: recordedAt,
+    resultId,
+  });
+  await resultService.confirm({
+    actorId: ids.confirmer,
+    expectedRevision: 1,
+    occurredAt: new Date(recordedAt.getTime() + 30_000),
+    resultId,
+  });
+}
+
 async function seed(): Promise<void> {
   await client.user.createMany({ data: [
     { displayName: 'Registrador', emailNormalized: 'annul-recorder@example.test', id: ids.recorder, passwordHash: 'hash', role: 'ADMIN', status: 'ACTIVE' },
@@ -186,36 +209,18 @@ async function seed(): Promise<void> {
     { competitionId: ids.competition, executionId: ids.finalExecution, id: ids.finalPairing, ordinal: 1, pairingType: 'MATCH', participantAId: ids.participants[0], participantBId: ids.participants[2] },
   ] });
   await client.logicalMatch.createMany({ data: [
-    { competitionId: ids.competition, executionId: ids.semifinalExecution, id: ids.semifinalMatches[0], ordinal: 1, pairingId: ids.semifinalPairings[0], participantAId: ids.participants[0], participantBId: ids.participants[1], roundNumber: 1, status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participants[0] },
-    { competitionId: ids.competition, executionId: ids.semifinalExecution, id: ids.semifinalMatches[1], ordinal: 2, pairingId: ids.semifinalPairings[1], participantAId: ids.participants[2], participantBId: ids.participants[3], roundNumber: 1, status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participants[2] },
-    { competitionId: ids.competition, executionId: ids.finalExecution, id: ids.finalMatch, ordinal: 1, pairingId: ids.finalPairing, participantAId: ids.participants[0], participantBId: ids.participants[2], roundNumber: 2, status: 'RESULT_CONFIRMED', winnerParticipantId: ids.participants[0] },
+    { competitionId: ids.competition, executionId: ids.semifinalExecution, id: ids.semifinalMatches[0], ordinal: 1, pairingId: ids.semifinalPairings[0], participantAId: ids.participants[0], participantBId: ids.participants[1], roundNumber: 1, status: 'PENDING_RESULT', winnerParticipantId: null },
+    { competitionId: ids.competition, executionId: ids.semifinalExecution, id: ids.semifinalMatches[1], ordinal: 2, pairingId: ids.semifinalPairings[1], participantAId: ids.participants[2], participantBId: ids.participants[3], roundNumber: 1, status: 'PENDING_RESULT', winnerParticipantId: null },
+    { competitionId: ids.competition, executionId: ids.finalExecution, id: ids.finalMatch, ordinal: 1, pairingId: ids.finalPairing, participantAId: ids.participants[0], participantBId: ids.participants[2], roundNumber: 2, status: 'PENDING_RESULT', winnerParticipantId: null },
   ] });
-  await client.matchResult.createMany({ data: [
-    {
-      competitionId: ids.competition, confirmedAt: occurredAt, confirmedById: ids.confirmer,
-      detailJson: { profile: 'SCORE_BASED', scoreA: 2, scoreB: 0 }, id: ids.semifinalResults[0], matchId: ids.semifinalMatches[0],
-      participantAId: ids.participants[0], participantBId: ids.participants[1], recordedAt: occurredAt, recordedById: ids.recorder,
-      resolvedJson: { scoreA: 2, scoreB: 0, setsWonA: 0, setsWonB: 0, winnerParticipantId: ids.participants[0] },
-      revision: 2, ruleSetId: ids.ruleSet, status: 'CONFIRMED', winnerParticipantId: ids.participants[0],
-    },
-    {
-      competitionId: ids.competition, confirmedAt: occurredAt, confirmedById: ids.confirmer,
-      detailJson: { profile: 'SCORE_BASED', scoreA: 3, scoreB: 1 }, id: ids.semifinalResults[1], matchId: ids.semifinalMatches[1],
-      participantAId: ids.participants[2], participantBId: ids.participants[3], recordedAt: occurredAt, recordedById: ids.recorder,
-      resolvedJson: { scoreA: 3, scoreB: 1, setsWonA: 0, setsWonB: 0, winnerParticipantId: ids.participants[2] },
-      revision: 2, ruleSetId: ids.ruleSet, status: 'CONFIRMED', winnerParticipantId: ids.participants[2],
-    },
-    {
-      competitionId: ids.competition, confirmedAt: new Date(occurredAt.getTime() + 12 * 60_000), confirmedById: ids.confirmer,
-      detailJson: { profile: 'SCORE_BASED', scoreA: 1, scoreB: 0 }, id: ids.finalResult, matchId: ids.finalMatch,
-      participantAId: ids.participants[0], participantBId: ids.participants[2], recordedAt: new Date(occurredAt.getTime() + 12 * 60_000), recordedById: ids.recorder,
-      resolvedJson: { scoreA: 1, scoreB: 0, setsWonA: 0, setsWonB: 0, winnerParticipantId: ids.participants[0] },
-      revision: 2, ruleSetId: ids.ruleSet, status: 'CONFIRMED', winnerParticipantId: ids.participants[0],
-    },
-  ] });
+
+  await confirmSeedResult(ids.semifinalResults[0], ids.semifinalMatches[0], 2, 0, 1);
+  await confirmSeedResult(ids.semifinalResults[1], ids.semifinalMatches[1], 3, 1, 2);
+  await confirmSeedResult(ids.finalResult, ids.finalMatch, 1, 0, 12);
+
   await client.drawPublication.create({ data: {
     actJson: { schemaVersion: 'test' }, competitionId: ids.competition, id: ids.publication,
-    officialDrawId: ids.finalExecution, publishedAt: new Date(occurredAt.getTime() + 12 * 60_000), publishedById: ids.recorder,
+    officialDrawId: ids.finalExecution, publishedAt: new Date(occurredAt.getTime() + 13 * 60_000), publishedById: ids.recorder,
     revision: 1, status: 'PUBLISHED', verificationCode: 'f'.repeat(64),
   } });
 }
