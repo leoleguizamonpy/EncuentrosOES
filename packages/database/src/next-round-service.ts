@@ -172,7 +172,7 @@ export class PrismaNextRoundService {
         canonicalOrder: index + 1,
         competitionId: snapshot.competitionId,
         competitionParticipantId: participant.id,
-        configurationId: snapshot.id,
+        drawConfigurationId: snapshot.id,
         displayNameSnapshot: participant.displayName,
       })),
     });
