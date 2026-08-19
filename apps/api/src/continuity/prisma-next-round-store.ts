@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaNextRoundService, type Prisma, type PrismaClient } from '@oes/database';
@@ -144,7 +144,7 @@ export class PrismaNextRoundStore implements NextRoundStore {
       data: {
         actorId: input.actorId,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         idempotencyKeyHash,
         requestHash: digest,
         scope: PREPARE_NEXT_ROUND_SCOPE,
