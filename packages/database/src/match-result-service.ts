@@ -386,15 +386,16 @@ export class PrismaMatchResultService {
           revision: qualification.revision,
           secondParticipantId: qualification.secondParticipantId,
           sourceRuleSetId: qualification.sourceRuleSetId,
-          sources: {
-            create: qualification.sourceResultIds.map((resultId, index) => ({
-              competitionId: qualification.competitionId,
-              ordinal: index + 1,
-              resultId,
-            })),
-          },
           status: qualification.status,
         },
+      });
+      await transaction.groupQualificationSource.createMany({
+        data: qualification.sourceResultIds.map((resultId, index) => ({
+          competitionId: qualification.competitionId,
+          ordinal: index + 1,
+          qualificationId: qualification.id,
+          resultId,
+        })),
       });
     } catch (error: unknown) {
       if (error instanceof DomainError && error.code === 'TIE_UNRESOLVED') return;
