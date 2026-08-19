@@ -5,6 +5,7 @@ import { ApiConfigModule } from './config.module.js';
 import { CompetitionsModule } from './competitions/competitions.module.js';
 import { NextRoundModule } from './continuity/next-round.module.js';
 import { DrawsModule } from './draws/draws.module.js';
+import { ChampionModule } from './finalization/champion.module.js';
 import { IdentityModule } from './identity/identity.module.js';
 import { OperationsController } from './operations.controller.js';
 import { DatabaseModule } from './persistence/database.module.js';
@@ -18,6 +19,7 @@ import { SessionGuard } from './security/session.guard.js';
   controllers: [OperationsController],
   imports: [
     ApiConfigModule,
+    ChampionModule,
     CompetitionsModule,
     DatabaseModule,
     DrawsModule,
