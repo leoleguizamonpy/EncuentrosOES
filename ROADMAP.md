@@ -2,7 +2,8 @@
 
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
-> Rama estable auditada: `main`
+> Rama de trabajo auditada: `agent/champion-finalization-001`  
+> Desarrollo estimado del producto v1 competitivo: **86%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -92,19 +93,19 @@ Bloque completado: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 
 ## Gate 6 — Finalización competitiva
 
-Bloque activo: `CHAMPION-FINALIZATION-001` en `agent/champion-finalization-001`.
+Bloque activo: `CHAMPION-FINALIZATION-001` en PR #32.
 
 - [x] Definir la regla pura que distingue una final real de una semifinal/ronda con BYE y deriva un único candidato desde un resultado confirmado.
-- [ ] Persistir la propuesta de campeón con ejecución, encuentro y resultado fuente exactos.
-- [ ] Exigir una segunda autoridad para confirmar el campeón.
-- [ ] Transicionar la competencia `LOCKED → FINALIZED` al confirmar el campeón.
-- [ ] Persistir `finalizedAt/finalizedBy` y restaurarlos como evidencia de estado final.
-- [ ] Impedir nuevos sorteos y mutaciones competitivas incompatibles después de finalizar.
-- [ ] Exponer propuesta/confirmación de campeón por API y workspace web.
-- [ ] Exponer campeón y recorrido competitivo en consulta pública.
-- [ ] Validar el cierre completo con PostgreSQL real, idempotencia, concurrencia, coverage y build.
+- [x] Persistir la propuesta de campeón con ejecución, encuentro y resultado fuente exactos.
+- [x] Exigir una segunda autoridad para confirmar el campeón.
+- [x] Transicionar la competencia `LOCKED → FINALIZED` al confirmar el campeón.
+- [x] Persistir `finalizedAt/finalizedBy` y restaurarlos como evidencia de estado final.
+- [x] Impedir nuevos sorteos y mutaciones competitivas incompatibles después de finalizar mediante barrera de aplicación y PostgreSQL.
+- [x] Exponer propuesta/confirmación de campeón por API y workspace web.
+- [x] Exponer campeón y recorrido competitivo confirmado en consulta pública sin datos administrativos.
+- [ ] Revalidar el head final con PostgreSQL real, idempotencia, concurrencia, coverage y build después del incremento público.
 
-**Gate de salida:** una competencia completa puede terminar de forma explícita y verificable.
+**Gate de salida:** una competencia completa puede terminar de forma explícita, verificable, restaurable y públicamente consultable.
 
 ## Gate 7 — Robustez operativa previa a producción
 
@@ -150,12 +151,14 @@ Competencia
 ├── [x] Clasificados de grupos confirmados
 ├── [x] Construcción automática de la siguiente ronda
 ├── [x] Re-sorteo de clasificados/ganadores entre rondas
-├── [~] Confirmación del campeón — regla de detección implementada
-└── [ ] Finalización de competencia
+├── [x] Propuesta y doble confirmación del campeón
+├── [x] Finalización transaccional de competencia
+├── [x] Inmutabilidad competitiva post-finalización
+└── [~] Consulta pública del recorrido — implementada, pendiente gate final de CI
 ```
 
 ## Prioridad inmediata
 
-**CHAMPION-FINALIZATION-001**
+**Cerrar `CHAMPION-FINALIZATION-001`**
 
-Persistir la propuesta de campeón a partir de la final confirmada, exigir confirmación por otra autoridad y hacer que esa confirmación cierre transaccionalmente la competencia sin perder evidencia ni permitir nuevas operaciones competitivas.
+Ejecutar CI completa sobre el head que incorpora la consulta pública. Si formato, lint, tipos, esquema, migraciones, PostgreSQL real, coverage y build quedan verdes, Gate 6 se considera completado y el siguiente bloque pasa a Gate 7: robustez operativa previa a producción.
