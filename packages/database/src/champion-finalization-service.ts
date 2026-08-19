@@ -62,6 +62,17 @@ function metadata(value: Prisma.JsonValue): ChampionMetadata {
   return { participantId, participantDisplayName, sourceExecutionId, sourceMatchId, sourceResultId, sourceRoundNumber };
 }
 
+function metadataJson(value: ChampionMetadata): Prisma.InputJsonValue {
+  return {
+    participantDisplayName: value.participantDisplayName,
+    participantId: value.participantId,
+    sourceExecutionId: value.sourceExecutionId,
+    sourceMatchId: value.sourceMatchId,
+    sourceResultId: value.sourceResultId,
+    sourceRoundNumber: value.sourceRoundNumber,
+  };
+}
+
 export class PrismaChampionFinalizationService {
   public constructor(private readonly client: PrismaClient) {}
 
@@ -162,6 +173,7 @@ export class PrismaChampionFinalizationService {
     });
     if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The competition changed while proposing the champion.');
 
+    const proposalMetadata: ChampionMetadata = { ...candidate, participantDisplayName: participant.displayName };
     const proposal = await transaction.auditEntry.create({
       data: {
         actionCode: 'CHAMPION_PROPOSED',
@@ -170,7 +182,7 @@ export class PrismaChampionFinalizationService {
         competitionId: input.competitionId,
         correlationId: input.correlationId,
         id: randomUUID(),
-        metadata: { ...candidate, participantDisplayName: participant.displayName },
+        metadata: metadataJson(proposalMetadata),
         resourceId: participant.id,
         resourceType: 'COMPETITION_CHAMPION',
         revisionAfter: input.expectedCompetitionRevision + 1,
@@ -238,7 +250,7 @@ export class PrismaChampionFinalizationService {
         competitionId: input.competitionId,
         correlationId: input.correlationId,
         id: randomUUID(),
-        metadata: evidence,
+        metadata: metadataJson(evidence),
         resourceId: evidence.participantId,
         resourceType: 'COMPETITION_CHAMPION',
         revisionAfter: input.expectedCompetitionRevision + 1,
