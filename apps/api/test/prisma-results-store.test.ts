@@ -48,4 +48,19 @@ describe('PrismaResultsStore', () => {
       resultProfile: 'SCORE_BASED',
     });
   });
+
+  it('rejects result mutations after the competition is finalized', async () => {
+    const store = new PrismaResultsStore({
+      competition: { findUnique: vi.fn().mockResolvedValue({ status: 'FINALIZED' }) },
+      logicalMatch: { findUnique: vi.fn().mockResolvedValue({ competitionId }) },
+    } as unknown as PrismaClient);
+
+    await expect(store.record({
+      actorId: '10000000-0000-4000-8000-000000000001',
+      correlationId: '30000000-0000-4000-8000-000000000001',
+      detail: { profile: 'SCORE_BASED', scoreA: 2, scoreB: 1 },
+      idempotencyKey: 'finalized-result-mutation',
+      matchId: '40000000-0000-4000-8000-000000000001',
+    })).rejects.toThrow(/finalized competition/i);
+  });
 });
