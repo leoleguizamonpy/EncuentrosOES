@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **90%**
+> Desarrollo estimado del producto v1 competitivo: **91%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -114,8 +114,8 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — CI #116 verde.
 - [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
 - [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
-- [~] Prueba de concurrencia sobre operaciones críticas — siguiente incremento.
-- [ ] Prueba de recuperación después de reinicio de API/web.
+- [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
+- [~] Prueba de recuperación después de reinicio de API/web — siguiente incremento.
 - [ ] Backups automáticos y restauración ensayada.
 - [ ] Variables y secretos de producción separados del entorno local.
 - [ ] HTTPS, cookies seguras y política de origen de producción verificadas.
@@ -157,11 +157,12 @@ Competencia
 ├── [x] Finalización transaccional de competencia
 ├── [x] Inmutabilidad competitiva post-finalización
 ├── [x] Consulta pública de campeón y recorrido
-└── [x] Recuperación de derivados después de anulación fuente
+├── [x] Recuperación de derivados después de anulación fuente
+└── [x] Concurrencia crítica serializada y normalizada
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / CONCURRENCY-STRESS**
+**PRODUCTION-ROBUSTNESS-001 / RESTART-RECOVERY-E2E**
 
-Ejecutar operaciones competitivas críticas en paralelo contra PostgreSQL real para demostrar que la revisión optimista, los índices únicos y las transacciones serializables producen exactamente un ganador de la carrera, sin duplicar rondas, confirmaciones ni cierres.
+Recrear las capas de servicio con conexiones nuevas contra la misma base PostgreSQL y demostrar que competencia, reglas, sorteo, resultados, avances y estado final pueden restaurarse y continuar sin depender de memoria de proceso, cachés locales ni estado efímero de API/web.
