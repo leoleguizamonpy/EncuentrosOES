@@ -8,6 +8,12 @@ import type { DrawWorkspace, ResultsWorkspace } from '../lib/competition-api';
 const api = vi.hoisted(() => ({ confirmChampion: vi.fn(), proposeChampion: vi.fn() }));
 vi.mock('../lib/champion-api', async (importOriginal) => ({ ...await importOriginal(), ...api }));
 
+const finalPairing = {
+  ordinal: 1,
+  participantA: { displayName: 'Colegio A', id: 'participant-a' },
+  participantB: { displayName: 'Colegio B', id: 'participant-b' },
+};
+
 const draw: DrawWorkspace = {
   competitionId: 'competition-1',
   competitionRevision: 7,
@@ -16,7 +22,7 @@ const draw: DrawWorkspace = {
   execution: {
     confirmedAt: '2026-08-19T17:00:00.000Z', confirmedBy: { displayName: 'Autoridad Dos', id: 'actor-2' }, evidenceHash: 'evidence',
     executedAt: '2026-08-19T16:55:00.000Z', executedBy: { displayName: 'Autoridad Uno', id: 'actor-1' }, id: 'execution-final', matchCount: 1,
-    result: { bye: null, formatCode: 'KNOCKOUT', pairings: [{ ordinal: 1, participantA: { displayName: 'Colegio A', id: 'participant-a' }, participantB: { displayName: 'Colegio B', id: 'participant-b' } }], roundNumber: 3 },
+    result: { bye: null, formatCode: 'KNOCKOUT', pairings: [finalPairing], roundNumber: 3 },
     revision: 2, seedCommitment: 'commitment', seedHex: 'seed', status: 'CONFIRMED',
   },
   publication: null,
@@ -61,7 +67,19 @@ describe('ChampionPanel', () => {
   });
 
   it('stays hidden when the latest knockout round is not a real final', () => {
-    const { container } = render(<ChampionPanel actorId="actor-1" canOperate champion={null} competitionId="competition-1" draw={{ ...draw, execution: draw.execution === null ? null : { ...draw.execution, result: { ...draw.execution.result, bye: { participant: { displayName: 'Colegio C', id: 'participant-c' }, priorByeCount: 0 } } } }} onChange={vi.fn()} onError={vi.fn()} results={results} />);
+    const drawWithBye: DrawWorkspace = {
+      ...draw,
+      execution: draw.execution === null ? null : {
+        ...draw.execution,
+        result: {
+          bye: { participant: { displayName: 'Colegio C', id: 'participant-c' }, priorByeCount: 0 },
+          formatCode: 'KNOCKOUT',
+          pairings: [finalPairing],
+          roundNumber: 3,
+        },
+      },
+    };
+    const { container } = render(<ChampionPanel actorId="actor-1" canOperate champion={null} competitionId="competition-1" draw={drawWithBye} onChange={vi.fn()} onError={vi.fn()} results={results} />);
     expect(container).toBeEmptyDOMElement();
   });
 });
