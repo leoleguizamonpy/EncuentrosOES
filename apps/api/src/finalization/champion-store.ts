@@ -17,6 +17,38 @@ export interface ChampionView {
   readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
 }
 
+export interface PublicCompetitionJourney {
+  readonly champion: Readonly<{
+    confirmedAt: string;
+    participantDisplayName: string;
+    participantId: string;
+  }>;
+  readonly competition: Readonly<{
+    edition: string;
+    event: string;
+    finalizedAt: string;
+    id: string;
+    modality: string;
+    sport: string;
+    status: 'FINALIZED';
+  }>;
+  readonly rounds: readonly Readonly<{
+    confirmedAt: string;
+    executionId: string;
+    formatCode: 'GROUP_STAGE' | 'KNOCKOUT';
+    matches: readonly Readonly<{
+      groupLabel: string | null;
+      id: string;
+      ordinal: number;
+      participantA: Readonly<{ displayName: string; id: string }>;
+      participantB: Readonly<{ displayName: string; id: string }>;
+      result: Readonly<{ detail: unknown; resolved: unknown }>;
+      winnerParticipantId: string | null;
+    }>[];
+    roundNumber: number;
+  }>[];
+}
+
 interface ChampionMutationInput {
   readonly actorId: string;
   readonly actorRole: AccountRole;
@@ -46,6 +78,7 @@ export interface ChampionStore {
   confirm(input: ConfirmChampionInput): Promise<ChampionView>;
   find(competitionId: string): Promise<ChampionView | null>;
   propose(input: ProposeChampionInput): Promise<ChampionView>;
+  publicJourney(competitionId: string): Promise<PublicCompetitionJourney | null>;
 }
 
 export const CHAMPION_STORE = Symbol('CHAMPION_STORE');
