@@ -8,7 +8,7 @@ import {
   type NextRoundSource,
 } from '@oes/domain';
 
-import type { PrismaClient } from './generated/prisma/client.js';
+import type { Prisma, PrismaClient } from './generated/prisma/client.js';
 
 export interface PreparePersistedNextRoundInput {
   readonly actorId: string;
@@ -210,7 +210,7 @@ export class PrismaNextRoundService {
   }
 
   async #groupStageSource(
-    transaction: Parameters<Parameters<PrismaClient['$transaction']>[0]>[0],
+    transaction: Prisma.TransactionClient,
     executionId: string,
   ): Promise<NextRoundSource> {
     const groups = await transaction.drawGroup.findMany({
@@ -240,7 +240,7 @@ export class PrismaNextRoundService {
   }
 
   async #knockoutSource(
-    transaction: Parameters<Parameters<PrismaClient['$transaction']>[0]>[0],
+    transaction: Prisma.TransactionClient,
     executionId: string,
   ): Promise<NextRoundSource> {
     const [matches, byes] = await Promise.all([
