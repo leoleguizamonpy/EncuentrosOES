@@ -218,15 +218,16 @@ export class PrismaOfficialDrawService {
             competitionId: snapshot.competitionId,
             executionId: snapshot.id,
             label: group.label,
-            members: {
-              create: group.members.map((participantId, index) => ({
-                competitionId: snapshot.competitionId,
-                memberOrdinal: index + 1,
-                participantId,
-              })),
-            },
             ordinal: group.ordinal,
           },
+        });
+        await transaction.drawGroupMember.createMany({
+          data: group.members.map((participantId, index) => ({
+            competitionId: snapshot.competitionId,
+            groupId: persistedGroup.id,
+            memberOrdinal: index + 1,
+            participantId,
+          })),
         });
         for (let first = 0; first < group.members.length; first += 1) {
           for (let second = first + 1; second < group.members.length; second += 1) {
