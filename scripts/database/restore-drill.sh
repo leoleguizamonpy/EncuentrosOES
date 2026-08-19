@@ -6,6 +6,10 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
+
 BACKUP_PATH="${1:-./artifacts/database/oes.dump}"
 RESTORE_DB_NAME="${RESTORE_DB_NAME:-oes_restore}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:17-alpine}"
