@@ -92,15 +92,17 @@ Bloque completado: `NEXT-ROUND-CONTINUITY-001` en PR #31.
 
 ## Gate 6 — Finalización competitiva
 
-Bloque siguiente: `CHAMPION-FINALIZATION-001`.
+Bloque activo: `CHAMPION-FINALIZATION-001` en `agent/champion-finalization-001`.
 
-- [ ] Detectar cuándo una ronda eliminatoria deja exactamente un ganador confirmado.
-- [ ] Registrar el campeón como avance final confirmado y auditable.
-- [ ] Exigir separación de autoridad donde corresponda.
-- [ ] Transicionar la competencia `LOCKED → FINALIZED` sin borrar historia.
-- [ ] Impedir nuevos sorteos después de finalizar.
-- [ ] Permitir restaurar el estado final exacto.
+- [x] Definir la regla pura que distingue una final real de una semifinal/ronda con BYE y deriva un único candidato desde un resultado confirmado.
+- [ ] Persistir la propuesta de campeón con ejecución, encuentro y resultado fuente exactos.
+- [ ] Exigir una segunda autoridad para confirmar el campeón.
+- [ ] Transicionar la competencia `LOCKED → FINALIZED` al confirmar el campeón.
+- [ ] Persistir `finalizedAt/finalizedBy` y restaurarlos como evidencia de estado final.
+- [ ] Impedir nuevos sorteos y mutaciones competitivas incompatibles después de finalizar.
+- [ ] Exponer propuesta/confirmación de campeón por API y workspace web.
 - [ ] Exponer campeón y recorrido competitivo en consulta pública.
+- [ ] Validar el cierre completo con PostgreSQL real, idempotencia, concurrencia, coverage y build.
 
 **Gate de salida:** una competencia completa puede terminar de forma explícita y verificable.
 
@@ -148,7 +150,7 @@ Competencia
 ├── [x] Clasificados de grupos confirmados
 ├── [x] Construcción automática de la siguiente ronda
 ├── [x] Re-sorteo de clasificados/ganadores entre rondas
-├── [ ] Confirmación del campeón
+├── [~] Confirmación del campeón — regla de detección implementada
 └── [ ] Finalización de competencia
 ```
 
@@ -156,4 +158,4 @@ Competencia
 
 **CHAMPION-FINALIZATION-001**
 
-Cerrar el ciclo competitivo cuando quede exactamente un ganador confirmado: persistir el campeón y su evidencia, impedir una ronda artificial de un solo participante, finalizar la competencia y restaurar/publicar ese estado sin borrar el recorrido previo.
+Persistir la propuesta de campeón a partir de la final confirmada, exigir confirmación por otra autoridad y hacer que esa confirmación cierre transaccionalmente la competencia sin perder evidencia ni permitir nuevas operaciones competitivas.
