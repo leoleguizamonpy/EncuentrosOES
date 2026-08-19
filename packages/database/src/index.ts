@@ -24,3 +24,8 @@ export {
   type AnnulPersistedGroupQualificationInput,
   type ConfirmPersistedGroupQualificationInput,
 } from './group-qualification-service.js';
+export {
+  PrismaNextRoundService,
+  type PreparePersistedNextRoundInput,
+  type PreparedNextRound,
+} from './next-round-service.js';
