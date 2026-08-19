@@ -78,14 +78,14 @@ export class PrismaChampionFinalizationService {
 
   public async propose(input: ProposePersistedChampionInput): Promise<PersistedChampionView> {
     return this.client.$transaction(
-      (transaction) => this.#proposeInTransaction(transaction, input),
+      (transaction) => this.proposeInTransaction(transaction, input),
       { isolationLevel: 'Serializable' },
     );
   }
 
   public async confirm(input: ConfirmPersistedChampionInput): Promise<PersistedChampionView> {
     return this.client.$transaction(
-      (transaction) => this.#confirmInTransaction(transaction, input),
+      (transaction) => this.confirmInTransaction(transaction, input),
       { isolationLevel: 'Serializable' },
     );
   }
@@ -106,7 +106,7 @@ export class PrismaChampionFinalizationService {
     return this.#view(competitionId, competition.revision, proposal, confirmation);
   }
 
-  async #proposeInTransaction(
+  public async proposeInTransaction(
     transaction: Prisma.TransactionClient,
     input: ProposePersistedChampionInput,
   ): Promise<PersistedChampionView> {
@@ -192,7 +192,7 @@ export class PrismaChampionFinalizationService {
     return this.#view(input.competitionId, input.expectedCompetitionRevision + 1, proposal, null);
   }
 
-  async #confirmInTransaction(
+  public async confirmInTransaction(
     transaction: Prisma.TransactionClient,
     input: ConfirmPersistedChampionInput,
   ): Promise<PersistedChampionView> {
