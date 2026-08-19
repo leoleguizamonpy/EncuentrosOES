@@ -50,6 +50,7 @@ export class PrismaResultsStore implements ResultsStore {
   public async confirmQualification(input: ConfirmQualificationInput): Promise<ResultsWorkspace> {
     const qualification = await this.client.groupQualification.findUnique({ select: { competitionId: true }, where: { id: input.qualificationId } });
     if (qualification === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The qualification does not exist.');
+    await this.#assertMutable(qualification.competitionId);
     await this.#groupQualificationService.confirm({
       actorId: input.actorId,
       correlationId: input.correlationId,
@@ -64,6 +65,7 @@ export class PrismaResultsStore implements ResultsStore {
   public async annul(input: AnnulResultInput): Promise<ResultsWorkspace> {
     const result = await this.client.matchResult.findUnique({ select: { competitionId: true }, where: { id: input.resultId } });
     if (result === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The result does not exist.');
+    await this.#assertMutable(result.competitionId);
     await this.#matchResultService.annul({
       actorId: input.actorId,
       correlationId: input.correlationId,
@@ -79,6 +81,7 @@ export class PrismaResultsStore implements ResultsStore {
   public async record(input: RecordResultInput): Promise<ResultsWorkspace> {
     const match = await this.client.logicalMatch.findUnique({ select: { competitionId: true }, where: { id: input.matchId } });
     if (match === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The match does not exist.');
+    await this.#assertMutable(match.competitionId);
     await this.#matchResultService.record({
       actorId: input.actorId,
       correlationId: input.correlationId,
@@ -94,6 +97,7 @@ export class PrismaResultsStore implements ResultsStore {
   public async confirm(input: ConfirmResultInput): Promise<ResultsWorkspace> {
     const result = await this.client.matchResult.findUnique({ select: { competitionId: true }, where: { id: input.resultId } });
     if (result === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The result does not exist.');
+    await this.#assertMutable(result.competitionId);
     await this.#matchResultService.confirm({
       actorId: input.actorId,
       correlationId: input.correlationId,
@@ -225,5 +229,16 @@ export class PrismaResultsStore implements ResultsStore {
       matches,
       resultProfile: resultProfile(execution.configuration.ruleSet.resultProfile),
     };
+  }
+
+  async #assertMutable(competitionId: string): Promise<void> {
+    const competition = await this.client.competition.findUnique({
+      select: { status: true },
+      where: { id: competitionId },
+    });
+    if (competition === null) throw new ResultsStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
+    if (competition.status === 'FINALIZED') {
+      throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'A finalized competition cannot modify results or classifications.');
+    }
   }
 }
