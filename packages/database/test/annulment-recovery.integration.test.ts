@@ -239,7 +239,7 @@ integration('annulment recovery', () => {
       resultId: ids.semifinalResults[0],
     });
 
-    expect(await client.drawConfiguration.findUnique({ where: { id: ids.finalConfiguration } })).toMatchObject({ status: 'REPLACED' });
+    expect(await client.drawConfiguration.findUnique({ where: { id: ids.finalConfiguration } })).toMatchObject({ status: 'DISCARDED' });
     expect(await client.officialDraw.findUnique({ where: { id: ids.finalExecution } })).toMatchObject({ status: 'ANNULLED' });
     expect(await client.drawPublication.findUnique({ where: { id: ids.publication } })).toMatchObject({ status: 'REVOKED' });
     expect(await client.matchResult.findUnique({ where: { id: ids.finalResult } })).toMatchObject({ status: 'ANNULLED' });
