@@ -158,15 +158,6 @@ export class PrismaNextRoundService {
         groupCount: snapshot.groupCount,
         id: snapshot.id,
         participantCount: snapshot.participantCount,
-        participants: {
-          create: snapshot.participants.map((participant, index) => ({
-            byeCountSnapshot: participant.byeCount,
-            canonicalOrder: index + 1,
-            competitionId: snapshot.competitionId,
-            competitionParticipantId: participant.id,
-            displayNameSnapshot: participant.displayName,
-          })),
-        },
         revision: snapshot.revision,
         roundNumber: snapshot.roundNumber,
         ruleSetId: snapshot.ruleSetId,
@@ -174,6 +165,16 @@ export class PrismaNextRoundService {
         updatedAt: snapshot.updatedAt,
         updatedById: snapshot.updatedBy,
       },
+    });
+    await transaction.drawConfigurationParticipant.createMany({
+      data: snapshot.participants.map((participant, index) => ({
+        byeCountSnapshot: participant.byeCount,
+        canonicalOrder: index + 1,
+        competitionId: snapshot.competitionId,
+        competitionParticipantId: participant.id,
+        drawConfigurationId: snapshot.id,
+        displayNameSnapshot: participant.displayName,
+      })),
     });
 
     const updatedCompetition = await transaction.competition.updateMany({

@@ -719,6 +719,8 @@ export class PrismaCompetitionStore implements CompetitionStore {
     return Competition.rehydrate({
       createdAt: record.createdAt,
       createdBy: record.createdById,
+      finalizedAt: record.finalizedAt,
+      finalizedBy: record.finalizedById,
       formatCode: record.formatCode as CompetitionSummary['formatCode'],
       groupCount: record.groupCount,
       id: record.id,

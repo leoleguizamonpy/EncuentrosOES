@@ -78,6 +78,21 @@ function nonNegative(value: number, field: string): void {
   }
 }
 
+function sameResolvedResult(left: ResolvedResult, right: ResolvedResult): boolean {
+  return (
+    left.draws === right.draws &&
+    left.outcomeA === right.outcomeA &&
+    left.outcomeB === right.outcomeB &&
+    left.scoreA === right.scoreA &&
+    left.scoreB === right.scoreB &&
+    left.setsWonA === right.setsWonA &&
+    left.setsWonB === right.setsWonB &&
+    left.sportPointsA === right.sportPointsA &&
+    left.sportPointsB === right.sportPointsB &&
+    left.winnerParticipantId === right.winnerParticipantId
+  );
+}
+
 export function resolveResult(
   participantAId: string,
   participantBId: string,
@@ -199,7 +214,7 @@ export class MatchResult {
       snapshot.detail,
       ruleSet,
     );
-    if (JSON.stringify(reproduced) !== JSON.stringify(snapshot.resolved)) {
+    if (!sameResolvedResult(reproduced, snapshot.resolved)) {
       throw new DomainError('RESULT_DETAIL_INVALID', 'Persisted result resolution is invalid.');
     }
     const confirmed = snapshot.status === 'CONFIRMED' || snapshot.status === 'ANNULLED';

@@ -28,35 +28,40 @@ export class PrismaDrawConfigurationRepository {
 
   public async insert(configuration: DrawConfiguration): Promise<void> {
     const snapshot = configuration.toSnapshot();
-    await this.#client.drawConfiguration.create({
-      data: {
-        algorithmVersion: snapshot.algorithmVersion,
-        canonicalHash: snapshot.canonicalHash,
-        competitionId: snapshot.competitionId,
-        createdAt: snapshot.createdAt,
-        createdById: snapshot.createdBy,
-        formatCode: snapshot.formatCode,
-        frozenAt: snapshot.frozenAt,
-        frozenById: snapshot.frozenBy,
-        groupCount: snapshot.groupCount,
-        id: snapshot.id,
-        participantCount: snapshot.participantCount,
-        participants: {
-          create: snapshot.participants.map((participant, index) => ({
+    await this.#client.$transaction(async (transaction) => {
+      await transaction.drawConfiguration.create({
+        data: {
+          algorithmVersion: snapshot.algorithmVersion,
+          canonicalHash: snapshot.canonicalHash,
+          competitionId: snapshot.competitionId,
+          createdAt: snapshot.createdAt,
+          createdById: snapshot.createdBy,
+          formatCode: snapshot.formatCode,
+          frozenAt: snapshot.frozenAt,
+          frozenById: snapshot.frozenBy,
+          groupCount: snapshot.groupCount,
+          id: snapshot.id,
+          participantCount: snapshot.participantCount,
+          revision: snapshot.revision,
+          roundNumber: snapshot.roundNumber,
+          ruleSetId: snapshot.ruleSetId,
+          status: snapshot.status,
+          updatedAt: snapshot.updatedAt,
+          updatedById: snapshot.updatedBy,
+        },
+      });
+      if (snapshot.participants.length > 0) {
+        await transaction.drawConfigurationParticipant.createMany({
+          data: snapshot.participants.map((participant, index) => ({
             byeCountSnapshot: participant.byeCount,
             canonicalOrder: index + 1,
             competitionId: snapshot.competitionId,
             competitionParticipantId: participant.id,
             displayNameSnapshot: participant.displayName,
+            drawConfigurationId: snapshot.id,
           })),
-        },
-        revision: snapshot.revision,
-        roundNumber: snapshot.roundNumber,
-        ruleSetId: snapshot.ruleSetId,
-        status: snapshot.status,
-        updatedAt: snapshot.updatedAt,
-        updatedById: snapshot.updatedBy,
-      },
+        });
+      }
     });
   }
 

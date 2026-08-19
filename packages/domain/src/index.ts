@@ -27,6 +27,12 @@ export {
   type NextRoundSource,
 } from './competition/next-round.js';
 export {
+  deriveChampionCandidate,
+  type ChampionCandidate,
+  type ChampionSource,
+  type ChampionSourceMatch,
+} from './competition/champion.js';
+export {
   DomainError,
   type DomainErrorCode,
 } from './errors/domain-error.js';
