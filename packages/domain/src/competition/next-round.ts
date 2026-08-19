@@ -75,7 +75,15 @@ export function deriveNextRoundParticipantIds(source: NextRoundSource): readonly
       );
     }
     participantIds = [
-      ...source.matches.map((match) => match.winnerParticipantId!),
+      ...source.matches.map((match) => {
+        if (match.winnerParticipantId === null) {
+          throw new DomainError(
+            'DRAW_CONFIGURATION_INCOMPATIBLE',
+            'Every knockout match must expose its confirmed winner.',
+          );
+        }
+        return match.winnerParticipantId;
+      }),
       ...source.byeParticipantIds,
     ];
   }
