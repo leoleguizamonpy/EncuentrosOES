@@ -84,6 +84,30 @@ jobs:
       - name: Restore backup into isolated database
         run: pnpm db:restore:drill -- ./artifacts/database/ci.dump
 
+      - name: Exercise external backup transport contract
+        shell: bash
+        env:
+          BACKUP_FAKE_REMOTE_DIR: ${{ github.workspace }}/artifacts/fake-remote
+          BACKUP_ID: ci-external-backup
+          BACKUP_OUTPUT_DIR: ${{ github.workspace }}/artifacts/database/external
+          BACKUP_REMOTE_PREFIX: oes-production
+          BACKUP_RETENTION_DAYS: '30'
+          BACKUP_TRANSPORT_EXECUTABLE: ${{ github.workspace }}/scripts/database/test/fake-backup-transport.sh
+        run: |
+          chmod +x "$BACKUP_TRANSPORT_EXECUTABLE"
+          pnpm db:backup:publish
+          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/uploads.log")" -eq 3
+          grep -Fx 'oes-production 30' "$BACKUP_FAKE_REMOTE_DIR/retention.log"
+          test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump"
+          test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump.sha256"
+          MANIFEST="$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.manifest.json"
+          test -f "$MANIFEST"
+          grep -F '"schemaVersion": "oes-backup-manifest-v1"' "$MANIFEST"
+          grep -F '"retentionDays": 30' "$MANIFEST"
+          ! grep -F 'DATABASE_URL' "$MANIFEST"
+          ! grep -F 'localhost' "$MANIFEST"
+          (cd "$(dirname "$MANIFEST")" && sha256sum --check ci-external-backup.dump.sha256)
+
       - name: Test with coverage
         run: pnpm coverage
 
