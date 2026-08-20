@@ -4,11 +4,11 @@ Sistema web para gestionar competencias OES de fase de grupos y eliminación dir
 
 ## Fuente de verdad
 
-La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md), del estado de implementación registrado en [`ROADMAP.md`](./ROADMAP.md) y de las especificaciones en [`docs/`](./docs/). Ante una contradicción funcional, se aplica la jerarquía documental definida en Foundation.
+La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md), del estado registrado en [`ROADMAP.md`](./ROADMAP.md) y de las especificaciones en [`docs/`](./docs/). Ante una contradicción funcional, se aplica la jerarquía documental definida en Foundation.
 
 ## Estado
 
-El producto v1 competitivo está en **99% verificado**. Los Gates 0–6 están completos, Gate 8 está funcionalmente completo en PR #34 y Gate 7 conserva una única condición externa de producción: `REAL-STORAGE-DRILL`.
+La versión funcional consolidada vive en **`main`**. El producto v1 competitivo está en **99% verificado**: Gates 0–6 y Gate 8 están completos; Gate 7 conserva una única condición externa de producción, `REAL-STORAGE-DRILL`.
 
 El sistema cubre persistencia de competencias y participantes, reglas y formatos congelados, motor determinista de sorteo, ejecución y doble confirmación, generación automática de encuentros, publicación pública verificable, carga y doble confirmación de resultados, tablas y desempates, dos clasificados por grupo, construcción automática de rondas eliminatorias, re-sorteo obligatorio entre rondas, propuesta y doble confirmación de campeón, finalización transaccional e invalidación downstream después de anulaciones.
 
@@ -20,7 +20,7 @@ La robustez operativa incluye backup PostgreSQL verificable, restore aislado y u
 pnpm db:backup:roundtrip-drill
 ```
 
-ejecuta `backup → upload → retain → download → verify → restore drill` para el mismo `BACKUP_ID`. CI valida este recorrido completo con transporte simulado. El producto no se declara al 100% hasta ejecutar exactamente ese round-trip contra almacenamiento real privado/cifrado con credencial de mínimo privilegio y retención efectiva.
+ejecuta `backup → upload → retain → download → verify → restore drill` para el mismo `BACKUP_ID`. CI valida ese recorrido completo con transporte simulado. El producto no se declara al 100% hasta ejecutar exactamente el mismo round-trip contra almacenamiento real privado/cifrado con credencial de mínimo privilegio y retención efectiva.
 
 ## Requisitos
 
@@ -75,7 +75,7 @@ pnpm db:backup:remote-restore-drill
 pnpm db:backup:roundtrip-drill
 ```
 
-Las credenciales del proveedor y `DATABASE_URL` nunca deben versionarse. Consulta [`docs/10-production-operations.md`](./docs/10-production-operations.md) para el contrato y criterios exactos de cierre de producción.
+Las credenciales del proveedor y `DATABASE_URL` nunca deben versionarse. Consulta [`docs/10-production-operations.md`](./docs/10-production-operations.md) para el contrato y los criterios exactos de cierre de producción.
 
 ## Estructura
 
