@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **93%**
+> Desarrollo estimado del producto v1 competitivo: **94%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -118,8 +118,8 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
 - [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde.
 - [ ] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio.
-- [~] Variables y secretos de producción separados del entorno local — siguiente incremento.
-- [ ] HTTPS, cookies seguras y política de origen de producción verificadas.
+- [x] Variables y secretos de producción separados del entorno local: `.env` reales y dumps excluidos, template de producción sin credenciales, validación fail-fast de origen HTTPS/DB PostgreSQL/política de sesión y frontera operativa documentada — CI #150 verde.
+- [~] HTTPS, cookies seguras y política de origen de producción verificadas — siguiente incremento.
 - [ ] Observabilidad mínima: logs estructurados, correlación y alertas de errores críticos.
 
 **Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado.
@@ -161,11 +161,12 @@ Competencia
 ├── [x] Recuperación de derivados después de anulación fuente
 ├── [x] Concurrencia crítica serializada y normalizada
 ├── [x] Recuperación completa después de reinicio de proceso
-└── [x] Backup restaurable y verificado en base aislada
+├── [x] Backup restaurable y verificado en base aislada
+└── [x] Configuración y secretos de producción separados y validados
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / PRODUCTION-CONFIG-SECRETS**
+**PRODUCTION-ROBUSTNESS-001 / HTTP-PRODUCTION-SECURITY**
 
-Separar configuración local, CI y producción; validar variables obligatorias al arranque; impedir defaults inseguros en producción; documentar secretos externos requeridos y preparar la frontera para backup automático sin almacenar credenciales ni dumps de producción en el repositorio.
+Verificar explícitamente el límite HTTP en modo producción: CORS con origen exacto y credenciales, rechazo de mutaciones desde orígenes distintos, cookies de sesión/CSRF con atributos seguros y cabeceras de seguridad coherentes con un despliegue HTTPS. La terminación TLS puede residir en un proxy/plataforma administrada, pero la aplicación no debe aceptar una configuración pública insegura.
