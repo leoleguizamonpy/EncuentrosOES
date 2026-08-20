@@ -11,6 +11,10 @@ Los siguientes valores describen el entorno, pero no son secretos:
 - `WEB_ORIGIN` define el único origen web autorizado para solicitudes con credenciales. En producción debe ser un origen HTTPS exacto, sin ruta, query, fragmento ni credenciales.
 - `NEXT_PUBLIC_API_URL` es compilado en la aplicación web y, por definición, es visible al navegador. Debe apuntar al endpoint HTTPS público de la API.
 - `SESSION_ABSOLUTE_MINUTES` y `SESSION_IDLE_MINUTES` definen la política explícita de sesión. La ventana idle debe ser menor que la absoluta.
+- `BACKUP_TRANSPORT_EXECUTABLE` apunta al adaptador de almacenamiento instalado por la infraestructura; debe ser una ruta absoluta y ejecutable.
+- `BACKUP_REMOTE_PREFIX` identifica el prefijo remoto donde se conservarán los backups. No debe contener credenciales, query ni fragmentos.
+- `BACKUP_RETENTION_DAYS` define la retención solicitada al adaptador externo y debe estar entre 1 y 3650 días.
+- `BACKUP_OUTPUT_DIR` define únicamente el staging local temporal previo a la publicación externa.
 
 El archivo `.env.production.example` contiene únicamente placeholders y valores públicos de ejemplo. No debe copiarse al repositorio con credenciales reales.
 
@@ -46,16 +50,52 @@ No deben subirse dumps de producción a artifacts de CI, commits, releases ni co
 
 ## Backup y restauración
 
-El repositorio provee dos mecanismos reproducibles:
+El repositorio provee mecanismos reproducibles:
 
 ```bash
 pnpm db:backup -- ./artifacts/database/oes.dump
 pnpm db:restore:drill -- ./artifacts/database/oes.dump
+pnpm db:backup:publish
 ```
 
 `db:backup` genera un dump PostgreSQL custom y un SHA-256. `db:restore:drill` verifica el checksum, restaura el dump en una base aislada y comprueba datos centinela e historial de migraciones.
 
-CI valida este recorrido, pero **CI no es el almacenamiento de backups de producción**. El despliegue definitivo debe programar backups hacia almacenamiento externo, privado y cifrado, con política explícita de retención y una credencial de mínimo privilegio. El destino concreto depende del proveedor de infraestructura y no se hardcodea en el código fuente.
+`db:backup:publish` crea un backup nuevo, checksum y manifiesto `oes-backup-manifest-v1`, y delega la transferencia a un ejecutable externo instalado por la infraestructura. El manifiesto contiene únicamente identificador, fecha, nombres de archivos, hash y retención; nunca contiene `DATABASE_URL` ni credenciales.
+
+### Contrato del transporte externo
+
+El adaptador definido por `BACKUP_TRANSPORT_EXECUTABLE` debe implementar exactamente dos comandos:
+
+```text
+backup-transport upload <local-path> <remote-path> <backup-sha256>
+backup-transport retain <remote-prefix> <retention-days>
+```
+
+La aplicación no usa `eval`, no construye comandos desde strings de entorno y no conoce credenciales del proveedor. El ejecutable debe resolver autenticación desde el entorno seguro de la plataforma, workload identity, instancia/rol administrado o mecanismo equivalente.
+
+La secuencia de publicación es:
+
+1. crear el dump custom en staging local;
+2. calcular el SHA-256;
+3. crear el manifiesto sin secretos;
+4. transferir dump, checksum y manifiesto;
+5. solicitar la política de retención;
+6. fallar todo el job si cualquier operación del transporte devuelve un estado no exitoso.
+
+La infraestructura puede implementar el adaptador para S3/S3-compatible, Cloudflare R2, Backblaze B2, Google Cloud Storage u otro almacenamiento privado/cifrado sin modificar la lógica de Encuentros OES.
+
+### Condiciones para declarar el backup de producción operativo
+
+El Gate 7 solo puede cerrar completamente cuando el entorno real demuestre:
+
+- ejecución programada del comando `pnpm db:backup:publish`;
+- destino externo privado y cifrado;
+- credencial de mínimo privilegio fuera del repositorio;
+- retención aplicada por el proveedor o por el adaptador;
+- al menos un backup real descargado y validado contra su SHA-256;
+- al menos un restore drill desde un objeto obtenido del almacenamiento real.
+
+CI prueba el contrato usando un transporte falso local, pero **CI no es el almacenamiento de backups de producción**. Esa prueba demuestra que el código está listo para integrarse sin seleccionar artificialmente un proveedor.
 
 ## Transporte HTTP
 
