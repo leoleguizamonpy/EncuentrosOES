@@ -70,23 +70,17 @@ function csrfToken(): string {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    cache: 'no-store',
-    credentials: 'include',
-  });
+  const response = await fetch(`${apiUrl}${path}`, { cache: 'no-store', credentials: 'include' });
   if (!response.ok) throw await problem(response);
   return response.json() as Promise<T>;
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function mutate<T>(path: string, method: 'PATCH' | 'POST', body: unknown): Promise<T> {
   const response = await fetch(`${apiUrl}${path}`, {
     body: JSON.stringify(body),
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-Token': csrfToken(),
-    },
-    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+    method,
   });
   if (!response.ok) throw await problem(response);
   return response.json() as Promise<T>;
@@ -97,27 +91,51 @@ export function adminCatalog(): Promise<AdminCatalog> {
 }
 
 export function createEdition(input: Readonly<{ name: string; status: 'CLOSED' | 'OPEN'; year: number }>): Promise<AdminEdition> {
-  return post('/admin/catalog/editions', input);
+  return mutate('/admin/catalog/editions', 'POST', input);
+}
+
+export function updateEdition(id: string, input: Readonly<{ name: string; status: 'CLOSED' | 'OPEN'; year: number }>): Promise<AdminEdition> {
+  return mutate(`/admin/catalog/editions/${id}`, 'PATCH', input);
 }
 
 export function createEvent(input: Readonly<{ code: string; name: string }>): Promise<AdminEvent> {
-  return post('/admin/catalog/events', input);
+  return mutate('/admin/catalog/events', 'POST', input);
+}
+
+export function updateEvent(id: string, input: Readonly<{ active: boolean; code: string; name: string }>): Promise<AdminEvent> {
+  return mutate(`/admin/catalog/events/${id}`, 'PATCH', input);
 }
 
 export function createSport(input: Readonly<{ code: string; icon: CatalogIconInput | null; name: string }>): Promise<AdminVisualItem> {
-  return post('/admin/catalog/sports', input);
+  return mutate('/admin/catalog/sports', 'POST', input);
+}
+
+export function updateSport(id: string, input: Readonly<{ active: boolean; code: string; icon?: CatalogIconInput | null; name: string }>): Promise<AdminVisualItem> {
+  return mutate(`/admin/catalog/sports/${id}`, 'PATCH', input);
 }
 
 export function createModality(input: Readonly<{ code: string; icon: CatalogIconInput | null; name: string }>): Promise<AdminVisualItem> {
-  return post('/admin/catalog/modalities', input);
+  return mutate('/admin/catalog/modalities', 'POST', input);
+}
+
+export function updateModality(id: string, input: Readonly<{ active: boolean; code: string; icon?: CatalogIconInput | null; name: string }>): Promise<AdminVisualItem> {
+  return mutate(`/admin/catalog/modalities/${id}`, 'PATCH', input);
 }
 
 export function createInstitution(input: Readonly<{ code: string; eventId: string; icon: CatalogIconInput | null; name: string }>): Promise<AdminInstitution> {
-  return post('/admin/catalog/institutions', input);
+  return mutate('/admin/catalog/institutions', 'POST', input);
+}
+
+export function updateInstitution(id: string, input: Readonly<{ active: boolean; code: string; eventId: string; icon?: CatalogIconInput | null; name: string }>): Promise<AdminInstitution> {
+  return mutate(`/admin/catalog/institutions/${id}`, 'PATCH', input);
 }
 
 export function createCombination(input: Readonly<{ eventId: string; modalityId: string; sportId: string }>): Promise<AdminCombination> {
-  return post('/admin/catalog/combinations', input);
+  return mutate('/admin/catalog/combinations', 'POST', input);
+}
+
+export function updateCombination(input: Readonly<{ active: boolean; eventId: string; modalityId: string; sportId: string }>): Promise<AdminCombination> {
+  return mutate('/admin/catalog/combinations', 'PATCH', input);
 }
 
 export function catalogAssetUrl(assetId: string): string {
@@ -139,9 +157,5 @@ export async function iconFromFile(file: File | null): Promise<CatalogIconInput 
   });
   const comma = dataUrl.indexOf(',');
   if (comma < 0) throw new Error('El archivo seleccionado no es válido.');
-  return {
-    base64: dataUrl.slice(comma + 1),
-    fileName: file.name,
-    mimeType: file.type as CatalogIconInput['mimeType'],
-  };
+  return { base64: dataUrl.slice(comma + 1), fileName: file.name, mimeType: file.type as CatalogIconInput['mimeType'] };
 }
