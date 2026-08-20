@@ -21,6 +21,18 @@ case "$command_name" in
     cp "$source_path" "$destination"
     printf '%s\n' "$remote_path" >> "$BACKUP_FAKE_REMOTE_DIR/uploads.log"
     ;;
+  download)
+    remote_path="${2:-}"
+    destination="${3:-}"
+    source_path="$BACKUP_FAKE_REMOTE_DIR/$remote_path"
+    if [ -z "$remote_path" ] || [ -z "$destination" ] || [ ! -f "$source_path" ]; then
+      echo "Invalid download contract." >&2
+      exit 1
+    fi
+    mkdir -p "$(dirname "$destination")"
+    cp "$source_path" "$destination"
+    printf '%s\n' "$remote_path" >> "$BACKUP_FAKE_REMOTE_DIR/downloads.log"
+    ;;
   retain)
     remote_prefix="${2:-}"
     retention_days="${3:-}"
