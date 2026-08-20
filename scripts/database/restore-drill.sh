@@ -32,7 +32,10 @@ if [ ! -f "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH.sha256" ]; then
   exit 1
 fi
 
-sha256sum --check "$BACKUP_PATH.sha256"
+(
+  cd "$BACKUP_DIR"
+  sha256sum --check "$BACKUP_FILE.sha256"
+)
 
 docker run --rm --network host "$POSTGRES_IMAGE" \
   psql "$SERVER_URL" --set=ON_ERROR_STOP=1 --command="DROP DATABASE IF EXISTS \"$RESTORE_DB_NAME\" WITH (FORCE);"
