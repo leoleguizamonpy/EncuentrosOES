@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { publicCompetitionJourney, type PublicCompetitionJourney } from '../lib/public-competition-api';
 import { OesMark } from './oes-mark';
+import { PublicDrawHistory } from './public-draw-history';
 import { PublicStandings } from './public-standings';
 
 function roundLabel(formatCode: 'GROUP_STAGE' | 'KNOCKOUT', roundNumber: number): string {
@@ -80,5 +81,7 @@ export function PublicCompetitionClient({ competitionId }: { readonly competitio
         </div>
       </section>;
     })}
+
+    <PublicDrawHistory competitionId={competitionId} />
   </main>;
 }
