@@ -112,7 +112,11 @@ export class CatalogAdminController {
   public updateSport(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateSport']> {
     const parsed = visualUpdateSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos del deporte no son válidos.');
-    return this.service.updateSport(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+    const context = mutationContext(request, correlationId);
+    const input = { active: parsed.data.active, code: parsed.data.code, name: parsed.data.name, ...context };
+    return parsed.data.icon === undefined
+      ? this.service.updateSport(resourceId(id), input)
+      : this.service.updateSport(resourceId(id), { ...input, icon: parsed.data.icon });
   }
 
   @HttpCode(201)
@@ -127,7 +131,11 @@ export class CatalogAdminController {
   public updateModality(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateModality']> {
     const parsed = visualUpdateSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos de la modalidad no son válidos.');
-    return this.service.updateModality(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+    const context = mutationContext(request, correlationId);
+    const input = { active: parsed.data.active, code: parsed.data.code, name: parsed.data.name, ...context };
+    return parsed.data.icon === undefined
+      ? this.service.updateModality(resourceId(id), input)
+      : this.service.updateModality(resourceId(id), { ...input, icon: parsed.data.icon });
   }
 
   @HttpCode(201)
@@ -142,7 +150,17 @@ export class CatalogAdminController {
   public updateInstitution(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateInstitution']> {
     const parsed = institutionUpdateSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos de la institución no son válidos.');
-    return this.service.updateInstitution(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+    const context = mutationContext(request, correlationId);
+    const input = {
+      active: parsed.data.active,
+      code: parsed.data.code,
+      eventId: parsed.data.eventId,
+      name: parsed.data.name,
+      ...context,
+    };
+    return parsed.data.icon === undefined
+      ? this.service.updateInstitution(resourceId(id), input)
+      : this.service.updateInstitution(resourceId(id), { ...input, icon: parsed.data.icon });
   }
 
   @HttpCode(201)
