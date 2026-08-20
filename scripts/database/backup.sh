@@ -31,7 +31,10 @@ docker run --rm --network host \
   --file="/backup/$TEMP_FILE"
 
 mv "$OUTPUT_DIR/$TEMP_FILE" "$OUTPUT_PATH"
-sha256sum "$OUTPUT_PATH" > "$OUTPUT_PATH.sha256"
+(
+  cd "$OUTPUT_DIR"
+  sha256sum "$OUTPUT_FILE" > "$OUTPUT_FILE.sha256"
+)
 
 echo "Backup created: $OUTPUT_PATH"
 echo "Checksum created: $OUTPUT_PATH.sha256"
