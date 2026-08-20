@@ -32,25 +32,25 @@ export function OfficialDrawPresentation({ publicationId }: { readonly publicati
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  if (error !== null) return <main className="public-draw-shell"><OesMark /><section className="public-draw-error"><h1>Presentación no disponible</h1><p>{error}</p></section></main>;
-  if (publication === null) return <main className="public-draw-shell"><OesMark /><p className="public-draw-loading">Cargando sorteo oficial…</p></main>;
+  if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><section className="public-draw-error" role="alert"><h1>Presentación no disponible</h1><p>{error}</p></section></main>;
+  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><p className="public-draw-loading" role="status" aria-live="polite">Cargando sorteo oficial…</p></main>;
 
   const act = publication.act;
-  return <main className="public-draw-shell">
+  return <main id="main-content" className="public-draw-shell">
     <header className="public-draw-header">
       <OesMark />
       <div><span>Presentación oficial · solo lectura</span><h1>{act.competition.sport} · {act.competition.modality}</h1><p>{act.competition.edition} / {act.competition.event}</p></div>
-      <strong>{publication.verified ? '✓ Publicación verificada' : 'No verificable'}</strong>
+      <strong className="public-state-label" role="status">{publication.verified ? '✓ Publicación verificada' : 'No verificable'}</strong>
     </header>
 
-    <section className="public-draw-meta">
+    <section className="public-draw-meta" aria-label="Resumen de presentación">
       <div><span>Ronda</span><b>{act.configuration.formatCode === 'GROUP_STAGE' ? 'Fase de grupos' : `Eliminatoria ${String(act.configuration.roundNumber)}`}</b></div>
-      <div><span>Revelados</span><b>{step} / {items.length}</b></div>
+      <div><span>Revelados</span><b aria-live="polite">{step} / {items.length}</b></div>
       <div><span>Publicada</span><b>{new Date(publication.publishedAt).toLocaleString('es-PY')}</b></div>
       <div><span>Verificación</span><code>{publication.verificationCode.slice(0, 16)}…</code></div>
     </section>
 
-    <section aria-live="polite" className={act.result.formatCode === 'GROUP_STAGE' ? 'public-draw-groups' : 'public-draw-pairings'}>
+    <section aria-live="polite" aria-atomic="false" aria-label="Resultado revelado" className={act.result.formatCode === 'GROUP_STAGE' ? 'public-draw-groups' : 'public-draw-pairings'}>
       {visible.map((item) => {
         if (item.kind === 'GROUP') return <article key={item.label}><header>{item.label}</header><ol>{item.members.map((member) => <li key={member.id}>{member.name}</li>)}</ol></article>;
         if (item.kind === 'BYE') return <article key={item.label}><span>{item.label}</span><b>{item.participant.name}</b></article>;
@@ -58,10 +58,10 @@ export function OfficialDrawPresentation({ publicationId }: { readonly publicati
       })}
     </section>
 
-    {items.length > 0 && <section className="public-draw-verification">
-      <span>Control de presentación</span>
+    {items.length > 0 && <section className="public-draw-verification" aria-labelledby="presentation-controls-heading">
+      <h2 className="public-round-heading" id="presentation-controls-heading">Control de presentación</h2>
       <p>Estos controles solo cambian qué parte del resultado ya publicado se ve en pantalla. No ejecutan, recalculan ni modifican el sorteo.</p>
-      <div>
+      <div className="public-presentation-controls">
         <button type="button" disabled={step === 0} onClick={() => setStep(step - 1)}>Anterior</button>
         <button type="button" disabled={step === items.length} onClick={() => setStep(step + 1)}>Mostrar siguiente</button>
         <button type="button" disabled={step === items.length} onClick={() => setStep(items.length)}>Mostrar todo</button>
