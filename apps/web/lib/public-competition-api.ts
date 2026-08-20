@@ -3,29 +3,58 @@ export interface PublicCompetitionJourney {
     confirmedAt: string;
     participantDisplayName: string;
     participantId: string;
-  }>;
+  }> | null;
   readonly competition: Readonly<{
     edition: string;
     event: string;
-    finalizedAt: string;
+    finalizedAt: string | null;
     id: string;
     modality: string;
     sport: string;
-    status: 'FINALIZED';
+    status: 'FINALIZED' | 'LOCKED';
   }>;
   readonly rounds: readonly Readonly<{
     confirmedAt: string;
     executionId: string;
     formatCode: 'GROUP_STAGE' | 'KNOCKOUT';
+    groups: readonly Readonly<{
+      label: string;
+      members: readonly Readonly<{ displayName: string; id: string }>[];
+      ordinal: number;
+      standings: readonly Readonly<{
+        draws: number;
+        losses: number;
+        participant: Readonly<{ displayName: string; id: string }>;
+        played: number;
+        position: number;
+        scoreAgainst: number;
+        scoreDifference: number;
+        scoreFor: number;
+        setDifference: number;
+        setsLost: number;
+        setsWon: number;
+        sportPointDifference: number;
+        sportPointsAgainst: number;
+        sportPointsFor: number;
+        tablePoints: number;
+        tied: boolean;
+        wins: number;
+      }>[];
+    }>[];
     matches: readonly Readonly<{
       groupLabel: string | null;
       id: string;
       ordinal: number;
       participantA: Readonly<{ displayName: string; id: string }>;
       participantB: Readonly<{ displayName: string; id: string }>;
-      result: Readonly<{ detail: unknown; resolved: unknown }>;
+      result: Readonly<{ detail: unknown; resolved: unknown }> | null;
       winnerParticipantId: string | null;
     }>[];
+    publication: Readonly<{
+      id: string;
+      publishedAt: string;
+      verificationCode: string;
+    }>;
     roundNumber: number;
   }>[];
 }
