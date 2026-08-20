@@ -20,10 +20,11 @@ Consolidar la arquitectura existente sin alterar las invariantes competitivas de
 
 ### Administración web
 
-- Existían dos experiencias paralelas: `/admin/catalog` y `/admin/catalog/manage`.
-- Cada experiencia repetía navegación, sesión, cuenta, errores y formularios.
-- La ruta secundaria fue retirada como implementación y conservada únicamente como redirección hacia `/admin/catalog` para no romper enlaces existentes.
+- Existían dos implementaciones completas y paralelas para alta y mantenimiento de datos maestros.
+- La implementación antigua de mantenimiento repetía navegación, sesión, cuenta, errores y formularios.
 - `catalog-management-client.tsx` y sus estilos exclusivos fueron eliminados.
+- La edición se preservó mediante `catalog-existing-manager.tsx`, un componente enfocado únicamente en registros existentes y sin duplicar shell ni autenticación.
+- `/admin/catalog` mantiene las altas transitorias y `/admin/catalog/manage` expone el mantenimiento compartido mientras se construye UX 2.0. Ambos serán sustituidos por módulos de producto específicos (Instituciones, Deportes, etc.).
 
 ### Sesión
 
@@ -36,7 +37,14 @@ Consolidar la arquitectura existente sin alterar las invariantes competitivas de
 - Prisma ahora utiliza schema multifile y `CatalogAsset` está formalizado en `packages/database/prisma/catalog-asset.prisma` con los nombres y restricciones estructurales de la tabla existente.
 - Se mantiene la migración histórica intacta; no se crea una segunda tabla ni se reescribe el historial.
 - La validación web conserva PNG/JPEG/WEBP y máximo 1,5 MB.
-- Se agregaron tests específicos para formatos inválidos, exceso de tamaño y ausencia opcional de icono.
+- Se agregaron tests web para formatos inválidos, exceso de tamaño y ausencia opcional de icono.
+- Se agregó una prueba de integración que exige que el cliente Prisma generado pueda consultar `catalog_assets` después de desplegar migraciones.
+
+### Contrato opcional de iconos
+
+- El controller de actualización omite la propiedad `icon` cuando no existe cambio de asset; `null` queda reservado para eliminación explícita.
+- Se agregó una prueba de regresión para impedir que `exactOptionalPropertyTypes` vuelva a romper el build por `icon: undefined`.
+- El mantenimiento reutilizable sigue la misma regla al actualizar instituciones, deportes y modalidades.
 
 ### Documentación
 
@@ -70,14 +78,15 @@ La dirección preferida es `packages/domain → packages/database → apps/api`,
 AUDIT-CLEANUP
 ├── [✓] árbol auditado
 ├── [✓] residuos de build descartados como problema
-├── [✓] duplicación administrativa segura eliminada
-├── [✓] ruta legacy protegida por redirect
+├── [✓] implementación administrativa duplicada eliminada
+├── [✓] edición preservada sin duplicar shell/sesión
 ├── [✓] sesión expirada redirige a login
 ├── [✓] CatalogAsset formalizado en Prisma
 ├── [✓] validación de assets con tests
+├── [✓] regresión exactOptionalPropertyTypes cubierta
 ├── [✓] README corregido
 ├── [✓] ROADMAP corregido
-├── [~] ramas feature obsoletas: pendientes de borrar por falta de operación delete-ref en el conector actual
+├── [~] ramas feature obsoletas: alineadas con main y pendientes únicamente de borrar por falta de operación delete-ref en el conector actual
 ├── [~] persistencia competitiva duplicada: refactor controlado posterior
 └── [ ] UX administrativa 2.0
 ```
