@@ -20,6 +20,9 @@ export function configureApp(app: INestApplication, config: ApiConfig): void {
     response.setHeader('Referrer-Policy', 'same-origin');
     response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    if (config.production) {
+      response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
     next();
   });
   app.useGlobalFilters(new ProblemDetailsFilter());
