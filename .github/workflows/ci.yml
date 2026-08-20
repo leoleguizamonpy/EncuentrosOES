@@ -70,6 +70,46 @@ jobs:
       - name: Test PostgreSQL integration
         run: pnpm test:integration
 
+      - name: Seed backup restore sentinel
+        shell: bash
+        run: |
+          LIBPQ_URL="${DATABASE_URL%%\?*}"
+          docker run --rm --network host postgres:17-alpine \
+            psql "$LIBPQ_URL" --set=ON_ERROR_STOP=1 \
+            --command="CREATE TABLE IF NOT EXISTS backup_restore_sentinel (id text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now()); INSERT INTO backup_restore_sentinel (id) VALUES ('backup-drill') ON CONFLICT (id) DO NOTHING;"
+
+      - name: Create verifiable PostgreSQL backup
+        run: pnpm db:backup -- ./artifacts/database/ci.dump
+
+      - name: Restore backup into isolated database
+        run: pnpm db:restore:drill -- ./artifacts/database/ci.dump
+
+      - name: Exercise external backup roundtrip contract
+        shell: bash
+        env:
+          BACKUP_FAKE_REMOTE_DIR: ${{ github.workspace }}/artifacts/fake-remote
+          BACKUP_ID: ci-external-backup
+          BACKUP_OUTPUT_DIR: ${{ github.workspace }}/artifacts/database/external
+          BACKUP_REMOTE_PREFIX: oes-production
+          BACKUP_REMOTE_RESTORE_DIR: ${{ github.workspace }}/artifacts/database/remote-restore
+          BACKUP_RETENTION_DAYS: '30'
+          BACKUP_TRANSPORT_EXECUTABLE: ${{ github.workspace }}/scripts/database/test/fake-backup-transport.sh
+        run: |
+          chmod +x "$BACKUP_TRANSPORT_EXECUTABLE"
+          pnpm db:backup:roundtrip-drill
+          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/uploads.log")" -eq 3
+          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/downloads.log")" -eq 3
+          grep -Fx 'oes-production 30' "$BACKUP_FAKE_REMOTE_DIR/retention.log"
+          test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump"
+          test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump.sha256"
+          MANIFEST="$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.manifest.json"
+          test -f "$MANIFEST"
+          grep -F '"schemaVersion": "oes-backup-manifest-v1"' "$MANIFEST"
+          grep -F '"retentionDays": 30' "$MANIFEST"
+          ! grep -F 'DATABASE_URL' "$MANIFEST"
+          ! grep -F 'localhost' "$MANIFEST"
+          (cd "$(dirname "$MANIFEST")" && sha256sum --check ci-external-backup.dump.sha256)
+
       - name: Test with coverage
         run: pnpm coverage
 

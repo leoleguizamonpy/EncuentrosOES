@@ -24,14 +24,34 @@ export interface PreparedNextRound {
   readonly configuration: DrawConfigurationSnapshot;
 }
 
+function isPrismaConcurrencyConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error.code === 'P2034' || error.code === 'P2002')
+  );
+}
+
 export class PrismaNextRoundService {
   public constructor(private readonly client: PrismaClient) {}
 
   public async prepare(input: PreparePersistedNextRoundInput): Promise<PreparedNextRound> {
-    return this.client.$transaction(
-      (transaction) => this.prepareInTransaction(transaction, input),
-      { isolationLevel: 'Serializable' },
-    );
+    try {
+      return await this.client.$transaction(
+        (transaction) => this.prepareInTransaction(transaction, input),
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (error: unknown) {
+      if (error instanceof DomainError) throw error;
+      if (isPrismaConcurrencyConflict(error)) {
+        throw new DomainError(
+          'CONCURRENCY_CONFLICT',
+          'Another next-round preparation changed the competition concurrently.',
+        );
+      }
+      throw error;
+    }
   }
 
   public async prepareInTransaction(
