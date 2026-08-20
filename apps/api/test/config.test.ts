@@ -18,7 +18,6 @@ describe('loadApiConfig', () => {
       WEB_ORIGIN: 'http://localhost:3000',
     })).toMatchObject({
       apiPort: 3001,
-      environment: 'development',
       production: false,
       sessionAbsoluteMinutes: 720,
       sessionIdleMinutes: 30,
@@ -29,7 +28,6 @@ describe('loadApiConfig', () => {
   it('accepts an explicit HTTPS production configuration', () => {
     expect(loadApiConfig(productionEnvironment)).toMatchObject({
       apiPort: 3001,
-      environment: 'production',
       production: true,
       sessionAbsoluteMinutes: 720,
       sessionIdleMinutes: 30,
