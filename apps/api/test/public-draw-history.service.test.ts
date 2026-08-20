@@ -77,9 +77,8 @@ describe('PublicDrawHistoryService', () => {
         verificationCode: publicDrawVerificationCode(revokedAct),
       },
     ];
-    const client = {
-      drawPublication: { findMany: vi.fn().mockResolvedValue(records) },
-    } as unknown as PrismaClient;
+    const findMany = vi.fn().mockResolvedValue(records);
+    const client = { drawPublication: { findMany } } as unknown as PrismaClient;
 
     const history = await new PublicDrawHistoryService(client).history('20000000-0000-4000-8000-000000000001');
 
@@ -91,7 +90,7 @@ describe('PublicDrawHistoryService', () => {
       revokedAt: '2026-08-19T18:00:00.000Z',
       status: 'REVOKED',
     });
-    expect(client.drawPublication.findMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
       orderBy: { publishedAt: 'asc' },
       where: { competitionId: '20000000-0000-4000-8000-000000000001' },
     }));
