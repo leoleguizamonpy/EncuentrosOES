@@ -50,7 +50,17 @@ interface ProblemDetails { readonly detail?: string }
 
 const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1').replace(/\/$/, '');
 
+function redirectExpiredSession(): void {
+  if (typeof window === 'undefined') return;
+  const target = '/login';
+  if (window.location.pathname !== target) window.location.replace(target);
+}
+
 async function problem(response: Response): Promise<Error> {
+  if (response.status === 401) {
+    redirectExpiredSession();
+    return new Error('La sesión expiró. Volvé a iniciar sesión.');
+  }
   try {
     const body = await response.json() as ProblemDetails;
     if (typeof body.detail === 'string' && body.detail.length > 0) return new Error(body.detail);
@@ -66,7 +76,8 @@ function csrfToken(): string {
     const candidate = part.trim();
     if (candidate.startsWith(prefix)) return decodeURIComponent(candidate.slice(prefix.length));
   }
-  throw new Error('La sesión no contiene protección CSRF válida.');
+  redirectExpiredSession();
+  throw new Error('La sesión expiró. Volvé a iniciar sesión.');
 }
 
 async function get<T>(path: string): Promise<T> {
