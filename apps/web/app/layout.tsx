@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import './globals.css';
 import './public-accessibility.css';
+import './public-history.css';
 
 export const metadata: Metadata = {
   description: 'Gestión oficial de sorteos, resultados y clasificaciones de la OES.',
