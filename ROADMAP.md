@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/public-experience-001`  
-> Desarrollo estimado del producto v1 competitivo: **97%**
+> Desarrollo estimado del producto v1 competitivo: **99%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -126,12 +126,12 @@ Bloque operativo aún abierto: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
 ## Gate 8 — Experiencia pública y operación del evento
 
-Bloque activo en rama apilada `agent/public-experience-001`, PR #34 sobre la rama de robustez. Gate 8 avanza sin declarar cerrado el pendiente externo de Gate 7.
+Bloque funcional completado en rama apilada `agent/public-experience-001`, PR #34 sobre la rama de robustez. Gate 8 queda CI-verde sin declarar cerrado el pendiente externo de Gate 7.
 
 - [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados: funciona durante `LOCKED` y `FINALIZED`, solo expone sorteos con publicación `PUBLISHED`, conserva resultados no confirmados fuera de la respuesta y muestra campeón únicamente tras confirmación — CI #172 verde.
-- [~] Pantalla de presentación para sorteos oficiales ya calculados por el servidor — siguiente incremento.
-- [ ] Mejoras de accesibilidad y responsive.
-- [ ] Historial público de publicaciones y verificaciones.
+- [x] Pantalla de presentación para sorteos oficiales ya calculados por el servidor: revelado progresivo de grupos/cruces/BYE desde evidencia publicada, estado recuperable por `?step=N`, sin azar ni recalculo en navegador y acceso directo desde el acta — CI #177 verde.
+- [x] Mejoras de accesibilidad y responsive: tabla semántica, landmarks, estados `status/alert`, skip link, foco visible, targets táctiles, scroll horizontal controlado, breakpoints móviles, `prefers-reduced-motion` y `forced-colors` — CI #196 verde.
+- [x] Historial público de publicaciones y verificaciones: proyección read-only por competencia, orden cronológico, integridad criptográfica recalculada y conservación explícita de publicaciones `REVOKED` como evidencia histórica no vigente — CI #196 verde.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
 
@@ -166,11 +166,14 @@ Competencia
 ├── [x] Frontera HTTP de producción endurecida y verificada
 ├── [x] Observabilidad HTTP estructurada y sanitizada
 ├── [~] Transporte externo de backup preparado y CI-verde; proveedor real pendiente
-└── [x] Vista pública en vivo desde evidencia oficialmente publicada
+├── [x] Vista pública en vivo desde evidencia oficialmente publicada
+├── [x] Presentación oficial determinista para escenario/transmisión
+├── [x] Accesibilidad y responsive público
+└── [x] Historial público de publicaciones vigentes y revocadas
 ```
 
 ## Prioridad inmediata
 
-**PUBLIC-EXPERIENCE-001 / OFFICIAL-DRAW-PRESENTATION**
+**PRODUCTION-ROBUSTNESS-001 / EXTERNAL-BACKUP-INTEGRATION — ÚNICO BLOQUE PENDIENTE PARA 100%**
 
-Construir una pantalla de presentación para eventos y transmisiones que consuma exclusivamente un sorteo ya ejecutado por el servidor. La pantalla puede revelar visualmente grupos, cruces y BYE de forma progresiva, pero no puede elegir participantes, barajar, recalcular ni introducir azar en el navegador. Debe conservar vínculo visible con la publicación/verificación oficial y permitir recuperar exactamente el mismo estado al recargar.
+Todo el alcance funcional y técnico implementable dentro del repositorio está CI-verde. El contrato de backup externo ya genera dump PostgreSQL, checksum portable y manifiesto sin secretos y delega `upload/retain` a infraestructura sin conocer credenciales ni proveedor. Para cerrar Gate 7 y declarar el producto v1 al 100% falta una operación real de infraestructura: seleccionar/conectar el almacenamiento externo de producción, programar la ejecución, subir un backup real, descargar ese objeto desde el destino y completar un restore drill verificando checksum, datos y migraciones. PR #33 permanece Draft hasta esa evidencia; PR #34 permanece apilada sobre #33 para no adelantar integración sobre un gate operativo aún abierto.
