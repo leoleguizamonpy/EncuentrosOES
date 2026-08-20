@@ -43,7 +43,7 @@ Este roadmap registra el estado real del producto. No reemplaza Foundation ni la
 - [x] Anulación trazable por superadministrador.
 - [x] Publicación pública con acta, semilla revelada y SHA-256.
 
-**Gate de salida:** un tercero puede reconstruir y verificar un sorto publicado.
+**Gate de salida:** un tercero puede reconstruir y verificar un sorteo publicado.
 
 ## Gate 3 — Resultados y tablas
 
@@ -116,8 +116,8 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
-- [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256 portable, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde; portabilidad reforzada en `EXTERNAL-BACKUP-INTEGRATION`.
-- [~] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — contrato provider-neutral implementado (`db:backup:publish`, manifiesto sin secretos, transporte `upload/retain` y prueba CI); falta conectar y ensayar un proveedor real.
+- [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256 portable, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde; portabilidad reforzada y revalidada en CI #168.
+- [~] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — contrato provider-neutral implementado (`db:backup:publish`, manifiesto sin secretos, transporte `upload/retain`, checksum portable y prueba CI #168 verde); falta conectar y ensayar un proveedor real.
 - [x] Variables y secretos de producción separados del entorno local: `.env` reales y dumps excluidos, template de producción sin credenciales, validación fail-fast de origen HTTPS/DB PostgreSQL/política de sesión y frontera operativa documentada — CI #150 verde.
 - [x] HTTPS, cookies seguras y política de origen de producción verificadas: CORS exacto con credenciales, rechazo de origen ajeno, cookies `Secure`/`HttpOnly`/`SameSite=Lax` según responsabilidad, HSTS y cabeceras defensivas — CI #154 verde.
 - [x] Observabilidad mínima: una línea JSON sanitizada por solicitud, `correlationId` compartido entre respuesta/Problem Details/log, señal de nivel `error` para 5xx y pruebas que impiden registrar query, cookies, Authorization o detalle interno — CI #158 verde.
@@ -165,11 +165,11 @@ Competencia
 ├── [x] Configuración y secretos de producción separados y validados
 ├── [x] Frontera HTTP de producción endurecida y verificada
 ├── [x] Observabilidad HTTP estructurada y sanitizada
-└── [~] Transporte externo de backup preparado; proveedor real pendiente
+└── [~] Transporte externo de backup preparado y CI-verde; proveedor real pendiente
 ```
 
 ## Prioridad inmediata
 
 **PRODUCTION-ROBUSTNESS-001 / EXTERNAL-BACKUP-INTEGRATION**
 
-El repositorio ya define una frontera segura e independiente del proveedor: genera dump, checksum portable y manifiesto; delega `upload` y `retain` a un ejecutable instalado por infraestructura; no evalúa comandos arbitrarios ni conoce credenciales. CI debe demostrar el contrato con un transporte falso. Para cerrar Gate 7 falta únicamente seleccionar/conectar el storage real de producción, programar la ejecución, descargar un backup real y ejecutar un restore drill desde ese objeto. PR #33 permanece Draft hasta esa verificación.
+El repositorio ya define una frontera segura e independiente del proveedor: genera dump, checksum portable y manifiesto; delega `upload` y `retain` a un ejecutable instalado por infraestructura; no evalúa comandos arbitrarios ni conoce credenciales. CI #168 demuestra el contrato completo con un transporte falso y revalida restore, coverage y build. Para cerrar Gate 7 falta únicamente seleccionar/conectar el storage real de producción, programar la ejecución, descargar un backup real y ejecutar un restore drill desde ese objeto. PR #33 permanece Draft hasta esa verificación.
