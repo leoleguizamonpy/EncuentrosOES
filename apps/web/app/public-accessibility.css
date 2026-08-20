@@ -1,0 +1,159 @@
+.skip-link {
+  background: #ffffff;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  color: #16202e;
+  font-weight: 800;
+  left: 12px;
+  padding: 10px 14px;
+  position: fixed;
+  top: 12px;
+  transform: translateY(-160%);
+  transition: transform 160ms ease;
+  z-index: 1000;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+.public-draw-shell :is(a, button):focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+}
+
+.public-draw-shell button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.public-draw-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.public-standings-table {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.public-standings-table table {
+  border-collapse: collapse;
+  min-width: 620px;
+  width: 100%;
+}
+
+.public-standings-table caption {
+  font-weight: 800;
+  padding: 0 0 10px;
+  text-align: left;
+}
+
+.public-standings-table th,
+.public-standings-table td {
+  padding: 10px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.public-standings-table th:nth-child(2),
+.public-standings-table td:nth-child(2) {
+  min-width: 180px;
+  text-align: left;
+}
+
+.public-round-heading {
+  margin: 0;
+}
+
+.public-state-label[role='status'] {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.public-presentation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.public-presentation-controls button {
+  font: inherit;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+@media (max-width: 720px) {
+  .public-draw-shell {
+    padding-inline: 16px;
+  }
+
+  .public-draw-header {
+    align-items: start;
+  }
+
+  .public-draw-meta {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .public-draw-verification {
+    padding: 16px;
+  }
+
+  .public-standings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-presentation-controls button {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-draw-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .public-draw-header h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .public-draw-pairings article {
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .public-presentation-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+
+  .public-draw-shell *,
+  .public-draw-shell *::before,
+  .public-draw-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .public-draw-shell :is(a, button):focus-visible {
+    outline-color: Highlight;
+  }
+
+  .public-draw-header > strong,
+  .public-draw-verification,
+  .public-draw-groups article,
+  .public-draw-pairings article {
+    border: 1px solid CanvasText;
+  }
+}
