@@ -58,7 +58,6 @@ function requiredProductionValue(
 export interface ApiConfig {
   readonly apiPort: number;
   readonly databaseUrl: string;
-  readonly environment: 'development' | 'production' | 'test';
   readonly production: boolean;
   readonly sessionAbsoluteMinutes: number;
   readonly sessionIdleMinutes: number;
@@ -90,7 +89,6 @@ export function loadApiConfig(environment: NodeJS.ProcessEnv): ApiConfig {
   return Object.freeze({
     apiPort,
     databaseUrl: parseDatabaseUrl(parsed.DATABASE_URL, production),
-    environment: parsed.NODE_ENV,
     production,
     sessionAbsoluteMinutes,
     sessionIdleMinutes,
