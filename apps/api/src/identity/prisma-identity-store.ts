@@ -68,6 +68,7 @@ export class PrismaIdentityStore implements IdentityStore {
   public async createSession(input: CreateSessionRecord): Promise<SessionRecord> {
     const record = await this.client.userSession.create({
       data: {
+        createdAt: input.occurredAt,
         credentialVersion: input.credentialVersion,
         csrfHash: input.csrfHash,
         expiresAt: input.expiresAt,
