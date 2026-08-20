@@ -2,8 +2,9 @@
 
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
-> Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **96%**
+> Rama operativa auditada: `agent/production-robustness-001`  
+> Experiencia pública completada en rama apilada: `agent/public-experience-001` / PR #34  
+> Desarrollo estimado del producto v1 competitivo: **99%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -103,35 +104,37 @@ Bloque completado: `CHAMPION-FINALIZATION-001` en PR #32.
 - [x] Impedir nuevos sorteos y mutaciones competitivas incompatibles después de finalizar mediante barrera de aplicación y PostgreSQL.
 - [x] Exponer propuesta/confirmación de campeón por API y workspace web.
 - [x] Exponer campeón y recorrido competitivo confirmado en consulta pública sin datos administrativos.
-- [x] Revalidar el head funcional con PostgreSQL real, idempotencia, concurrencia, coverage y build: CI #113 verde.
+- [x] Revalidar el head funcional con PostgreSQL real, idempotencia, concurrencia, coverage y build — CI #113 verde.
 
 **Gate de salida:** una competencia completa puede terminar de forma explícita, verificable, restaurable y públicamente consultable.
 
 ## Gate 7 — Robustez operativa previa a producción
 
-Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
+Bloque operativo aún abierto: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
 - [x] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — CI #116 verde.
 - [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
 - [x] Anulación tardía + reemplazo sin residuos derivados: ronda posterior `DISCARDED`, sorteo/resultado anulados, publicación revocada y nueva ronda reconstruida desde evidencia corregida — CI #127 verde.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
-- [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256 portable, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde; portabilidad reforzada y revalidada en CI #168.
-- [~] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — ciclo provider-neutral completo implementado: `db:backup:publish` cubre `upload/retain`; `db:backup:remote-restore-drill` cubre `download`, validación de manifiesto/checksum y restore aislado desde lo descargado; CI #202 verde. Falta únicamente ejecutarlo contra un proveedor real.
+- [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256 portable, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde; portabilidad reforzada en CI #168.
+- [x] Contrato provider-neutral completo de backup externo: `upload`, `download`, `retain`, manifiesto sin secretos, checksum portable y restore aislado desde objeto descargado — CI #202/#203 verdes.
+- [x] Comando único `pnpm db:backup:roundtrip-drill`: ejecuta `backup → upload → retain → download → verify → restore drill` sin cambiar lógica entre CI y producción — CI #206 verde.
+- [~] Storage real de producción: falta aportar proveedor, destino privado/cifrado, credencial de mínimo privilegio, retención real y ejecutar el round-trip contra un objeto efectivamente almacenado fuera del entorno de aplicación.
 - [x] Variables y secretos de producción separados del entorno local: `.env` reales y dumps excluidos, template de producción sin credenciales, validación fail-fast de origen HTTPS/DB PostgreSQL/política de sesión y frontera operativa documentada — CI #150 verde.
 - [x] HTTPS, cookies seguras y política de origen de producción verificadas: CORS exacto con credenciales, rechazo de origen ajeno, cookies `Secure`/`HttpOnly`/`SameSite=Lax` según responsabilidad, HSTS y cabeceras defensivas — CI #154 verde.
 - [x] Observabilidad mínima: una línea JSON sanitizada por solicitud, `correlationId` compartido entre respuesta/Problem Details/log, señal de nivel `error` para 5xx y pruebas que impiden registrar query, cookies, Authorization o detalle interno — CI #158 verde.
 
-**Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado. La única condición externa pendiente es conectar el transporte CI-verde a almacenamiento real de producción, programar la ejecución y completar `db:backup:remote-restore-drill` contra un objeto realmente recuperado de ese destino.
+**Gate de salida:** ejecutar `pnpm db:backup:roundtrip-drill` contra el almacenamiento real de producción y obtener salida exitosa después de descargar y restaurar un objeto realmente persistido en ese destino.
 
 ## Gate 8 — Experiencia pública y operación del evento
 
-Solo después de estabilizar los gates anteriores.
+Bloque funcional completado en rama apilada `agent/public-experience-001`, PR #34 sobre PR #33.
 
-- [ ] Vista pública unificada de grupos, tablas, rondas y cruces publicados.
-- [ ] Pantalla de presentación para sorteos oficiales ya calculados por el servidor.
-- [ ] Mejoras de accesibilidad y responsive.
-- [ ] Historial público de publicaciones y verificaciones.
+- [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados: funciona durante `LOCKED` y `FINALIZED`, solo expone sorteos con publicación `PUBLISHED`, conserva resultados no confirmados fuera de la respuesta y muestra campeón únicamente tras confirmación — CI #172 verde.
+- [x] Pantalla de presentación para sorteos oficiales ya calculados por el servidor: revelado progresivo de grupos/cruces/BYE desde evidencia publicada, estado recuperable por `?step=N`, sin azar ni recalculo en navegador y acceso directo desde el acta — CI #177 verde.
+- [x] Mejoras de accesibilidad y responsive: tabla semántica, landmarks, estados `status/alert`, skip link, foco visible, targets táctiles, scroll horizontal controlado, breakpoints móviles, `prefers-reduced-motion` y `forced-colors` — CI #196 verde.
+- [x] Historial público de publicaciones y verificaciones: proyección read-only por competencia, orden cronológico, integridad criptográfica recalculada y conservación explícita de publicaciones `REVOKED` como evidencia histórica no vigente — CI #196 verde.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
 
@@ -162,14 +165,27 @@ Competencia
 ├── [x] Concurrencia crítica serializada y normalizada
 ├── [x] Recuperación completa después de reinicio de proceso
 ├── [x] Backup restaurable y verificado en base aislada
+├── [x] Round-trip externo provider-neutral en un solo comando
 ├── [x] Configuración y secretos de producción separados y validados
 ├── [x] Frontera HTTP de producción endurecida y verificada
 ├── [x] Observabilidad HTTP estructurada y sanitizada
-└── [~] Backup externo: upload + download + verificación + restore CI-verde; proveedor real pendiente
+├── [x] Vista pública en vivo desde evidencia oficialmente publicada
+├── [x] Presentación oficial determinista para escenario/transmisión
+├── [x] Accesibilidad y responsive público
+├── [x] Historial público de publicaciones vigentes y revocadas
+└── [~] REAL-STORAGE-DRILL: proveedor externo real pendiente
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / REAL-STORAGE-DRILL — ÚNICA CONDICIÓN EXTERNA DE GATE 7**
+**PRODUCTION-ROBUSTNESS-001 / REAL-STORAGE-DRILL — ÚNICA CONDICIÓN PENDIENTE PARA 100%**
 
-El repositorio ya cubre el ciclo completo independientemente del proveedor: genera dump, checksum portable y manifiesto sin secretos; delega `upload`, `download` y `retain` a un ejecutable instalado por infraestructura; al recuperar un `BACKUP_ID` valida identidad del manifiesto, coincidencia de hashes y restaura únicamente en una base aislada. CI #202 demuestra `backup → upload → download → verify → restore drill` y revalida PostgreSQL, coverage y build. Para cerrar Gate 7 falta únicamente seleccionar/conectar el storage real de producción, programar la ejecución y ejecutar exactamente ese mismo restore drill contra un objeto obtenido del proveedor. PR #33 permanece Draft hasta esa evidencia.
+Todo el ciclo implementable en repositorio está automatizado y CI-verde. `pnpm db:backup:roundtrip-drill` crea el backup, publica dump/checksum/manifiesto, solicita retención, vuelve a descargar los tres objetos, valida manifiesto y SHA-256 y restaura únicamente en una base aislada. CI #206 demuestra ese flujo completo con transporte simulado.
+
+Para declarar Gate 7 cerrado y el producto v1 al **100%**, el entorno real debe aportar `BACKUP_TRANSPORT_EXECUTABLE`, `BACKUP_REMOTE_PREFIX`, `BACKUP_RETENTION_DAYS`, las credenciales de mínimo privilegio y un destino privado/cifrado. Con esos valores inyectados fuera del repositorio, se ejecutará exactamente:
+
+```bash
+pnpm db:backup:roundtrip-drill
+```
+
+El Gate no se considera cerrado por artifacts de GitHub, almacenamiento local, placeholders o credenciales hardcodeadas. PR #33 permanece Draft hasta esa evidencia; PR #34 permanece apilada y no se integrará antes de reconciliar la base.
