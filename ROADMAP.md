@@ -117,12 +117,12 @@ Bloque operativo aún abierto: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
 - [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256 portable, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde; portabilidad reforzada y revalidada en CI #168.
-- [~] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — contrato provider-neutral implementado (`db:backup:publish`, manifiesto sin secretos, transporte `upload/retain`, checksum portable y prueba CI #168 verde); falta conectar y ensayar un proveedor real.
+- [~] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — ciclo provider-neutral completo implementado: publicación `upload/retain`, recuperación `download`, validación de manifiesto/checksum y restore aislado desde el objeto recuperado; CI #202 verde. Falta únicamente ejecutarlo contra un proveedor real.
 - [x] Variables y secretos de producción separados del entorno local: `.env` reales y dumps excluidos, template de producción sin credenciales, validación fail-fast de origen HTTPS/DB PostgreSQL/política de sesión y frontera operativa documentada — CI #150 verde.
 - [x] HTTPS, cookies seguras y política de origen de producción verificadas: CORS exacto con credenciales, rechazo de origen ajeno, cookies `Secure`/`HttpOnly`/`SameSite=Lax` según responsabilidad, HSTS y cabeceras defensivas — CI #154 verde.
 - [x] Observabilidad mínima: una línea JSON sanitizada por solicitud, `correlationId` compartido entre respuesta/Problem Details/log, señal de nivel `error` para 5xx y pruebas que impiden registrar query, cookies, Authorization o detalle interno — CI #158 verde.
 
-**Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado. La única condición externa pendiente es conectar el transporte de backup ya preparado a almacenamiento real de producción y restaurar al menos un objeto obtenido desde ese destino.
+**Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado. La única condición externa pendiente es conectar el transporte CI-verde a almacenamiento real de producción, programar la ejecución y completar `db:backup:remote-restore-drill` contra un objeto realmente recuperado de ese destino.
 
 ## Gate 8 — Experiencia pública y operación del evento
 
@@ -165,7 +165,7 @@ Competencia
 ├── [x] Configuración y secretos de producción separados y validados
 ├── [x] Frontera HTTP de producción endurecida y verificada
 ├── [x] Observabilidad HTTP estructurada y sanitizada
-├── [~] Transporte externo de backup preparado y CI-verde; proveedor real pendiente
+├── [~] Backup externo: upload + download + verificación + restore CI-verde; proveedor real pendiente
 ├── [x] Vista pública en vivo desde evidencia oficialmente publicada
 ├── [x] Presentación oficial determinista para escenario/transmisión
 ├── [x] Accesibilidad y responsive público
@@ -174,6 +174,6 @@ Competencia
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / EXTERNAL-BACKUP-INTEGRATION — ÚNICO BLOQUE PENDIENTE PARA 100%**
+**PRODUCTION-ROBUSTNESS-001 / REAL-STORAGE-DRILL — ÚNICO BLOQUE PENDIENTE PARA 100%**
 
-Todo el alcance funcional y técnico implementable dentro del repositorio está CI-verde. El contrato de backup externo ya genera dump PostgreSQL, checksum portable y manifiesto sin secretos y delega `upload/retain` a infraestructura sin conocer credenciales ni proveedor. Para cerrar Gate 7 y declarar el producto v1 al 100% falta una operación real de infraestructura: seleccionar/conectar el almacenamiento externo de producción, programar la ejecución, subir un backup real, descargar ese objeto desde el destino y completar un restore drill verificando checksum, datos y migraciones. PR #33 permanece Draft hasta esa evidencia; PR #34 permanece apilada sobre #33 para no adelantar integración sobre un gate operativo aún abierto.
+Todo el alcance funcional y técnico implementable dentro del repositorio está CI-verde. El contrato externo ya cubre `backup → upload → retain → download → manifest/checksum verification → isolated restore drill`, sin conocer credenciales ni proveedor. CI #202 demuestra el recorrido completo con transporte simulado. Para cerrar Gate 7 y declarar el producto v1 al 100% falta una sola operación real de infraestructura: seleccionar/conectar el almacenamiento externo de producción, programar la ejecución y ejecutar `db:backup:remote-restore-drill` contra un objeto obtenido realmente del proveedor. PR #33 permanece Draft hasta esa evidencia; PR #34 permanece apilada sobre #33 para no adelantar integración sobre un gate operativo aún abierto.
