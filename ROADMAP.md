@@ -2,8 +2,8 @@
 
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
-> Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **96%**
+> Rama de trabajo auditada: `agent/public-experience-001`  
+> Desarrollo estimado del producto v1 competitivo: **97%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -109,7 +109,7 @@ Bloque completado: `CHAMPION-FINALIZATION-001` en PR #32.
 
 ## Gate 7 — Robustez operativa previa a producción
 
-Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
+Bloque operativo aún abierto: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
 - [x] Flujo E2E completo grupos → eliminación → campeón con PostgreSQL real — CI #116 verde.
 - [x] Flujo E2E eliminación directa desde primera ronda → re-sorteo → campeón — CI #117 verde.
@@ -126,10 +126,10 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 
 ## Gate 8 — Experiencia pública y operación del evento
 
-Solo después de estabilizar los gates anteriores.
+Bloque activo en rama apilada `agent/public-experience-001`, PR #34 sobre la rama de robustez. Gate 8 avanza sin declarar cerrado el pendiente externo de Gate 7.
 
-- [ ] Vista pública unificada de grupos, tablas, rondas y cruces publicados.
-- [ ] Pantalla de presentación para sorteos oficiales ya calculados por el servidor.
+- [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados: funciona durante `LOCKED` y `FINALIZED`, solo expone sorteos con publicación `PUBLISHED`, conserva resultados no confirmados fuera de la respuesta y muestra campeón únicamente tras confirmación — CI #172 verde.
+- [~] Pantalla de presentación para sorteos oficiales ya calculados por el servidor — siguiente incremento.
 - [ ] Mejoras de accesibilidad y responsive.
 - [ ] Historial público de publicaciones y verificaciones.
 
@@ -165,11 +165,12 @@ Competencia
 ├── [x] Configuración y secretos de producción separados y validados
 ├── [x] Frontera HTTP de producción endurecida y verificada
 ├── [x] Observabilidad HTTP estructurada y sanitizada
-└── [~] Transporte externo de backup preparado y CI-verde; proveedor real pendiente
+├── [~] Transporte externo de backup preparado y CI-verde; proveedor real pendiente
+└── [x] Vista pública en vivo desde evidencia oficialmente publicada
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / EXTERNAL-BACKUP-INTEGRATION**
+**PUBLIC-EXPERIENCE-001 / OFFICIAL-DRAW-PRESENTATION**
 
-El repositorio ya define una frontera segura e independiente del proveedor: genera dump, checksum portable y manifiesto; delega `upload` y `retain` a un ejecutable instalado por infraestructura; no evalúa comandos arbitrarios ni conoce credenciales. CI #168 demuestra el contrato completo con un transporte falso y revalida restore, coverage y build. Para cerrar Gate 7 falta únicamente seleccionar/conectar el storage real de producción, programar la ejecución, descargar un backup real y ejecutar un restore drill desde ese objeto. PR #33 permanece Draft hasta esa verificación.
+Construir una pantalla de presentación para eventos y transmisiones que consuma exclusivamente un sorteo ya ejecutado por el servidor. La pantalla puede revelar visualmente grupos, cruces y BYE de forma progresiva, pero no puede elegir participantes, barajar, recalcular ni introducir azar en el navegador. Debe conservar vínculo visible con la publicación/verificación oficial y permitir recuperar exactamente el mismo estado al recargar.
