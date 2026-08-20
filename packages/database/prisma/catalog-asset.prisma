@@ -1,0 +1,16 @@
+model CatalogAsset {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id") @db.Uuid
+  fileName     String   @map("file_name")
+  mimeType     String   @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  content      Bytes
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  uploadedById String   @map("uploaded_by") @db.Uuid
+
+  @@unique([resourceType, resourceId], map: "catalog_assets_resource_key")
+  @@index([uploadedById], map: "catalog_assets_uploaded_by_idx")
+  @@index([createdAt(sort: Desc)], map: "catalog_assets_created_at_idx")
+  @@map("catalog_assets")
+}
