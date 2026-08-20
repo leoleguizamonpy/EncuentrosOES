@@ -17,7 +17,8 @@
   transform: translateY(0);
 }
 
-.public-draw-shell :is(a, button):focus-visible {
+.public-draw-shell :is(a, button):focus-visible,
+.public-standings-scroll:focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 4px;
 }
@@ -32,14 +33,14 @@
   opacity: 0.55;
 }
 
-.public-standings-table {
+.public-standings-scroll {
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   -webkit-overflow-scrolling: touch;
 }
 
-.public-standings-table table {
+.public-standings-table {
   border-collapse: collapse;
   min-width: 620px;
   width: 100%;
@@ -146,7 +147,8 @@
 }
 
 @media (forced-colors: active) {
-  .public-draw-shell :is(a, button):focus-visible {
+  .public-draw-shell :is(a, button):focus-visible,
+  .public-standings-scroll:focus-visible {
     outline-color: Highlight;
   }
 
