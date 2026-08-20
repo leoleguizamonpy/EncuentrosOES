@@ -97,10 +97,13 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 
 - [x] Auditoría del árbol completo de `main`.
 - [x] Confirmado que no existen `dist`, `.next`, `node_modules`, dumps o residuos equivalentes versionados.
-- [x] Eliminada la segunda implementación completa de gestión administrativa; su URL histórica queda como redirección de compatibilidad.
+- [x] Eliminada la segunda implementación completa de gestión administrativa y sustituida por un gestor reutilizable sin shell/sesión duplicados.
+- [x] Las altas y el mantenimiento siguen disponibles durante la transición a UX 2.0.
 - [x] `catalog_assets` incorporado al esquema Prisma mediante schema multifile.
 - [x] La administración redirige a login ante expiración de sesión en vez de dejar un error de credenciales como pantalla final.
 - [x] Validación de assets cubierta con pruebas web específicas.
+- [x] Contrato `icon` opcional cubierto con prueba de regresión para `exactOptionalPropertyTypes`.
+- [x] Mapeo de `CatalogAsset` cubierto con prueba PostgreSQL/Prisma de integración.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
 - [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
