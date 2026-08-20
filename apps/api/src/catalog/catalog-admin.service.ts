@@ -1,5 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, PrismaClient } from '@oes/database';
+
+import { PRISMA_CLIENT } from '../persistence/database.module.js';
 
 export type CatalogAssetType = 'INSTITUTION' | 'MODALITY' | 'SPORT';
 
@@ -45,7 +47,7 @@ function isUniqueConstraint(error: unknown): boolean {
 
 @Injectable()
 export class CatalogAdminService {
-  public constructor(private readonly client: PrismaClient) {}
+  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
 
   public async catalog(): Promise<{
     readonly combinations: readonly unknown[];
