@@ -50,7 +50,7 @@ export function DashboardClient(): React.JSX.Element {
         <OesMark />
         <nav aria-label="Navegación principal">
           <a className="nav-item nav-item--active" href="/dashboard">Resumen</a>
-          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración</span><a className="nav-item" href="/admin/catalog">Cargar catálogos</a><a className="nav-item" href="/admin/catalog/manage">Gestionar catálogos</a></>}
+          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración OES</span><a className="nav-item" href="/admin/catalog#editions">Ediciones</a><a className="nav-item" href="/admin/catalog#events">Eventos</a><a className="nav-item" href="/admin/catalog#sports">Deportes</a><a className="nav-item" href="/admin/catalog#modalities">Modalidades</a><a className="nav-item" href="/admin/catalog#institutions">Instituciones</a><a className="nav-item" href="/admin/catalog#combinations">Combinaciones</a></>}
           <span className="nav-heading">Gestión competitiva</span>
           <a className="nav-item" href="/competitions">Competencias</a>
           <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
@@ -76,7 +76,7 @@ export function DashboardClient(): React.JSX.Element {
           </div>
           <div className="readiness" aria-label="Estado de módulos">
             <div><strong>Identidad</strong><span className="ready">Operativa</span></div>
-            <div><strong>Catálogos</strong><span className="ready">Operativa</span></div>
+            <div><strong>Administración</strong><span className="ready">Operativa</span></div>
             <div><strong>Competencias</strong><span className="ready">Operativa</span></div>
           </div>
         </section>
