@@ -84,19 +84,21 @@ jobs:
       - name: Restore backup into isolated database
         run: pnpm db:restore:drill -- ./artifacts/database/ci.dump
 
-      - name: Exercise external backup transport contract
+      - name: Exercise external backup roundtrip contract
         shell: bash
         env:
           BACKUP_FAKE_REMOTE_DIR: ${{ github.workspace }}/artifacts/fake-remote
           BACKUP_ID: ci-external-backup
           BACKUP_OUTPUT_DIR: ${{ github.workspace }}/artifacts/database/external
           BACKUP_REMOTE_PREFIX: oes-production
+          BACKUP_REMOTE_RESTORE_DIR: ${{ github.workspace }}/artifacts/database/remote-restore
           BACKUP_RETENTION_DAYS: '30'
           BACKUP_TRANSPORT_EXECUTABLE: ${{ github.workspace }}/scripts/database/test/fake-backup-transport.sh
         run: |
           chmod +x "$BACKUP_TRANSPORT_EXECUTABLE"
-          pnpm db:backup:publish
+          pnpm db:backup:roundtrip-drill
           test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/uploads.log")" -eq 3
+          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/downloads.log")" -eq 3
           grep -Fx 'oes-production 30' "$BACKUP_FAKE_REMOTE_DIR/retention.log"
           test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump"
           test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump.sha256"
