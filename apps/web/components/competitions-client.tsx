@@ -107,6 +107,7 @@ export function CompetitionsClient(): React.JSX.Element {
         <OesMark />
         <nav aria-label="Navegación principal">
           <a className="nav-item" href="/dashboard">Resumen</a>
+          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración</span><a className="nav-item" href="/admin/catalog">Catálogos</a></>}
           <span className="nav-heading">Gestión competitiva</span>
           <a className="nav-item nav-item--active" href="/competitions">Competencias</a>
           <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
@@ -153,7 +154,7 @@ export function CompetitionsClient(): React.JSX.Element {
           <aside className="create-panel" aria-labelledby="create-competition-title">
             <span className="eyebrow">Nueva unidad</span>
             <h3 id="create-competition-title">Crear competencia</h3>
-            {!canCreate ? <p className="panel-note">Tu rol puede consultar el registro, pero no crear competencias.</p> : !catalogReady ? <p className="panel-note">Debes contar con una edición abierta y al menos una combinación activa en el catálogo.</p> : (
+            {!canCreate ? <p className="panel-note">Tu rol puede consultar el registro, pero no crear competencias.</p> : !catalogReady ? <p className="panel-note">Primero carga una edición y habilita una combinación de evento, deporte y modalidad en <a href="/admin/catalog" style={{ color: 'var(--signal)' }}>Catálogos</a>.</p> : (
               <form className="competition-form" onSubmit={(event) => void submit(event)}>
                 <label htmlFor="edition">Edición</label>
                 <select id="edition" onChange={(event) => setEditionId(event.target.value)} value={editionId}>
