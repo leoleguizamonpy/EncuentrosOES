@@ -88,6 +88,19 @@ export class PrismaChampionStore implements ChampionStore {
           officialDraws: {
             include: {
               configuration: { select: { formatCode: true, roundNumber: true } },
+              groups: {
+                include: {
+                  members: {
+                    include: { participant: { select: { displayName: true, id: true } } },
+                    orderBy: { memberOrdinal: 'asc' },
+                  },
+                  standings: {
+                    include: { participant: { select: { displayName: true, id: true } } },
+                    orderBy: [{ position: 'asc' }, { participantId: 'asc' }],
+                  },
+                },
+                orderBy: { ordinal: 'asc' },
+              },
               matches: {
                 include: {
                   group: { select: { label: true } },
@@ -102,9 +115,15 @@ export class PrismaChampionStore implements ChampionStore {
                 },
                 orderBy: { ordinal: 'asc' },
               },
+              publication: {
+                select: { id: true, publishedAt: true, status: true, verificationCode: true },
+              },
             },
-            orderBy: { confirmedAt: 'asc' },
-            where: { status: 'CONFIRMED' },
+            orderBy: [{ configuration: { roundNumber: 'asc' } }, { confirmedAt: 'asc' }],
+            where: {
+              publication: { is: { status: 'PUBLISHED' } },
+              status: 'CONFIRMED',
+            },
           },
         },
         where: { id: competitionId },
@@ -113,47 +132,79 @@ export class PrismaChampionStore implements ChampionStore {
     ]);
     if (
       competition === null ||
-      competition.status !== 'FINALIZED' ||
-      competition.finalizedAt === null ||
-      champion === null ||
-      champion.status !== 'CONFIRMED' ||
-      champion.confirmedAt === null
+      (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') ||
+      competition.officialDraws.length === 0
     ) return null;
 
+    const confirmedChampion = champion !== null && champion.status === 'CONFIRMED' && champion.confirmedAt !== null
+      ? {
+          confirmedAt: champion.confirmedAt.toISOString(),
+          participantDisplayName: champion.participantDisplayName,
+          participantId: champion.participantId,
+        }
+      : null;
+
     return {
-      champion: {
-        confirmedAt: champion.confirmedAt.toISOString(),
-        participantDisplayName: champion.participantDisplayName,
-        participantId: champion.participantId,
-      },
+      champion: confirmedChampion,
       competition: {
         edition: competition.edition.name,
         event: competition.combination.event.name,
-        finalizedAt: competition.finalizedAt.toISOString(),
+        finalizedAt: competition.finalizedAt?.toISOString() ?? null,
         id: competition.id,
         modality: competition.combination.modality.name,
         sport: competition.combination.sport.name,
-        status: 'FINALIZED',
+        status: competition.status,
       },
-      rounds: competition.officialDraws.map((execution) => ({
-        confirmedAt: execution.confirmedAt?.toISOString() ?? execution.executedAt.toISOString(),
-        executionId: execution.id,
-        formatCode: execution.configuration.formatCode as 'GROUP_STAGE' | 'KNOCKOUT',
-        matches: execution.matches.flatMap((match) => {
-          const result = match.results[0];
-          if (match.status !== 'RESULT_CONFIRMED' || result === undefined) return [];
-          return [{
-            groupLabel: match.group?.label ?? null,
-            id: match.id,
-            ordinal: match.ordinal,
-            participantA: match.participantA,
-            participantB: match.participantB,
-            result: { detail: result.detailJson, resolved: result.resolvedJson },
-            winnerParticipantId: match.winnerParticipantId,
-          }];
-        }),
-        roundNumber: execution.configuration.roundNumber,
-      })),
+      rounds: competition.officialDraws.flatMap((execution) => {
+        if (execution.publication === null || execution.publication.status !== 'PUBLISHED') return [];
+        return [{
+          confirmedAt: execution.confirmedAt?.toISOString() ?? execution.executedAt.toISOString(),
+          executionId: execution.id,
+          formatCode: execution.configuration.formatCode as 'GROUP_STAGE' | 'KNOCKOUT',
+          groups: execution.groups.map((group) => ({
+            label: group.label,
+            members: group.members.map(({ participant }) => participant),
+            ordinal: group.ordinal,
+            standings: group.standings.map((standing) => ({
+              draws: standing.draws,
+              losses: standing.losses,
+              participant: standing.participant,
+              played: standing.played,
+              position: standing.position,
+              scoreAgainst: standing.scoreAgainst,
+              scoreDifference: standing.scoreDifference,
+              scoreFor: standing.scoreFor,
+              setDifference: standing.setDifference,
+              setsLost: standing.setsLost,
+              setsWon: standing.setsWon,
+              sportPointDifference: standing.sportPointDifference,
+              sportPointsAgainst: standing.sportPointsAgainst,
+              sportPointsFor: standing.sportPointsFor,
+              tablePoints: standing.tablePoints,
+              tied: standing.tied,
+              wins: standing.wins,
+            })),
+          })),
+          matches: execution.matches.map((match) => {
+            const result = match.results[0];
+            return {
+              groupLabel: match.group?.label ?? null,
+              id: match.id,
+              ordinal: match.ordinal,
+              participantA: match.participantA,
+              participantB: match.participantB,
+              result: result === undefined ? null : { detail: result.detailJson, resolved: result.resolvedJson },
+              winnerParticipantId: result === undefined ? null : match.winnerParticipantId,
+            };
+          }),
+          publication: {
+            id: execution.publication.id,
+            publishedAt: execution.publication.publishedAt.toISOString(),
+            verificationCode: execution.publication.verificationCode,
+          },
+          roundNumber: execution.configuration.roundNumber,
+        }];
+      }),
     };
   }
 
