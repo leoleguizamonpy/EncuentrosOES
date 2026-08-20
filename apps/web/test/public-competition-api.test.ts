@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { publicCompetitionJourney } from '../lib/public-competition-api';
+import { publicCompetitionJourney, publicDrawHistory } from '../lib/public-competition-api';
 
 describe('public competition API client', () => {
   afterEach(() => { vi.restoreAllMocks(); });
@@ -57,5 +57,21 @@ describe('public competition API client', () => {
   it('preserves null while the competition has no official publication', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response('null', { status: 200 })));
     await expect(publicCompetitionJourney('competition-1')).resolves.toBeNull();
+  });
+
+  it('loads the publication history without credentials or caching', async () => {
+    const payload = [{
+      formatCode: 'GROUP_STAGE', integrityValid: true, officialDrawId: 'draw-1', publicationId: 'publication-1',
+      publishedAt: '2026-08-19T17:01:00.000Z', revocationReason: null, revokedAt: null, roundNumber: 0,
+      status: 'PUBLISHED', verificationCode: 'a'.repeat(64),
+    }];
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(publicDrawHistory('competition-1')).resolves.toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3001/api/v1/public/competitions/competition-1/draw-publications',
+      { cache: 'no-store' },
+    );
   });
 });
