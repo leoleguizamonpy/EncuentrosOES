@@ -1,6 +1,6 @@
 # Encuentros OES
 
-Sistema web para gestionar competencias OES de fase de grupos y eliminación directa con sorteos verificables, resultados confirmados por doble autoridad, tablas automáticas y persistencia auditable.
+Sistema web para gestionar competencias OES de fase de grupos y eliminación directa con sorteos verificables, resultados confirmados por doble autoridad, tablas automáticas, continuidad eliminatoria, campeón confirmado y persistencia auditable.
 
 ## Fuente de verdad
 
@@ -8,11 +8,19 @@ La implementación deriva de [`FOUNDATION.md`](./FOUNDATION.md), del estado de i
 
 ## Estado
 
-El sistema ya cubre persistencia de competencias y participantes, plantillas competitivas congeladas, configuración y bloqueo del formato, motor determinista de sorteo, ejecución y doble confirmación, generación automática de encuentros, publicación pública verificable, carga y doble confirmación de resultados, recálculo de tablas, desempates por mini-tabla, propuesta de dos clasificados por grupo, confirmación independiente de esos clasificados y anulación auditable de sorteos y resultados.
+El producto v1 competitivo está en **99% verificado**. Los Gates 0–6 están completos, Gate 8 está funcionalmente completo en PR #34 y Gate 7 conserva una única condición externa de producción: `REAL-STORAGE-DRILL`.
 
-La API NestJS cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles y protección de origen y CSRF. La aplicación Next.js incorpora acceso institucional, restauración de sesión, registro responsive de competencias y workspaces para preparación del sorteo, resultados y clasificación.
+El sistema cubre persistencia de competencias y participantes, reglas y formatos congelados, motor determinista de sorteo, ejecución y doble confirmación, generación automática de encuentros, publicación pública verificable, carga y doble confirmación de resultados, tablas y desempates, dos clasificados por grupo, construcción automática de rondas eliminatorias, re-sorteo obligatorio entre rondas, propuesta y doble confirmación de campeón, finalización transaccional e invalidación downstream después de anulaciones.
 
-El siguiente vertical prioritario es **NEXT-ROUND-CONTINUITY-001**: derivar exclusivamente desde avances confirmados el conjunto elegible de la siguiente ronda, crear una nueva configuración eliminatoria congelada y reutilizar el motor existente para el re-sorteo obligatorio entre rondas. Después de cerrar esa continuidad se implementará la finalización explícita de la competencia y la confirmación del campeón.
+La API NestJS cuenta con salud operativa, autenticación, sesiones opacas persistentes, roles, protección de origen/CSRF, configuración fail-fast de producción, cookies/cabeceras seguras y observabilidad estructurada sanitizada. La aplicación Next.js incorpora workspaces de operación y experiencia pública para grupos, tablas, cruces, resultados publicados, presentación oficial de sorteos, historial de verificaciones y accesibilidad/responsive.
+
+La robustez operativa incluye backup PostgreSQL verificable, restore aislado y un contrato provider-neutral de almacenamiento externo (`upload`, `download`, `retain`). El comando:
+
+```bash
+pnpm db:backup:roundtrip-drill
+```
+
+ejecuta `backup → upload → retain → download → verify → restore drill` para el mismo `BACKUP_ID`. CI valida este recorrido completo con transporte simulado. El producto no se declara al 100% hasta ejecutar exactamente ese round-trip contra almacenamiento real privado/cifrado con credencial de mínimo privilegio y retención efectiva.
 
 ## Requisitos
 
@@ -50,6 +58,25 @@ pnpm --filter @oes/web dev
 
 La API queda disponible en `http://localhost:3001/api/v1` y la web en `http://localhost:3000`. `GET /health` es público, los endpoints de identidad están bajo `/auth` y el registro autorizado usa `/competitions` y `/competitions/catalog`.
 
+## Operación de backups
+
+Para desarrollo y drills locales:
+
+```bash
+pnpm db:backup -- ./artifacts/database/oes.dump
+pnpm db:restore:drill -- ./artifacts/database/oes.dump
+```
+
+Para infraestructura externa:
+
+```bash
+pnpm db:backup:publish
+pnpm db:backup:remote-restore-drill
+pnpm db:backup:roundtrip-drill
+```
+
+Las credenciales del proveedor y `DATABASE_URL` nunca deben versionarse. Consulta [`docs/10-production-operations.md`](./docs/10-production-operations.md) para el contrato y criterios exactos de cierre de producción.
+
 ## Estructura
 
 ```text
@@ -59,6 +86,7 @@ packages/domain/       reglas e invariantes sin infraestructura
 packages/database/     Prisma, migraciones y adaptadores PostgreSQL
 packages/config/       configuración compartida
 docs/                  especificaciones normativas
+scripts/database/      backup, publicación y restore drills
 ```
 
 No se deben introducir decisiones oficiales en la interfaz ni en adaptadores de infraestructura.
