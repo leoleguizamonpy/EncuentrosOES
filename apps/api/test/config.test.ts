@@ -40,8 +40,8 @@ describe('loadApiConfig', () => {
   it.each(['API_PORT', 'SESSION_ABSOLUTE_MINUTES', 'SESSION_IDLE_MINUTES'] as const)(
     'rejects production when %s is implicit',
     (key) => {
-      const environment = { ...productionEnvironment };
-      delete environment[key];
+      const environment: NodeJS.ProcessEnv = { ...productionEnvironment };
+      environment[key] = undefined;
       expect(() => loadApiConfig(environment)).toThrow(`${key} must be explicitly configured in production.`);
     },
   );
