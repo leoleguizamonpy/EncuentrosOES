@@ -8,6 +8,7 @@ import {
   Headers,
   HttpCode,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -33,9 +34,13 @@ const editionSchema = z.object({
   year: z.int().min(2020).max(2100),
 }).strict();
 const namedSchema = z.object({ code: codeSchema, name: nameSchema }).strict();
+const activeNamedSchema = namedSchema.extend({ active: z.boolean() }).strict();
 const visualNamedSchema = namedSchema.extend({ icon: iconSchema.nullable().default(null) }).strict();
+const visualUpdateSchema = activeNamedSchema.extend({ icon: iconSchema.nullable().optional() }).strict();
 const institutionSchema = visualNamedSchema.extend({ eventId: uuidSchema }).strict();
+const institutionUpdateSchema = visualUpdateSchema.extend({ eventId: uuidSchema }).strict();
 const combinationSchema = z.object({ eventId: uuidSchema, modalityId: uuidSchema, sportId: uuidSchema }).strict();
+const combinationUpdateSchema = combinationSchema.extend({ active: z.boolean() }).strict();
 
 function mutationContext(request: AuthenticatedRequest, correlationId: string | undefined): CatalogMutationContext {
   if (request.actor === undefined || request.actor.role === 'OPERATOR') {
@@ -47,6 +52,12 @@ function mutationContext(request: AuthenticatedRequest, correlationId: string | 
     actorRole: request.actor.role,
     correlationId: parsedCorrelationId.success ? parsedCorrelationId.data : randomUUID(),
   };
+}
+
+function resourceId(value: string): string {
+  const parsed = uuidSchema.safeParse(value);
+  if (!parsed.success) throw new BadRequestException('El identificador del catálogo no es válido.');
+  return parsed.data;
 }
 
 @Controller('admin/catalog')
@@ -61,74 +72,92 @@ export class CatalogAdminController {
 
   @HttpCode(201)
   @Post('editions')
-  public createEdition(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createEdition']> {
+  public createEdition(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createEdition']> {
     const parsed = editionSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos de la edición no son válidos.');
     return this.service.createEdition({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 
+  @Patch('editions/:id')
+  public updateEdition(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateEdition']> {
+    const parsed = editionSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Los datos de la edición no son válidos.');
+    return this.service.updateEdition(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
   @HttpCode(201)
   @Post('events')
-  public createEvent(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createEvent']> {
+  public createEvent(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createEvent']> {
     const parsed = namedSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos del evento no son válidos.');
     return this.service.createEvent({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 
+  @Patch('events/:id')
+  public updateEvent(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateEvent']> {
+    const parsed = activeNamedSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Los datos del evento no son válidos.');
+    return this.service.updateEvent(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
   @HttpCode(201)
   @Post('sports')
-  public createSport(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createSport']> {
+  public createSport(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createSport']> {
     const parsed = visualNamedSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos del deporte no son válidos.');
     return this.service.createSport({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 
+  @Patch('sports/:id')
+  public updateSport(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateSport']> {
+    const parsed = visualUpdateSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Los datos del deporte no son válidos.');
+    return this.service.updateSport(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
   @HttpCode(201)
   @Post('modalities')
-  public createModality(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createModality']> {
+  public createModality(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createModality']> {
     const parsed = visualNamedSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos de la modalidad no son válidos.');
     return this.service.createModality({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 
+  @Patch('modalities/:id')
+  public updateModality(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateModality']> {
+    const parsed = visualUpdateSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Los datos de la modalidad no son válidos.');
+    return this.service.updateModality(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
   @HttpCode(201)
   @Post('institutions')
-  public createInstitution(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createInstitution']> {
+  public createInstitution(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createInstitution']> {
     const parsed = institutionSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('Los datos de la institución no son válidos.');
     return this.service.createInstitution({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 
+  @Patch('institutions/:id')
+  public updateInstitution(@Param('id') id: string, @Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateInstitution']> {
+    const parsed = institutionUpdateSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Los datos de la institución no son válidos.');
+    return this.service.updateInstitution(resourceId(id), { ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
   @HttpCode(201)
   @Post('combinations')
-  public createCombination(
-    @Body() body: unknown,
-    @Headers('x-correlation-id') correlationId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ): ReturnType<CatalogAdminService['createCombination']> {
+  public createCombination(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['createCombination']> {
     const parsed = combinationSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException('La combinación seleccionada no es válida.');
     return this.service.createCombination({ ...parsed.data, ...mutationContext(request, correlationId) });
+  }
+
+  @Patch('combinations')
+  public updateCombination(@Body() body: unknown, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<CatalogAdminService['updateCombination']> {
+    const parsed = combinationUpdateSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('La combinación seleccionada no es válida.');
+    return this.service.updateCombination({ ...parsed.data, ...mutationContext(request, correlationId) });
   }
 }
 
