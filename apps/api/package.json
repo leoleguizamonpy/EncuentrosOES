@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "bootstrap:superadmin": "pnpm build && node dist/cli/bootstrap-superadmin.js",
+    "bootstrap:superadmin": "pnpm --filter @oes/domain build && pnpm --filter @oes/database build && pnpm build && node dist/cli/bootstrap-superadmin.js",
     "coverage": "vitest run --coverage",
     "dev": "node --watch --enable-source-maps dist/main.js",
     "lint": "eslint src test",
