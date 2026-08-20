@@ -3,7 +3,7 @@
 > Estado auditado: 19 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama de trabajo auditada: `agent/production-robustness-001`  
-> Desarrollo estimado del producto v1 competitivo: **95%**
+> Desarrollo estimado del producto v1 competitivo: **96%**
 
 Este roadmap registra el estado real del producto. No reemplaza Foundation ni las especificaciones de `docs/`; traduce esas decisiones en incrementos verificables de implementación.
 
@@ -117,12 +117,12 @@ Bloque activo: `PRODUCTION-ROBUSTNESS-001` en PR #33.
 - [x] Concurrencia real al preparar la misma siguiente ronda: exactamente una transacción gana, una sola ronda queda `FROZEN`, una sola auditoría se escribe, la revisión avanza una vez y `P2034/P2002` se normalizan como `CONCURRENCY_CONFLICT` — CI #130 verde.
 - [x] Reinicio de proceso: una conexión nueva restaura competencia y ronda congelada desde PostgreSQL y continúa con sorteo, resultado, campeón y `FINALIZED` sin reutilizar memoria del proceso anterior — CI #133 verde.
 - [x] Backup/restore drill reproducible: dump custom PostgreSQL 17, SHA-256, restauración en base aislada, centinela restaurado e historial de migraciones verificado — CI #142 verde.
-- [ ] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio.
+- [ ] Backup automático de producción con almacenamiento externo seguro, retención y credenciales fuera del repositorio — bloqueado hasta definir/integrar infraestructura de producción real.
 - [x] Variables y secretos de producción separados del entorno local: `.env` reales y dumps excluidos, template de producción sin credenciales, validación fail-fast de origen HTTPS/DB PostgreSQL/política de sesión y frontera operativa documentada — CI #150 verde.
 - [x] HTTPS, cookies seguras y política de origen de producción verificadas: CORS exacto con credenciales, rechazo de origen ajeno, cookies `Secure`/`HttpOnly`/`SameSite=Lax` según responsabilidad, HSTS y cabeceras defensivas — CI #154 verde.
-- [~] Observabilidad mínima: logs estructurados, correlación y alertas de errores críticos — siguiente incremento.
+- [x] Observabilidad mínima: una línea JSON sanitizada por solicitud, `correlationId` compartido entre respuesta/Problem Details/log, señal de nivel `error` para 5xx y pruebas que impiden registrar query, cookies, Authorization o detalle interno — CI #158 verde.
 
-**Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado.
+**Gate de salida:** el sistema puede usarse en una competencia oficial sin depender de una intervención manual de emergencia para preservar el estado. La única condición externa pendiente es conectar el mecanismo de backup ya probado a almacenamiento real de producción.
 
 ## Gate 8 — Experiencia pública y operación del evento
 
@@ -163,11 +163,12 @@ Competencia
 ├── [x] Recuperación completa después de reinicio de proceso
 ├── [x] Backup restaurable y verificado en base aislada
 ├── [x] Configuración y secretos de producción separados y validados
-└── [x] Frontera HTTP de producción endurecida y verificada
+├── [x] Frontera HTTP de producción endurecida y verificada
+└── [x] Observabilidad HTTP estructurada y sanitizada
 ```
 
 ## Prioridad inmediata
 
-**PRODUCTION-ROBUSTNESS-001 / OBSERVABILITY-MINIMUM**
+**PRODUCTION-ROBUSTNESS-001 / EXTERNAL-BACKUP-INTEGRATION**
 
-Convertir la correlación HTTP existente en trazabilidad operativa real: emitir logs estructurados y sanitizados por solicitud, conservar el mismo `correlationId` en respuesta/log/error y producir una señal de nivel error para fallos 5xx sin registrar cuerpos, cookies, tokens, contraseñas ni cabeceras sensibles. La integración con un proveedor de alertas deberá poder añadirse sin acoplar el dominio competitivo a infraestructura externa.
+El código ya genera backups verificables y demuestra restauración aislada. Para cerrar Gate 7 falta conectar ese mecanismo a la infraestructura real que alojará producción: destino externo privado/cifrado, política de retención y credenciales de mínimo privilegio. No se considerará cerrado mediante artifacts de CI ni mediante secretos hardcodeados. Mientras esa infraestructura no exista, PR #33 debe permanecer Draft y Gate 8 no se declara formalmente iniciado.
