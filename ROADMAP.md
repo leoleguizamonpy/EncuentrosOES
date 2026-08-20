@@ -2,16 +2,14 @@
 
 > Estado auditado: 20 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
-> Rama funcional consolidada: `main`  
-> Desarrollo estimado del producto v1 competitivo: **99%**
+> Rama funcional consolidada: `main`
 
-Este roadmap registra el estado real del producto. `main` contiene la versión funcional consolidada; las ramas de trabajo ya no representan líneas funcionales alternativas. El único pendiente para declarar 100% es una validación externa de infraestructura (`REAL-STORAGE-DRILL`).
+Este roadmap separa el avance del **motor competitivo** del avance del **producto utilizable**. El porcentaje histórico del 99% se retiró porque mezclaba robustez lógica, infraestructura y experiencia de usuario en un único número que ya no representaba el estado real.
 
 ## Gate 0 — Fundación y arquitectura
 
 - [x] Foundation 2.0 estable.
 - [x] Modelo de dominio, reglas de sorteo, resultados, desempates y clasificación documentados.
-- [x] Casos de uso, arquitectura, datos, seguridad, UI y estrategia de pruebas documentados.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
 - [x] CI con lint, tipos, pruebas, build y PostgreSQL real.
 
@@ -61,7 +59,6 @@ Este roadmap registra el estado real del producto. `main` contiene la versión f
 - [x] `DrawConfiguration` KNOCKOUT congelada y roundNumber incremental.
 - [x] Re-sorteo obligatorio entre rondas con `oes-draw-v1`.
 - [x] Idempotencia HTTP, control optimista y auditoría PostgreSQL.
-- [x] CI específica de continuidad verde.
 
 ## Gate 6 — Finalización competitiva
 
@@ -75,52 +72,73 @@ Este roadmap registra el estado real del producto. `main` contiene la versión f
 
 ## Gate 7 — Robustez operativa previa a producción
 
-- [x] E2E grupos → eliminación → campeón con PostgreSQL real — CI #116.
-- [x] E2E eliminación directa → re-sorteo → campeón — CI #117.
-- [x] Anulación tardía e invalidación downstream — CI #127.
-- [x] Concurrencia crítica serializada/normalizada — CI #130.
-- [x] Recuperación tras reinicio de proceso — CI #133.
-- [x] Backup PostgreSQL custom + SHA-256 + restore aislado — CI #142/#168.
-- [x] Configuración/secrets de producción endurecidos — CI #150.
-- [x] Seguridad HTTP de producción — CI #154.
-- [x] Observabilidad estructurada y sanitizada — CI #158.
-- [x] Contrato provider-neutral `upload`, `download`, `retain` — CI #202/#203.
-- [x] Comando único `pnpm db:backup:roundtrip-drill` — CI #206/#208/#210.
-- [~] **REAL-STORAGE-DRILL**: falta ejecutar ese mismo round-trip contra un almacenamiento externo real, privado/cifrado, con credencial de mínimo privilegio y retención efectiva.
+- [x] E2E grupos → eliminación → campeón con PostgreSQL real.
+- [x] E2E eliminación directa → re-sorteo → campeón.
+- [x] Anulación tardía e invalidación downstream.
+- [x] Concurrencia crítica serializada/normalizada.
+- [x] Recuperación tras reinicio de proceso.
+- [x] Backup PostgreSQL custom + SHA-256 + restore aislado.
+- [x] Configuración/secrets de producción endurecidos.
+- [x] Seguridad HTTP y observabilidad sanitizada.
+- [x] Contrato provider-neutral `upload`, `download`, `retain`.
+- [x] Comando único `pnpm db:backup:roundtrip-drill`.
+- [~] **REAL-STORAGE-DRILL** pendiente contra almacenamiento externo real, privado/cifrado y con credenciales de mínimo privilegio.
 
-**Gate de salida:** `pnpm db:backup:roundtrip-drill` debe completar upload, download, verificación de manifiesto/SHA-256 y restore aislado usando un objeto realmente persistido fuera del entorno de aplicación.
+## Gate 8 — Experiencia pública
 
-## Gate 8 — Experiencia pública y operación del evento
+- [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados.
+- [x] Presentación oficial determinista de sorteos, recuperable por `?step=N`.
+- [x] Accesibilidad y responsive público.
+- [x] Historial público de publicaciones/verificaciones, incluidas `REVOKED` como evidencia histórica.
 
-- [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados — CI #172.
-- [x] Presentación oficial determinista de sorteos, recuperable por `?step=N` y sin azar en navegador — CI #177.
-- [x] Accesibilidad y responsive público — CI #196.
-- [x] Historial público de publicaciones/verificaciones, incluidas `REVOKED` como evidencia histórica — CI #196/#209/#211.
+## Gate 9 — Saneamiento técnico posterior a auditoría
 
-No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
+Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
+
+- [x] Auditoría del árbol completo de `main`.
+- [x] Confirmado que no existen `dist`, `.next`, `node_modules`, dumps o residuos equivalentes versionados.
+- [x] Eliminada la segunda implementación completa de gestión administrativa; su URL histórica queda como redirección de compatibilidad.
+- [x] `catalog_assets` incorporado al esquema Prisma mediante schema multifile.
+- [x] La administración redirige a login ante expiración de sesión en vez de dejar un error de credenciales como pantalla final.
+- [x] Validación de assets cubierta con pruebas web específicas.
+- [x] README y ROADMAP corregidos para no declarar 99% global.
+- [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
+- [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
+- [ ] Reducir componentes frontend grandes al construir el nuevo AppShell y los módulos de producto.
+
+## Gate 10 — Arquitectura de producto y experiencia administrativa
+
+Este es el siguiente bloque después de estabilizar Gate 9.
+
+- [ ] Actualizar `docs/08-ui-flows.md` a UX 2.0.
+- [ ] Definir AppShell único.
+- [ ] Definir navegación aprobada por producto.
+- [ ] Separar módulos: Ediciones, Eventos, Instituciones, Deportes y Modalidades.
+- [ ] Definir Competencias, Sorteos, Encuentros y Clasificación como módulos operativos.
+- [ ] Definir Confirmaciones, Auditoría, Usuarios y Configuración como módulos de control.
+- [ ] Estados vacíos, carga, error, sesión y permisos coherentes.
+- [ ] Formularios y acciones consistentes en escritorio, tablet y móvil.
+- [ ] Prueba visual end-to-end antes de cerrar el gate.
 
 ## Estado resumido
 
 ```text
-EncuentrosOES v1
-├── [x] Gates 0–6
-├── [~] Gate 7
-│   ├── [x] Robustez funcional y operativa implementada
-│   ├── [x] Backup/restore provider-neutral verificado
-│   ├── [x] Round-trip en un solo comando
+EncuentrosOES
+├── [x] Núcleo competitivo (Gates 0–6)
+├── [~] Producción (Gate 7)
 │   └── [ ] REAL-STORAGE-DRILL
-├── [x] Gate 8
-└── [x] Versión funcional consolidada en main
+├── [x] Experiencia pública (Gate 8)
+├── [~] Saneamiento técnico (Gate 9)
+│   ├── [x] Limpieza segura y contratos recientes
+│   └── [ ] Consolidación de persistencia competitiva con equivalencia probada
+└── [ ] Experiencia administrativa 2.0 (Gate 10)
 ```
 
 ## Prioridad inmediata
 
-**REAL-STORAGE-DRILL — ÚNICA CONDICIÓN PENDIENTE PARA 100%**
+1. Mantener `main` verde después del saneamiento técnico.
+2. No introducir nuevas reglas fuera de `FOUNDATION.md`.
+3. Diseñar y aprobar la arquitectura UX 2.0 antes de seguir agregando pantallas administrativas.
+4. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
-Todo lo implementable dentro del repositorio está integrado en `main` y probado. Para declarar el producto v1 al **100%**, el entorno real debe aportar `BACKUP_TRANSPORT_EXECUTABLE`, `BACKUP_REMOTE_PREFIX`, `BACKUP_RETENTION_DAYS`, credenciales de mínimo privilegio y un destino privado/cifrado. Después se ejecutará exactamente:
-
-```bash
-pnpm db:backup:roundtrip-drill
-```
-
-Artifacts de GitHub, almacenamiento local, placeholders o credenciales hardcodeadas no satisfacen este gate.
+No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
