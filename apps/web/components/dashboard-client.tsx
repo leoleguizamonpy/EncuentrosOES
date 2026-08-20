@@ -50,6 +50,7 @@ export function DashboardClient(): React.JSX.Element {
         <OesMark />
         <nav aria-label="Navegación principal">
           <a className="nav-item nav-item--active" href="/dashboard">Resumen</a>
+          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración</span><a className="nav-item" href="/admin/catalog">Catálogos</a></>}
           <span className="nav-heading">Gestión competitiva</span>
           <a className="nav-item" href="/competitions">Competencias</a>
           <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
@@ -71,11 +72,11 @@ export function DashboardClient(): React.JSX.Element {
           <div>
             <span className="status-pill"><i /> Sesión verificada</span>
             <h2>La base operativa está lista.</h2>
-            <p>Tu identidad y autoridad fueron verificadas. El siguiente módulo habilitará la creación y restauración de competencias desde la base de datos.</p>
+            <p>Administra ediciones, eventos, deportes, modalidades e instituciones con identidad visual propia; después crea y opera las competencias persistentes.</p>
           </div>
           <div className="readiness" aria-label="Estado de módulos">
             <div><strong>Identidad</strong><span className="ready">Operativa</span></div>
-            <div><strong>Persistencia</strong><span className="ready">Operativa</span></div>
+            <div><strong>Catálogos</strong><span className="ready">Operativa</span></div>
             <div><strong>Competencias</strong><span className="ready">Operativa</span></div>
           </div>
         </section>
