@@ -50,7 +50,7 @@ export function DashboardClient(): React.JSX.Element {
         <OesMark />
         <nav aria-label="Navegación principal">
           <a className="nav-item nav-item--active" href="/dashboard">Resumen</a>
-          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración</span><a className="nav-item" href="/admin/catalog">Catálogos</a></>}
+          {actor.role === 'OPERATOR' ? null : <><span className="nav-heading">Administración</span><a className="nav-item" href="/admin/catalog">Cargar catálogos</a><a className="nav-item" href="/admin/catalog/manage">Gestionar catálogos</a></>}
           <span className="nav-heading">Gestión competitiva</span>
           <a className="nav-item" href="/competitions">Competencias</a>
           <span className="nav-item nav-item--disabled">Sorteos <small>Próximo</small></span>
