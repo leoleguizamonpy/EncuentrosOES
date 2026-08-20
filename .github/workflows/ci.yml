@@ -84,7 +84,7 @@ jobs:
       - name: Restore backup into isolated database
         run: pnpm db:restore:drill -- ./artifacts/database/ci.dump
 
-      - name: Exercise external backup transport contract
+      - name: Exercise external backup roundtrip contract
         shell: bash
         env:
           BACKUP_FAKE_REMOTE_DIR: ${{ github.workspace }}/artifacts/fake-remote
@@ -96,8 +96,9 @@ jobs:
           BACKUP_TRANSPORT_EXECUTABLE: ${{ github.workspace }}/scripts/database/test/fake-backup-transport.sh
         run: |
           chmod +x "$BACKUP_TRANSPORT_EXECUTABLE"
-          pnpm db:backup:publish
+          pnpm db:backup:roundtrip-drill
           test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/uploads.log")" -eq 3
+          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/downloads.log")" -eq 3
           grep -Fx 'oes-production 30' "$BACKUP_FAKE_REMOTE_DIR/retention.log"
           test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump"
           test -f "$BACKUP_FAKE_REMOTE_DIR/oes-production/ci-external-backup.dump.sha256"
@@ -108,8 +109,6 @@ jobs:
           ! grep -F 'DATABASE_URL' "$MANIFEST"
           ! grep -F 'localhost' "$MANIFEST"
           (cd "$(dirname "$MANIFEST")" && sha256sum --check ci-external-backup.dump.sha256)
-          pnpm db:backup:remote-restore-drill
-          test "$(wc -l < "$BACKUP_FAKE_REMOTE_DIR/downloads.log")" -eq 3
 
       - name: Test with coverage
         run: pnpm coverage
