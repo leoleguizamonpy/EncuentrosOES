@@ -197,7 +197,7 @@ jobs:
           pnpm --filter @oes/web start > /tmp/oes-web.log 2>&1 &
           echo $! > /tmp/oes-web.pid
           for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null && curl --fail --silent http://127.0.0.1:3001/api/v1/auth/me > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null && curl --silent http://127.0.0.1:3001/api/v1/auth/me > /dev/null; then
               exit 0
             fi
             sleep 1
