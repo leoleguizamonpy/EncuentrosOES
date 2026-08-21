@@ -150,13 +150,16 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Auditoría implementada en `/admin/audit`, gate completo verde y consolidada en `main` mediante PR #46.
 - [x] Auditoría consume directamente `AuditEntry` persistido y expone fecha, actor/rol, acción, recurso, competencia, revisiones, correlación y motivo.
 - [x] Endpoint `GET /admin/audit` protegido para ADMIN/SUPERADMIN y limitado a las 200 trazas más recientes.
-- [~] Usuarios implementado en `/admin/users` dentro de `feat/ux2-users`; pendiente gate CI.
+- [x] Usuarios implementado en `/admin/users`, gate completo verde y consolidado en `main` mediante PR #47.
 - [x] Usuarios queda reservado a SUPERADMIN: listado, alta, edición, rol, activación/desactivación y cambio de contraseña.
 - [x] Cambios sensibles de usuario incrementan `credentialVersion` para invalidar sesiones existentes y generan `AuditEntry`.
 - [x] El SUPERADMIN no puede degradar ni desactivar su propia cuenta desde el módulo.
 - [x] Política ADMIN vs SUPERADMIN cerrada y reflejada en navegación: Usuarios/Configuración sensible solo aparecen al SUPERADMIN.
-- [x] Pruebas API y web añadidas para invariantes de credenciales, creación y navegación de Usuarios.
-- [ ] Implementar Configuración solo con parámetros autorizados.
+- [~] Configuración implementada en `/admin/settings` dentro de `feat/ux2-settings`; pendiente gate CI.
+- [x] Configuración queda reservada a SUPERADMIN y expone únicamente política operativa no secreta derivada del entorno.
+- [x] `DATABASE_URL`, credenciales y secretos quedan fuera del contrato y de la interfaz; no se crea una segunda fuente de configuración global.
+- [x] Configuración es de solo lectura porque Foundation no autoriza parámetros globales mutables; reglas de puntuación/desempate/formato permanecen dentro de cada competencia.
+- [x] Pruebas API/web verifican política segura, navegación y ausencia de secretos.
 - [ ] Estados vacíos, carga, error, sesión y permisos coherentes en todos los módulos.
 - [ ] Responsive completo escritorio/tablet/móvil.
 - [ ] Prueba visual end-to-end antes de cerrar el gate.
@@ -180,15 +183,15 @@ EncuentrosOES
     └── [~] Control
         ├── [x] Confirmaciones
         ├── [x] Auditoría
-        ├── [~] Usuarios (CI pendiente)
-        └── [ ] Configuración
+        ├── [x] Usuarios
+        └── [~] Configuración (CI pendiente)
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-users` y consolidar Usuarios solo con gate verde.
-2. Implementar Configuración únicamente con parámetros autorizados por Foundation y la política SUPERADMIN.
-3. Homogeneizar estados vacíos/carga/error/permisos y completar responsive administrativo.
+1. Ejecutar CI completo sobre `feat/ux2-settings` y consolidar Configuración solo con gate verde.
+2. Homogeneizar estados vacíos/carga/error/permisos y completar responsive administrativo.
+3. Ejecutar prueba visual end-to-end antes de cerrar Gate 10.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
