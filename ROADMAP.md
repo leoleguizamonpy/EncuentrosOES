@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 20 de agosto de 2026  
+> Estado auditado: 21 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama funcional consolidada: `main`
 
@@ -107,20 +107,36 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
 - [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
-- [ ] Reducir componentes frontend grandes al construir el nuevo AppShell y los módulos de producto.
+- [~] Reducir componentes frontend grandes durante la migración al AppShell y módulos de producto.
 
 ## Gate 10 — Arquitectura de producto y experiencia administrativa
 
-Este es el siguiente bloque después de estabilizar Gate 9.
+Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 
-- [ ] Actualizar `docs/08-ui-flows.md` a UX 2.0.
-- [ ] Definir AppShell único.
-- [ ] Definir navegación aprobada por producto.
-- [ ] Separar módulos: Ediciones, Eventos, Instituciones, Deportes y Modalidades.
-- [ ] Definir Competencias, Sorteos, Encuentros y Clasificación como módulos operativos.
-- [ ] Definir Confirmaciones, Auditoría, Usuarios y Configuración como módulos de control.
-- [ ] Estados vacíos, carga, error, sesión y permisos coherentes.
-- [ ] Formularios y acciones consistentes en escritorio, tablet y móvil.
+- [x] `docs/08-ui-flows.md` actualizado a UX 2.0.
+- [x] Arquitectura de información definida: Inicio / Organización / Competencia / Control.
+- [x] AppShell base compartido creado.
+- [x] Sidebar base con iconografía SVG y estados de módulo disponible/próximo.
+- [x] Topbar y cuenta centralizados en AppShell.
+- [x] `SessionBoundary` compartido creado.
+- [x] Dashboard migrado al AppShell común.
+- [~] Patrones globales de colección, filtros, drawer, feedback y estados en implementación.
+- [~] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado y escudo.
+- [x] Prueba de creación de Institución añadida a web.
+- [ ] Migrar Competencias al AppShell común.
+- [ ] Implementar Deportes.
+- [ ] Implementar Modalidades.
+- [ ] Implementar Ediciones.
+- [ ] Implementar Eventos y gestión contextual Evento/Deporte/Modalidad.
+- [ ] Implementar Sorteos como módulo operativo.
+- [ ] Implementar Encuentros como módulo operativo.
+- [ ] Implementar Clasificación como módulo operativo.
+- [ ] Implementar Confirmaciones como bandeja única.
+- [ ] Implementar Auditoría.
+- [ ] Implementar Usuarios y cerrar política de permisos.
+- [ ] Implementar Configuración solo con parámetros autorizados.
+- [ ] Estados vacíos, carga, error, sesión y permisos coherentes en todos los módulos.
+- [ ] Responsive completo escritorio/tablet/móvil.
 - [ ] Prueba visual end-to-end antes de cerrar el gate.
 
 ## Estado resumido
@@ -134,14 +150,19 @@ EncuentrosOES
 ├── [~] Saneamiento técnico (Gate 9)
 │   ├── [x] Limpieza segura y contratos recientes
 │   └── [ ] Consolidación de persistencia competitiva con equivalencia probada
-└── [ ] Experiencia administrativa 2.0 (Gate 10)
+└── [~] Experiencia administrativa 2.0 (Gate 10)
+    ├── [x] Arquitectura UX 2.0
+    ├── [x] AppShell + SessionBoundary base
+    ├── [~] Instituciones
+    └── [ ] Resto de módulos
 ```
 
 ## Prioridad inmediata
 
-1. Mantener `main` verde después del saneamiento técnico.
-2. No introducir nuevas reglas fuera de `FOUNDATION.md`.
-3. Diseñar y aprobar la arquitectura UX 2.0 antes de seguir agregando pantallas administrativas.
-4. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
+1. Validar `main` con typecheck, tests y build del nuevo AppShell/Instituciones.
+2. Corregir cualquier regresión antes de extender UX 2.0.
+3. Migrar Competencias al AppShell compartido.
+4. Continuar Organización con Deportes y Modalidades.
+5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
