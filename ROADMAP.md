@@ -168,10 +168,11 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Sorteos diferencia un fallo de `drawWorkspace` de una ausencia real de sorteo mediante `Estado no disponible`; regresión cubierta por prueba web.
 - [x] Encuentros y Clasificación conservan datos cargados de otras competencias y advierten cuántas competencias no pudieron recuperarse.
 - [x] Cuarto lote consolidado mediante PR #52: Ediciones, Eventos, Instituciones y `VisualCatalogClient` comparten carga/error/reintento; Deportes y Modalidades quedan cubiertos sin duplicación; gate completo verde.
-- [~] Responsive administrativo activo en `chore/ux2-responsive-hardening`: AppShell adaptable, navegación móvil por drawer, topbar apilable y hardening de tablas/toolbars/drawers compartidos.
-- [x] Prueba web añadida para apertura/cierre de navegación móvil y preservación de permisos de navegación.
-- [~] Responsive escritorio/tablet/móvil en validación transversal.
-- [ ] Prueba visual end-to-end antes de cerrar el gate.
+- [x] Responsive administrativo consolidado mediante PR #53: AppShell adaptable, navegación móvil por drawer, topbar apilable y hardening de tablas/toolbars/drawers compartidos; gate completo verde.
+- [x] Prueba web cubre apertura/cierre de navegación móvil y preservación de permisos de navegación.
+- [x] Responsive estructural escritorio/tablet/móvil consolidado en `main`.
+- [~] E2E visual real activo en `test/ux2-visual-e2e`: login real con SUPERADMIN bootstrap, PostgreSQL real, API + Next construidos y navegador Chromium.
+- [~] Drill visual verifica dashboard, navegación móvil y Usuarios en 390px, 820px, 1024px y 1440px, bloqueando overflow horizontal y generando capturas como evidencia de CI.
 
 ## Estado resumido
 
@@ -195,15 +196,15 @@ EncuentrosOES
         ├── [x] Usuarios + Confirmaciones — PR #50
         ├── [x] Sorteos + Encuentros + Clasificación — PR #51
         ├── [x] Organización — PR #52
-        ├── [~] Responsive administrativo — rama activa
-        └── [ ] E2E visual
+        ├── [x] Responsive administrativo — PR #53
+        └── [~] E2E visual real — rama activa
 ```
 
 ## Prioridad inmediata
 
-1. Validar y consolidar responsive administrativo sobre AppShell, tablas, toolbars y drawers compartidos.
-2. Auditar pantallas específicas que no usan las capas compartidas y corregir overflow o composición móvil solo donde exista evidencia.
-3. Ejecutar prueba visual end-to-end antes de cerrar Gate 10.
+1. Validar el nuevo job `visual-e2e` con Chromium real, login real y PostgreSQL real; conservar capturas como evidencia del gate.
+2. Corregir cualquier overflow o composición detectada por el navegador sin ocultar fallos mediante tolerancias artificiales.
+3. Cerrar Gate 10 solo cuando quality + visual-e2e queden verdes en el mismo head.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
