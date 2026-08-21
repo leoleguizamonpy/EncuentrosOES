@@ -47,7 +47,7 @@ const competition: readonly NavEntry[] = [
 ];
 
 const control: readonly NavEntry[] = [
-  { icon: 'confirmation', id: 'confirmations', label: 'Confirmaciones', soon: true },
+  { href: '/admin/confirmations', icon: 'confirmation', id: 'confirmations', label: 'Confirmaciones' },
   { icon: 'audit', id: 'audit', label: 'Auditoría', soon: true },
   { icon: 'users', id: 'users', label: 'Usuarios', soon: true },
   { icon: 'settings', id: 'settings', label: 'Configuración', soon: true },
