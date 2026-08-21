@@ -86,7 +86,7 @@ describe('StandingsClient', () => {
     expect(screen.getByText('Futsal · Masculina · Grupo A')).toBeInTheDocument();
     expect(screen.getByText('Colegio A')).toBeInTheDocument();
     expect(screen.getByText('Colegio B')).toBeInTheDocument();
-    expect(screen.getByText('Clasificación confirmada')).toBeInTheDocument();
+    expect(screen.getAllByText('Clasificación confirmada')).toHaveLength(2);
     expect(screen.getByText('1 grupos confirmados')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver competencia' })).toHaveAttribute('href', '/competitions/competition-1#results-workspace');
   });
