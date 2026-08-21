@@ -143,12 +143,15 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`, sin exponer una sección primaria llamada Combinaciones.
 - [x] Pruebas de creación de Evento y habilitación contextual Deporte/Modalidad añadidas a web.
 - [x] Organización UX 2.0 cubierta por Ediciones, Eventos, Instituciones, Deportes y Modalidades.
-- [~] Sorteos implementado como bandeja operativa en `/draws` dentro de `feat/ux2-draws`; pendiente gate CI.
+- [x] Sorteos implementado como bandeja operativa en `/draws`, gate completo verde y consolidado en `main` mediante PR #42.
 - [x] Sorteos clasifica competencias como no listas, pendientes de preparar, preparadas, pendientes de confirmación, confirmadas o publicadas.
 - [x] La ejecución oficial sigue reutilizando el flujo existente dentro de `/competitions/[id]`; no se duplica el motor de sorteo.
 - [x] Publicaciones oficiales siguen disponibles en `/draws/[id]` y se enlazan desde la bandeja cuando existen.
 - [x] Pruebas de estados preparado/publicado y navegación operativa añadidas a web.
-- [ ] Implementar Encuentros como módulo operativo.
+- [~] Encuentros implementado como bandeja operativa en `/matches` dentro de `feat/ux2-matches`; pendiente gate CI.
+- [x] Encuentros agrega partidos materializados de todas las competencias bloqueadas/finalizadas y expone pendientes de resultado/confirmación.
+- [x] La carga, confirmación y anulación de resultados sigue reutilizando `ResultsWorkspacePanel` dentro de `/competitions/[id]`; no se duplica lógica de resultados.
+- [x] Prueba de encuentro pendiente con rol OPERATOR y navegación al workspace existente añadida a web.
 - [ ] Implementar Clasificación como módulo operativo.
 - [ ] Implementar Confirmaciones como bandeja única.
 - [ ] Implementar Auditoría.
@@ -174,15 +177,16 @@ EncuentrosOES
     ├── [x] AppShell + SessionBoundary base
     ├── [x] Organización funcional
     ├── [x] Competencias → AppShell
-    ├── [~] Sorteos (CI pendiente)
-    └── [ ] Encuentros / Clasificación / Control
+    ├── [x] Sorteos
+    ├── [~] Encuentros (CI pendiente)
+    └── [ ] Clasificación / Control
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-draws` y consolidar Sorteos solo con gate verde.
-2. Implementar Encuentros como bandeja operativa reutilizando `resultsWorkspace` y los contratos existentes.
-3. Implementar Clasificación sin duplicar el cálculo de tablas ya existente en el núcleo.
+1. Ejecutar CI completo sobre `feat/ux2-matches` y consolidar Encuentros solo con gate verde.
+2. Implementar Clasificación sin duplicar el cálculo de tablas ya existente en `resultsWorkspace`.
+3. Implementar Confirmaciones como bandeja transversal de decisiones pendientes.
 4. Resolver autorización definitiva de datos maestros y consolidación de persistencia sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
