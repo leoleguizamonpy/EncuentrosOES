@@ -1,4 +1,4 @@
-import { createPrismaClient } from '@oes/database';
+import { createPrismaClient, PrismaCompetitionRepository } from '@oes/database';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { CompetitionStoreError } from '../src/competitions/competition-store.js';
@@ -10,6 +10,7 @@ const databaseUrl = process.env.DATABASE_URL ?? 'postgresql://oes:oes@localhost:
 const integration = process.env.DATABASE_URL === undefined ? describe.skip : describe;
 const client = createPrismaClient(databaseUrl);
 const store = new PrismaCompetitionStore(client);
+const repository = new PrismaCompetitionRepository(client);
 const drawStore = new PrismaDrawStore(client);
 
 const ids = {
@@ -85,6 +86,69 @@ integration('PrismaCompetitionStore', () => {
     expect(await client.competition.count()).toBe(1);
     expect(await client.auditEntry.count()).toBe(1);
     expect(await client.idempotencyRecord.count()).toBe(1);
+  });
+
+  it('rehydrates store-written aggregate state through the shared competition repository', async () => {
+    const created = await store.create({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      correlationId: '90500000-0000-4000-8000-000000000001',
+      editionId: ids.edition,
+      eventId: ids.event,
+      idempotencyKey: 'equivalence-create-0001',
+      modalityId: ids.modality,
+      sportId: ids.sport,
+    });
+
+    let revision = created.revision;
+    for (const [index, institutionId] of [ids.institutionA, ids.institutionB, ids.institutionC].entries()) {
+      const updated = await store.addParticipant({
+        actorId: ids.actor,
+        actorRole: 'ADMIN',
+        competitionId: created.id,
+        correlationId: `90500000-0000-4000-8000-00000000000${String(index + 2)}`,
+        expectedRevision: revision,
+        idempotencyKey: `equivalence-participant-000${String(index + 1)}`,
+        institutionId,
+      });
+      revision = updated.revision;
+    }
+
+    const detail = await store.configureFormat({
+      actorId: ids.actor,
+      actorRole: 'ADMIN',
+      competitionId: created.id,
+      correlationId: '90500000-0000-4000-8000-000000000005',
+      expectedRevision: revision,
+      formatCode: 'GROUP_STAGE',
+      groupCount: 1,
+      idempotencyKey: 'equivalence-format-0001',
+    });
+
+    const aggregate = await repository.findById(created.id);
+    expect(aggregate).not.toBeNull();
+    const snapshot = aggregate?.toSnapshot();
+    expect(snapshot).toMatchObject({
+      formatCode: detail.formatCode,
+      groupCount: detail.groupCount,
+      id: detail.id,
+      key: {
+        editionId: detail.edition.id,
+        eventId: detail.event.id,
+        modalityId: detail.modality.id,
+        sportId: detail.sport.id,
+      },
+      revision: detail.revision,
+      status: detail.status,
+    });
+
+    const persistedParticipants = [...(snapshot?.participants ?? [])]
+      .map(({ displayName, institutionId, status }) => ({ displayName, institutionId, status }))
+      .sort((left, right) => left.institutionId.localeCompare(right.institutionId));
+    const projectedParticipants = [...detail.participants]
+      .map(({ displayName, institutionId, status }) => ({ displayName, institutionId, status }))
+      .sort((left, right) => left.institutionId.localeCompare(right.institutionId));
+    expect(persistedParticipants).toEqual(projectedParticipants);
   });
 
   it('persists participant loading and a validated group-stage setup', async () => {

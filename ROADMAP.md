@@ -108,8 +108,14 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
 - [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida.
 - [x] Política de autorización cerrada: ADMIN gestiona organización/competencia/control operativo; SUPERADMIN conserva administración de cuentas, roles y configuración sensible.
-- [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
-- [~] Reducir componentes frontend grandes durante la migración al AppShell y módulos de producto.
+- [~] Consolidación de persistencia competitiva activa en `refactor/persistence-equivalence`: primero equivalencia observable, luego sustitución incremental; sin limpieza destructiva.
+- [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
+- [x] Baseline de equivalencia de `Competition` validado en PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; `quality + visual-e2e` verdes en `e7b8bead5906be25b080674b3e41ccafd0427d16`.
+- [ ] Hacer `PrismaCompetitionRepository` transaction-aware para poder reutilizar persistencia dentro de la transacción Serializable del Store sin romper auditoría ni idempotencia.
+- [ ] Delegar gradualmente lectura/escritura del agregado `Competition` desde `PrismaCompetitionStore` al repositorio compartido con equivalencia verde.
+- [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
+- [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
+- [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
 
 ## Gate 10 — Arquitectura de producto y experiencia administrativa
 
@@ -122,8 +128,8 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Topbar y cuenta centralizados en AppShell.
 - [x] `SessionBoundary` compartido creado.
 - [x] Dashboard migrado al AppShell común.
-- [~] Patrones globales de colección, filtros, drawer, feedback y estados en implementación.
-- [~] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado, escudo y reintento de carga.
+- [x] Patrones globales de colección, filtros, drawer, feedback y estados consolidados en UX 2.0.
+- [x] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado, escudo y reintento de carga.
 - [x] Actualizaciones de escudo omiten correctamente `icon` cuando no existe cambio, respetando `exactOptionalPropertyTypes`.
 - [x] Prueba de creación de Institución añadida a web.
 - [x] Competencias migrado al AppShell común y consolidado en `main` mediante PR #36.
@@ -171,8 +177,9 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Responsive administrativo consolidado mediante PR #53: AppShell adaptable, navegación móvil por drawer, topbar apilable y hardening de tablas/toolbars/drawers compartidos; gate completo verde.
 - [x] Prueba web cubre apertura/cierre de navegación móvil y preservación de permisos de navegación.
 - [x] Responsive estructural escritorio/tablet/móvil consolidado en `main`.
-- [~] E2E visual real activo en `test/ux2-visual-e2e`: login real con SUPERADMIN bootstrap, PostgreSQL real, API + Next construidos y navegador Chromium.
-- [~] Drill visual verifica dashboard, navegación móvil y Usuarios en 390px, 820px, 1024px y 1440px, bloqueando overflow horizontal y generando capturas como evidencia de CI.
+- [x] E2E visual real consolidado mediante PR #54: login real con SUPERADMIN bootstrap, PostgreSQL real, API + Next construidos y navegador Chromium.
+- [x] Drill visual verifica dashboard, navegación móvil y Usuarios en 390px, 820px, 1024px y 1440px, bloqueando overflow horizontal y generando capturas como evidencia de CI.
+- [x] Gate 10 cerrado sobre `quality + visual-e2e` verdes en el mismo head `d897db145a3ec6f0fe027eacd5f50e186ef99634`; PR #54 consolidado en `main` mediante merge `d031a15f4c48e95a1d5b44e4f09e15963caedd75`.
 
 ## Estado resumido
 
@@ -184,28 +191,29 @@ EncuentrosOES
 ├── [x] Experiencia pública (Gate 8)
 ├── [~] Saneamiento técnico (Gate 9)
 │   ├── [x] UI heredada de Catálogos retirada
-│   └── [ ] Consolidación de persistencia competitiva con equivalencia probada
-└── [~] Experiencia administrativa 2.0 (Gate 10)
+│   ├── [x] Inventario de persistencia competitiva
+│   └── [~] Equivalencia/consolidación incremental — PR #55 activo
+└── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
-    ├── [x] AppShell + SessionBoundary base
-    ├── [x] Organización funcional
-    ├── [x] Competencia funcional
-    ├── [x] Control funcional
-    └── [~] Hardening transversal
+    ├── [x] AppShell + SessionBoundary
+    ├── [x] Organización
+    ├── [x] Competencia
+    ├── [x] Control
+    └── [x] Hardening transversal
         ├── [x] Estados base + recuperación de sesión — PR #49
         ├── [x] Usuarios + Confirmaciones — PR #50
         ├── [x] Sorteos + Encuentros + Clasificación — PR #51
         ├── [x] Organización — PR #52
         ├── [x] Responsive administrativo — PR #53
-        └── [~] E2E visual real — rama activa
+        └── [x] E2E visual Chromium — PR #54
 ```
 
 ## Prioridad inmediata
 
-1. Validar el nuevo job `visual-e2e` con Chromium real, login real y PostgreSQL real; conservar capturas como evidencia del gate.
-2. Corregir cualquier overflow o composición detectada por el navegador sin ocultar fallos mediante tolerancias artificiales.
-3. Cerrar Gate 10 solo cuando quality + visual-e2e queden verdes en el mismo head.
-4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
-5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
+1. Consolidar PR #55 después de verificar `quality + visual-e2e` también sobre este head documental final.
+2. Hacer `PrismaCompetitionRepository` transaction-aware sin crear transacciones anidadas ni separar persistencia de auditoría/idempotencia.
+3. Delegar incrementalmente el agregado `Competition` desde `PrismaCompetitionStore` y demostrar equivalencia antes de retirar cada bloque duplicado.
+4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
+5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
