@@ -90,4 +90,14 @@ describe('DrawsClient', () => {
     await waitFor(() => expect(screen.getByText('Publicado')).toBeInTheDocument());
     expect(screen.getByRole('link', { name: 'Ver publicación' })).toHaveAttribute('href', '/draws/publication-1');
   });
+
+  it('does not disguise a failed draw workspace as a competition without a draw', async () => {
+    competitionApi.drawWorkspace.mockRejectedValue(new Error('workspace unavailable'));
+
+    render(<DrawsClient />);
+
+    expect(await screen.findByText('Estado no disponible')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No fue posible recuperar el estado de 1 competencia');
+    expect(screen.getByRole('link', { name: 'Operar' })).toHaveAttribute('href', '/competitions/competition-1');
+  });
 });
