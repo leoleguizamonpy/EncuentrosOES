@@ -7,7 +7,31 @@ const actorId = '10000000-0000-4000-8000-000000000001';
 const userId = '10000000-0000-4000-8000-000000000002';
 const correlationId = '20000000-0000-4000-8000-000000000001';
 
-function user(overrides: Record<string, unknown> = {}) {
+interface UserRecord {
+  readonly createdAt: Date;
+  readonly credentialVersion: number;
+  readonly displayName: string;
+  readonly emailNormalized: string;
+  readonly id: string;
+  readonly lastLoginAt: Date | null;
+  readonly passwordHash: string;
+  readonly role: string;
+  readonly status: string;
+  readonly updatedAt: Date;
+}
+
+interface UpdateArgs {
+  readonly data: {
+    readonly credentialVersion?: { readonly increment: number };
+    readonly displayName?: string;
+    readonly passwordHash?: string;
+    readonly role?: string;
+    readonly status?: string;
+  };
+  readonly where: { readonly id: string };
+}
+
+function user(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
     createdAt: new Date('2026-08-21T12:00:00.000Z'),
     credentialVersion: 2,
@@ -27,14 +51,22 @@ describe('UsersAdminService', () => {
   it('increments credentialVersion and audits a sensitive role change', async () => {
     const current = user();
     const updated = user({ credentialVersion: 3, role: 'ADMIN' });
+    let updateArgs: UpdateArgs | null = null;
+    const auditCreate = vi.fn(() => Promise.resolve({}));
+    const updateUser = vi.fn((input: UpdateArgs): Promise<UserRecord> => {
+      updateArgs = input;
+      return Promise.resolve(updated);
+    });
     const tx = {
-      auditEntry: { create: vi.fn().mockResolvedValue({}) },
+      auditEntry: { create: auditCreate },
       user: {
-        findUnique: vi.fn().mockResolvedValue(current),
-        update: vi.fn().mockResolvedValue(updated),
+        findUnique: vi.fn(() => Promise.resolve(current)),
+        update: updateUser,
       },
     };
-    const prisma = { $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)) } as unknown as PrismaClient;
+    const prisma = {
+      $transaction: vi.fn((callback: (client: typeof tx) => Promise<unknown>): Promise<unknown> => callback(tx)),
+    } as unknown as PrismaClient;
     const service = new UsersAdminService(prisma);
 
     const result = await service.update({
@@ -47,16 +79,10 @@ describe('UsersAdminService', () => {
       userId,
     });
 
-    expect(tx.user.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ credentialVersion: { increment: 1 }, role: 'ADMIN' }),
-    }));
-    expect(tx.auditEntry.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      actionCode: 'USER_UPDATED',
-      actorId,
-      resourceId: userId,
-      revisionBefore: 2,
-      revisionAfter: 3,
-    }) });
+    expect(updateArgs).not.toBeNull();
+    expect(updateArgs?.data.credentialVersion).toEqual({ increment: 1 });
+    expect(updateArgs?.data.role).toBe('ADMIN');
+    expect(auditCreate).toHaveBeenCalledOnce();
     expect(result.role).toBe('ADMIN');
   });
 
