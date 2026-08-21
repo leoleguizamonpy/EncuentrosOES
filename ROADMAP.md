@@ -133,10 +133,14 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Modalidades implementado en `/admin/modalities`, gate completo verde y consolidado en `main` mediante PR #38.
 - [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual y el patrón de colección/drawer.
 - [x] Prueba de creación de Modalidad añadida a web.
-- [~] Ediciones implementado en `/admin/editions` dentro de `feat/ux2-editions`; pendiente gate CI.
+- [x] Ediciones implementado en `/admin/editions`, gate completo verde y consolidado en `main` mediante PR #39.
 - [x] Ediciones contempla búsqueda, estado OPEN/CLOSED, alta, edición, año, estados vacíos y reintento.
 - [x] Prueba de creación de Edición añadida a web.
-- [ ] Implementar Eventos y gestión contextual Evento/Deporte/Modalidad.
+- [~] Eventos implementado en `/admin/events` dentro de `feat/ux2-events`; pendiente gate CI.
+- [x] Eventos contempla listado, búsqueda, estado, alta, edición y resumen de instituciones/combinaciones.
+- [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`, sin exponer una sección primaria llamada Combinaciones.
+- [x] Pruebas de creación de Evento y habilitación contextual Deporte/Modalidad añadidas a web.
+- [ ] Retirar progresivamente la experiencia heredada `/admin/catalog` una vez consolidado Eventos.
 - [ ] Implementar Sorteos como módulo operativo.
 - [ ] Implementar Encuentros como módulo operativo.
 - [ ] Implementar Clasificación como módulo operativo.
@@ -166,15 +170,16 @@ EncuentrosOES
     ├── [x] Competencias → AppShell
     ├── [x] Deportes
     ├── [x] Modalidades + VisualCatalogClient
-    ├── [~] Ediciones (CI pendiente)
-    └── [ ] Resto de módulos
+    ├── [x] Ediciones
+    ├── [~] Eventos + relaciones contextuales (CI pendiente)
+    └── [ ] Módulos operativos y Control
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-editions`: lint, typecheck, integración PostgreSQL, cobertura y build.
-2. Corregir cualquier regresión y consolidar Ediciones en `main` solo con gate verde.
-3. Implementar Eventos y retirar progresivamente la experiencia heredada `/admin/catalog`.
+1. Ejecutar CI completo sobre `feat/ux2-events`: lint, typecheck, integración PostgreSQL, cobertura y build.
+2. Corregir cualquier regresión y consolidar Eventos en `main` solo con gate verde.
+3. Retirar la experiencia heredada `/admin/catalog` sin eliminar los contratos de datos que siguen reutilizando los módulos UX 2.0.
 4. Iniciar Sorteos como módulo operativo UX 2.0 una vez cerrada Organización.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
