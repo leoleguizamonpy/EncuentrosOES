@@ -13,6 +13,7 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const SUPERADMIN_ONLY = ['SUPERADMIN'] as const;
 type UserFilter = 'ALL' | ManagedUserStatus;
@@ -108,11 +109,11 @@ function UsersWorkspace(): React.JSX.Element {
 
   async function retry(): Promise<void> {
     setLoading(true); setError(null);
-    try { await reload(); } catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); } finally { setLoading(false); }
+    try { await reload(); } catch (caught: unknown) { setItems(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); } finally { setLoading(false); }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando usuarios…</strong><p>Recuperando cuentas y roles del sistema.</p></div>;
-  if (items === null) return <div className="empty-state"><strong>No fue posible cargar Usuarios.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando cuentas y roles del sistema." title="Cargando usuarios…" />;
+  if (items === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Usuarios." tone="error" />;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}><div><span className="eyebrow eyebrow--dark">Control</span><h2>Usuarios</h2><p>Administra cuentas, roles y acceso. Solo el SUPERADMIN puede modificar esta superficie; cambios de rol, estado o contraseña invalidan sesiones vigentes.</p></div><button className={styles.primaryButton} onClick={() => setDrawer('NEW')} type="button">+ Nuevo usuario</button></section>
