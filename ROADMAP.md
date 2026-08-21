@@ -140,11 +140,14 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Sorteos reutiliza el flujo oficial existente dentro de `/competitions/[id]` y mantiene publicaciones en `/draws/[id]`.
 - [x] Encuentros implementado como bandeja operativa en `/matches`, gate completo verde y consolidado en `main` mediante PR #43.
 - [x] Encuentros agrega partidos materializados y expone pendientes de resultado/confirmación reutilizando `ResultsWorkspacePanel`.
-- [~] Clasificación implementada como vista transversal en `/standings` dentro de `feat/ux2-standings`; pendiente gate CI.
+- [x] Clasificación implementada como vista transversal en `/standings`, gate completo verde y consolidada en `main` mediante PR #44.
 - [x] Clasificación reutiliza `resultsWorkspace()` como única fuente de tablas, posiciones, métricas y clasificados; no recalcula standings en frontend.
 - [x] Clasificación contempla SCORE_BASED y SET_BASED, tablas parciales/completas y clasificación propuesta/confirmada.
-- [x] Prueba de tabla calculada y clasificación confirmada con rol OPERATOR añadida a web.
-- [ ] Implementar Confirmaciones como bandeja única.
+- [x] Bloque Competencia UX 2.0 cubierto por Competencias, Sorteos, Encuentros y Clasificación.
+- [~] Confirmaciones implementada como bandeja única en `/admin/confirmations` dentro de `feat/ux2-confirmations`; pendiente gate CI.
+- [x] Confirmaciones agrega sorteos, resultados, clasificados y campeón pendientes usando contratos existentes, sin entidad paralela de workflow.
+- [x] Confirmaciones bloquea en UI la autoconfirmación cuando el actor actual originó la decisión y delega la validación definitiva al backend.
+- [x] Prueba de agregación, segunda autoridad y confirmación directa de sorteo añadida a web.
 - [ ] Implementar Auditoría.
 - [ ] Implementar Usuarios y cerrar política de permisos.
 - [ ] Implementar Configuración solo con parámetros autorizados.
@@ -167,19 +170,20 @@ EncuentrosOES
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary base
     ├── [x] Organización funcional
-    ├── [x] Competencias
-    ├── [x] Sorteos
-    ├── [x] Encuentros
-    ├── [~] Clasificación (CI pendiente)
-    └── [ ] Control
+    ├── [x] Competencia funcional
+    └── [~] Control
+        ├── [~] Confirmaciones (CI pendiente)
+        ├── [ ] Auditoría
+        ├── [ ] Usuarios
+        └── [ ] Configuración
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-standings` y consolidar Clasificación solo con gate verde.
-2. Implementar Confirmaciones como bandeja transversal de decisiones pendientes.
-3. Implementar Auditoría y después Usuarios/Configuración con política de permisos explícita.
-4. Resolver autorización definitiva de datos maestros y consolidación de persistencia sin refactor destructivo.
+1. Ejecutar CI completo sobre `feat/ux2-confirmations` y consolidar Confirmaciones solo con gate verde.
+2. Implementar Auditoría como superficie de trazabilidad transversal.
+3. Implementar Usuarios y cerrar la política ADMIN vs SUPERADMIN antes de Configuración.
+4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
