@@ -82,7 +82,6 @@ describe('UsersAdminService', () => {
       data: {
         credentialVersion: { increment: 1 },
         displayName: 'Operador Uno',
-        passwordHash: undefined,
         role: 'ADMIN',
         status: 'ACTIVE',
       },
