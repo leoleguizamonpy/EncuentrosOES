@@ -127,10 +127,12 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Competencias migrado al AppShell común y consolidado en `main` mediante PR #36.
 - [x] Competencias deja de duplicar sesión, logout, sidebar y topbar; usa `SessionBoundary + AppShell`.
 - [x] Gate de Competencias verde: lint, typecheck, Prisma, integración PostgreSQL, cobertura y build.
-- [~] Deportes implementado en `/admin/sports` dentro de `feat/ux2-sports`; pendiente gate CI antes de consolidar.
+- [x] Deportes implementado en `/admin/sports`, gate completo verde y consolidado en `main` mediante PR #37.
 - [x] Deportes usa búsqueda, filtro de estado, alta, edición, icono, activar/desactivar, estados vacíos y reintento.
 - [x] Prueba de creación de Deporte añadida a web.
-- [ ] Implementar Modalidades.
+- [~] Modalidades implementado en `/admin/modalities` dentro de `feat/ux2-modalities-visual-catalog`; pendiente gate CI.
+- [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual y el patrón de colección/drawer.
+- [x] Prueba de creación de Modalidad añadida a web.
 - [ ] Implementar Ediciones.
 - [ ] Implementar Eventos y gestión contextual Evento/Deporte/Modalidad.
 - [ ] Implementar Sorteos como módulo operativo.
@@ -160,16 +162,17 @@ EncuentrosOES
     ├── [x] AppShell + SessionBoundary base
     ├── [~] Instituciones
     ├── [x] Competencias → AppShell
-    ├── [~] Deportes (CI pendiente)
+    ├── [x] Deportes
+    ├── [~] Modalidades + VisualCatalogClient (CI pendiente)
     └── [ ] Resto de módulos
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-sports`: lint, typecheck, integración PostgreSQL, cobertura y build.
-2. Corregir cualquier regresión y consolidar Deportes en `main` solo con gate verde.
-3. Implementar Modalidades con el mismo patrón UX 2.0 sin duplicar shell ni contratos de persistencia.
-4. Migrar Ediciones y Eventos fuera de la experiencia heredada `/admin/catalog`.
+1. Ejecutar CI completo sobre `feat/ux2-modalities-visual-catalog`: lint, typecheck, integración PostgreSQL, cobertura y build.
+2. Corregir cualquier regresión y consolidar Modalidades/refactor visual en `main` solo con gate verde.
+3. Implementar Ediciones con UX 2.0.
+4. Implementar Eventos y retirar progresivamente la experiencia heredada `/admin/catalog`.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.

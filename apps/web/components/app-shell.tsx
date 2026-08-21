@@ -36,7 +36,7 @@ const organization: readonly NavEntry[] = [
   { icon: 'event', id: 'events', label: 'Eventos', soon: true },
   { href: '/admin/institutions', icon: 'institution', id: 'institutions', label: 'Instituciones' },
   { href: '/admin/sports', icon: 'sport', id: 'sports', label: 'Deportes' },
-  { icon: 'modality', id: 'modalities', label: 'Modalidades', soon: true },
+  { href: '/admin/modalities', icon: 'modality', id: 'modalities', label: 'Modalidades' },
 ];
 
 const competition: readonly NavEntry[] = [
