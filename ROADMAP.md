@@ -161,14 +161,16 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Configuración es de solo lectura porque Foundation no autoriza parámetros globales mutables; reglas de puntuación/desempate/formato permanecen dentro de cada competencia.
 - [x] Pruebas API/web verifican política segura, navegación y ausencia de secretos.
 - [x] Bloque Control UX 2.0 cubierto por Confirmaciones, Auditoría, Usuarios y Configuración.
-- [~] Estados vacíos, carga, error, sesión y permisos en homogeneización transversal.
+- [x] Estados vacíos, carga, error, sesión y permisos homogeneizados transversalmente.
 - [x] Primer lote de hardening consolidado mediante PR #49: `WorkspaceState`, Auditoría, Configuración y recuperación de `SessionBoundary`, con gate completo verde.
 - [x] Segundo lote consolidado mediante PR #50: Usuarios y Confirmaciones migrados a `WorkspaceState`, con recuperación de carga probada y gate completo verde.
 - [x] Tercer lote consolidado mediante PR #51: Sorteos, Encuentros y Clasificación migrados al estado compartido para fallos globales y con degradación parcial explícita por competencia; gate completo verde.
 - [x] Sorteos diferencia un fallo de `drawWorkspace` de una ausencia real de sorteo mediante `Estado no disponible`; regresión cubierta por prueba web.
 - [x] Encuentros y Clasificación conservan datos cargados de otras competencias y advierten cuántas competencias no pudieron recuperarse.
-- [~] Cuarto lote activo en `chore/ux2-organization-hardening`: auditar Ediciones, Eventos, Instituciones, Deportes y Modalidades para cerrar estados compartidos sin duplicar lógica de `VisualCatalogClient` ni gestores ya reutilizados.
-- [ ] Responsive completo escritorio/tablet/móvil.
+- [x] Cuarto lote consolidado mediante PR #52: Ediciones, Eventos, Instituciones y `VisualCatalogClient` comparten carga/error/reintento; Deportes y Modalidades quedan cubiertos sin duplicación; gate completo verde.
+- [~] Responsive administrativo activo en `chore/ux2-responsive-hardening`: AppShell adaptable, navegación móvil por drawer, topbar apilable y hardening de tablas/toolbars/drawers compartidos.
+- [x] Prueba web añadida para apertura/cierre de navegación móvil y preservación de permisos de navegación.
+- [~] Responsive escritorio/tablet/móvil en validación transversal.
 - [ ] Prueba visual end-to-end antes de cerrar el gate.
 
 ## Estado resumido
@@ -192,15 +194,15 @@ EncuentrosOES
         ├── [x] Estados base + recuperación de sesión — PR #49
         ├── [x] Usuarios + Confirmaciones — PR #50
         ├── [x] Sorteos + Encuentros + Clasificación — PR #51
-        ├── [~] Organización — lote activo
-        ├── [ ] Responsive administrativo
+        ├── [x] Organización — PR #52
+        ├── [~] Responsive administrativo — rama activa
         └── [ ] E2E visual
 ```
 
 ## Prioridad inmediata
 
-1. Auditar Ediciones, Eventos, Instituciones, Deportes y Modalidades y consolidar estados comunes en la capa reutilizable correcta.
-2. Completar responsive administrativo escritorio/tablet/móvil.
+1. Validar y consolidar responsive administrativo sobre AppShell, tablas, toolbars y drawers compartidos.
+2. Auditar pantallas específicas que no usan las capas compartidas y corregir overflow o composición móvil solo donde exista evidencia.
 3. Ejecutar prueba visual end-to-end antes de cerrar Gate 10.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
