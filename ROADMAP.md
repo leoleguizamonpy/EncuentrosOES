@@ -105,6 +105,8 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Contrato `icon` opcional cubierto con prueba de regresión para `exactOptionalPropertyTypes`.
 - [x] Mapeo de `CatalogAsset` cubierto con prueba PostgreSQL/Prisma de integración.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
+- [~] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada en `refactor/ux2-retire-catalog-ui`; pendiente gate CI.
+- [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida; no se eliminan por confundir UI heredada con contrato de datos.
 - [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
 - [~] Reducir componentes frontend grandes durante la migración al AppShell y módulos de producto.
@@ -136,11 +138,11 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Ediciones implementado en `/admin/editions`, gate completo verde y consolidado en `main` mediante PR #39.
 - [x] Ediciones contempla búsqueda, estado OPEN/CLOSED, alta, edición, año, estados vacíos y reintento.
 - [x] Prueba de creación de Edición añadida a web.
-- [~] Eventos implementado en `/admin/events` dentro de `feat/ux2-events`; pendiente gate CI.
+- [x] Eventos implementado en `/admin/events`, gate completo verde y consolidado en `main` mediante PR #40.
 - [x] Eventos contempla listado, búsqueda, estado, alta, edición y resumen de instituciones/combinaciones.
 - [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`, sin exponer una sección primaria llamada Combinaciones.
 - [x] Pruebas de creación de Evento y habilitación contextual Deporte/Modalidad añadidas a web.
-- [ ] Retirar progresivamente la experiencia heredada `/admin/catalog` una vez consolidado Eventos.
+- [x] Organización UX 2.0 cubierta por Ediciones, Eventos, Instituciones, Deportes y Modalidades.
 - [ ] Implementar Sorteos como módulo operativo.
 - [ ] Implementar Encuentros como módulo operativo.
 - [ ] Implementar Clasificación como módulo operativo.
@@ -161,26 +163,22 @@ EncuentrosOES
 │   └── [ ] REAL-STORAGE-DRILL
 ├── [x] Experiencia pública (Gate 8)
 ├── [~] Saneamiento técnico (Gate 9)
-│   ├── [x] Limpieza segura y contratos recientes
+│   ├── [~] Retiro de UI heredada de Catálogos (CI pendiente)
 │   └── [ ] Consolidación de persistencia competitiva con equivalencia probada
 └── [~] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary base
-    ├── [~] Instituciones
+    ├── [x] Organización funcional
     ├── [x] Competencias → AppShell
-    ├── [x] Deportes
-    ├── [x] Modalidades + VisualCatalogClient
-    ├── [x] Ediciones
-    ├── [~] Eventos + relaciones contextuales (CI pendiente)
-    └── [ ] Módulos operativos y Control
+    └── [ ] Sorteos / Encuentros / Clasificación / Control
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-events`: lint, typecheck, integración PostgreSQL, cobertura y build.
-2. Corregir cualquier regresión y consolidar Eventos en `main` solo con gate verde.
-3. Retirar la experiencia heredada `/admin/catalog` sin eliminar los contratos de datos que siguen reutilizando los módulos UX 2.0.
-4. Iniciar Sorteos como módulo operativo UX 2.0 una vez cerrada Organización.
+1. Ejecutar CI completo sobre `refactor/ux2-retire-catalog-ui` y consolidar solo con gate verde.
+2. Iniciar Sorteos como primer módulo operativo UX 2.0.
+3. Continuar Encuentros y Clasificación reutilizando el núcleo competitivo ya estable.
+4. Resolver autorización definitiva de datos maestros y consolidación de persistencia sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
