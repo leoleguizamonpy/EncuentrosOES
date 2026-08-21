@@ -99,7 +99,9 @@ integration('PrismaCompetitionRepository transaction-aware operations', () => {
     await expect(
       client.$transaction(async (transaction) => {
         await repository.insertInTransaction(transaction, competition);
-        expect(await repository.findByIdInTransaction(transaction, competition.id)).not.toBeNull();
+        expect(
+          await repository.findByIdInTransaction(transaction, ids.competitionA),
+        ).not.toBeNull();
         throw new Error('force rollback');
       }),
     ).rejects.toThrow('force rollback');
@@ -113,7 +115,7 @@ integration('PrismaCompetitionRepository transaction-aware operations', () => {
     await client.$transaction(async (transaction) => {
       await repository.insertInTransaction(transaction, competition);
       const persisted = requireCompetition(
-        await repository.findByIdInTransaction(transaction, competition.id),
+        await repository.findByIdInTransaction(transaction, ids.competitionB),
       );
       persisted.addParticipant({
         actorId: ids.actor,
