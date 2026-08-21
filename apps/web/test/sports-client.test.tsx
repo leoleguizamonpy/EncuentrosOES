@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SportsClient } from '../components/sports-client';
 
-const replace = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => navigation }));
 
 const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const catalogApi = vi.hoisted(() => ({
@@ -66,5 +66,18 @@ describe('SportsClient', () => {
 
     await waitFor(() => expect(catalogApi.createSport).toHaveBeenCalledWith({ code: 'FUTSAL', icon: null, name: 'Futsal' }));
     expect(await screen.findByText('Futsal')).toBeInTheDocument();
+  });
+
+  it('recovers the shared visual catalog after an initial loading failure', async () => {
+    catalogApi.adminCatalog.mockReset().mockRejectedValueOnce(new Error('catálogo temporalmente no disponible')).mockResolvedValueOnce(populatedCatalog);
+
+    render(<SportsClient />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No fue posible cargar este módulo.');
+    expect(screen.getByText('catálogo temporalmente no disponible')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Futsal')).toBeInTheDocument();
+    expect(catalogApi.adminCatalog).toHaveBeenCalledTimes(2);
   });
 });
