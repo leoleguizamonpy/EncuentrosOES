@@ -60,8 +60,10 @@ function InstitutionDrawer({ catalog, institution, onClose, onSaved }: Instituti
         await createInstitution({ code, eventId, icon: await iconFromFile(file), name });
         await onSaved('Institución creada correctamente.');
       } else {
-        const icon = removeIcon ? null : file === null ? undefined : await iconFromFile(file);
-        await updateInstitution(institution.id, { active, code, eventId, icon, name });
+        const base = { active, code, eventId, name };
+        if (removeIcon) await updateInstitution(institution.id, { ...base, icon: null });
+        else if (file === null) await updateInstitution(institution.id, base);
+        else await updateInstitution(institution.id, { ...base, icon: await iconFromFile(file) });
         await onSaved('Institución actualizada correctamente.');
       }
       onClose();
