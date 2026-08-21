@@ -54,7 +54,7 @@ async function decisionsFor(competition: CompetitionSummary): Promise<readonly P
   if (draw?.execution?.status === 'PENDING_CONFIRMATION') {
     decisions.push({
       competition,
-      detail: `${draw.execution.matchCount} encuentros · evidencia ${draw.execution.evidenceHash.slice(0, 10)}…`,
+      detail: `${String(draw.execution.matchCount)} encuentros · evidencia ${draw.execution.evidenceHash.slice(0, 10)}…`,
       kind: 'DRAW',
       originatorId: draw.execution.executedBy.id,
       originatorName: draw.execution.executedBy.displayName,
