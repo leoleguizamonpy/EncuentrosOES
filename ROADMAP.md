@@ -105,7 +105,7 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Contrato `icon` opcional cubierto con prueba de regresión para `exactOptionalPropertyTypes`.
 - [x] Mapeo de `CatalogAsset` cubierto con prueba PostgreSQL/Prisma de integración.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
-- [~] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada en `refactor/ux2-retire-catalog-ui`; pendiente gate CI.
+- [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
 - [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida; no se eliminan por confundir UI heredada con contrato de datos.
 - [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
@@ -143,7 +143,11 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`, sin exponer una sección primaria llamada Combinaciones.
 - [x] Pruebas de creación de Evento y habilitación contextual Deporte/Modalidad añadidas a web.
 - [x] Organización UX 2.0 cubierta por Ediciones, Eventos, Instituciones, Deportes y Modalidades.
-- [ ] Implementar Sorteos como módulo operativo.
+- [~] Sorteos implementado como bandeja operativa en `/draws` dentro de `feat/ux2-draws`; pendiente gate CI.
+- [x] Sorteos clasifica competencias como no listas, pendientes de preparar, preparadas, pendientes de confirmación, confirmadas o publicadas.
+- [x] La ejecución oficial sigue reutilizando el flujo existente dentro de `/competitions/[id]`; no se duplica el motor de sorteo.
+- [x] Publicaciones oficiales siguen disponibles en `/draws/[id]` y se enlazan desde la bandeja cuando existen.
+- [x] Pruebas de estados preparado/publicado y navegación operativa añadidas a web.
 - [ ] Implementar Encuentros como módulo operativo.
 - [ ] Implementar Clasificación como módulo operativo.
 - [ ] Implementar Confirmaciones como bandeja única.
@@ -163,21 +167,22 @@ EncuentrosOES
 │   └── [ ] REAL-STORAGE-DRILL
 ├── [x] Experiencia pública (Gate 8)
 ├── [~] Saneamiento técnico (Gate 9)
-│   ├── [~] Retiro de UI heredada de Catálogos (CI pendiente)
+│   ├── [x] UI heredada de Catálogos retirada
 │   └── [ ] Consolidación de persistencia competitiva con equivalencia probada
 └── [~] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary base
     ├── [x] Organización funcional
     ├── [x] Competencias → AppShell
-    └── [ ] Sorteos / Encuentros / Clasificación / Control
+    ├── [~] Sorteos (CI pendiente)
+    └── [ ] Encuentros / Clasificación / Control
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `refactor/ux2-retire-catalog-ui` y consolidar solo con gate verde.
-2. Iniciar Sorteos como primer módulo operativo UX 2.0.
-3. Continuar Encuentros y Clasificación reutilizando el núcleo competitivo ya estable.
+1. Ejecutar CI completo sobre `feat/ux2-draws` y consolidar Sorteos solo con gate verde.
+2. Implementar Encuentros como bandeja operativa reutilizando `resultsWorkspace` y los contratos existentes.
+3. Implementar Clasificación sin duplicar el cálculo de tablas ya existente en el núcleo.
 4. Resolver autorización definitiva de datos maestros y consolidación de persistencia sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
