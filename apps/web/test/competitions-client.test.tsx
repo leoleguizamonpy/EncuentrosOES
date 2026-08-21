@@ -57,7 +57,7 @@ describe('CompetitionsClient', () => {
     expect(screen.getByText('Organización')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Instituciones/ })).toHaveAttribute('href', '/admin/institutions');
     expect(screen.queryByText('Catálogos')).not.toBeInTheDocument();
-    expect(screen.getByText('Aún no hay competencias.')).toBeInTheDocument();
+    expect(await screen.findByText('Aún no hay competencias.')).toBeInTheDocument();
 
     const button = screen.getByRole('button', { name: 'Crear competencia' });
     if (!(button instanceof HTMLButtonElement) || button.form === null) throw new Error('Expected competition form');
