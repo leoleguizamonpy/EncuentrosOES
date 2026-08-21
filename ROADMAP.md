@@ -121,7 +121,8 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] `SessionBoundary` compartido creado.
 - [x] Dashboard migrado al AppShell común.
 - [~] Patrones globales de colección, filtros, drawer, feedback y estados en implementación.
-- [~] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado y escudo.
+- [~] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado, escudo y reintento de carga.
+- [x] Actualizaciones de escudo omiten correctamente `icon` cuando no existe cambio, respetando `exactOptionalPropertyTypes`.
 - [x] Prueba de creación de Institución añadida a web.
 - [ ] Migrar Competencias al AppShell común.
 - [ ] Implementar Deportes.
