@@ -51,12 +51,8 @@ describe('UsersAdminService', () => {
   it('increments credentialVersion and audits a sensitive role change', async () => {
     const current = user();
     const updated = user({ credentialVersion: 3, role: 'ADMIN' });
-    let updateArgs: UpdateArgs | null = null;
     const auditCreate = vi.fn(() => Promise.resolve({}));
-    const updateUser = vi.fn((input: UpdateArgs): Promise<UserRecord> => {
-      updateArgs = input;
-      return Promise.resolve(updated);
-    });
+    const updateUser = vi.fn((_input: UpdateArgs): Promise<UserRecord> => Promise.resolve(updated));
     const tx = {
       auditEntry: { create: auditCreate },
       user: {
@@ -79,9 +75,16 @@ describe('UsersAdminService', () => {
       userId,
     });
 
-    expect(updateArgs).not.toBeNull();
-    expect(updateArgs?.data.credentialVersion).toEqual({ increment: 1 });
-    expect(updateArgs?.data.role).toBe('ADMIN');
+    expect(updateUser).toHaveBeenCalledWith({
+      data: {
+        credentialVersion: { increment: 1 },
+        displayName: 'Operador Uno',
+        passwordHash: undefined,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+      },
+      where: { id: userId },
+    });
     expect(auditCreate).toHaveBeenCalledOnce();
     expect(result.role).toBe('ADMIN');
   });
