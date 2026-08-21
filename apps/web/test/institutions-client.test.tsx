@@ -55,7 +55,9 @@ describe('InstitutionsClient', () => {
     expect(await screen.findByRole('heading', { name: 'Instituciones', level: 2 })).toBeInTheDocument();
     expect(screen.getByText('No hay instituciones todavía.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: '+ Nueva institución' })[0]!);
+    const createButton = screen.getAllByRole('button', { name: '+ Nueva institución' })[0];
+    if (createButton === undefined) throw new Error('Expected institution create button');
+    fireEvent.click(createButton);
     expect(screen.getByRole('heading', { name: 'Nueva institución' })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Escuela Nacional de Comercio' } });
