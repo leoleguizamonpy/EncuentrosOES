@@ -130,10 +130,12 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Deportes implementado en `/admin/sports`, gate completo verde y consolidado en `main` mediante PR #37.
 - [x] Deportes usa búsqueda, filtro de estado, alta, edición, icono, activar/desactivar, estados vacíos y reintento.
 - [x] Prueba de creación de Deporte añadida a web.
-- [~] Modalidades implementado en `/admin/modalities` dentro de `feat/ux2-modalities-visual-catalog`; pendiente gate CI.
+- [x] Modalidades implementado en `/admin/modalities`, gate completo verde y consolidado en `main` mediante PR #38.
 - [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual y el patrón de colección/drawer.
 - [x] Prueba de creación de Modalidad añadida a web.
-- [ ] Implementar Ediciones.
+- [~] Ediciones implementado en `/admin/editions` dentro de `feat/ux2-editions`; pendiente gate CI.
+- [x] Ediciones contempla búsqueda, estado OPEN/CLOSED, alta, edición, año, estados vacíos y reintento.
+- [x] Prueba de creación de Edición añadida a web.
 - [ ] Implementar Eventos y gestión contextual Evento/Deporte/Modalidad.
 - [ ] Implementar Sorteos como módulo operativo.
 - [ ] Implementar Encuentros como módulo operativo.
@@ -163,16 +165,17 @@ EncuentrosOES
     ├── [~] Instituciones
     ├── [x] Competencias → AppShell
     ├── [x] Deportes
-    ├── [~] Modalidades + VisualCatalogClient (CI pendiente)
+    ├── [x] Modalidades + VisualCatalogClient
+    ├── [~] Ediciones (CI pendiente)
     └── [ ] Resto de módulos
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-modalities-visual-catalog`: lint, typecheck, integración PostgreSQL, cobertura y build.
-2. Corregir cualquier regresión y consolidar Modalidades/refactor visual en `main` solo con gate verde.
-3. Implementar Ediciones con UX 2.0.
-4. Implementar Eventos y retirar progresivamente la experiencia heredada `/admin/catalog`.
+1. Ejecutar CI completo sobre `feat/ux2-editions`: lint, typecheck, integración PostgreSQL, cobertura y build.
+2. Corregir cualquier regresión y consolidar Ediciones en `main` solo con gate verde.
+3. Implementar Eventos y retirar progresivamente la experiencia heredada `/admin/catalog`.
+4. Iniciar Sorteos como módulo operativo UX 2.0 una vez cerrada Organización.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
