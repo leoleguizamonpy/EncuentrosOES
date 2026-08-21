@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
+import { AuditModule } from './audit/audit.module.js';
 import { CatalogAdminModule } from './catalog/catalog-admin.module.js';
 import { ApiConfigModule } from './config.module.js';
 import { CompetitionsModule } from './competitions/competitions.module.js';
@@ -20,6 +21,7 @@ import { SessionGuard } from './security/session.guard.js';
   controllers: [OperationsController],
   imports: [
     ApiConfigModule,
+    AuditModule,
     CatalogAdminModule,
     ChampionModule,
     CompetitionsModule,

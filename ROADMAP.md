@@ -144,11 +144,13 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Clasificación reutiliza `resultsWorkspace()` como única fuente de tablas, posiciones, métricas y clasificados; no recalcula standings en frontend.
 - [x] Clasificación contempla SCORE_BASED y SET_BASED, tablas parciales/completas y clasificación propuesta/confirmada.
 - [x] Bloque Competencia UX 2.0 cubierto por Competencias, Sorteos, Encuentros y Clasificación.
-- [~] Confirmaciones implementada como bandeja única en `/admin/confirmations` dentro de `feat/ux2-confirmations`; pendiente gate CI.
+- [x] Confirmaciones implementada como bandeja única en `/admin/confirmations`, gate completo verde y consolidada en `main` mediante PR #45.
 - [x] Confirmaciones agrega sorteos, resultados, clasificados y campeón pendientes usando contratos existentes, sin entidad paralela de workflow.
 - [x] Confirmaciones bloquea en UI la autoconfirmación cuando el actor actual originó la decisión y delega la validación definitiva al backend.
-- [x] Prueba de agregación, segunda autoridad y confirmación directa de sorteo añadida a web.
-- [ ] Implementar Auditoría.
+- [~] Auditoría implementada en `/admin/audit` dentro de `feat/ux2-audit`; pendiente gate CI.
+- [x] Auditoría consume directamente `AuditEntry` persistido y expone fecha, actor/rol, acción, recurso, competencia, revisiones, correlación y motivo.
+- [x] Endpoint `GET /admin/audit` protegido para ADMIN/SUPERADMIN y limitado a las 200 trazas más recientes.
+- [x] Pruebas API y web añadidas para mapeo de evidencia persistida y navegación UX 2.0.
 - [ ] Implementar Usuarios y cerrar política de permisos.
 - [ ] Implementar Configuración solo con parámetros autorizados.
 - [ ] Estados vacíos, carga, error, sesión y permisos coherentes en todos los módulos.
@@ -172,17 +174,17 @@ EncuentrosOES
     ├── [x] Organización funcional
     ├── [x] Competencia funcional
     └── [~] Control
-        ├── [~] Confirmaciones (CI pendiente)
-        ├── [ ] Auditoría
+        ├── [x] Confirmaciones
+        ├── [~] Auditoría (CI pendiente)
         ├── [ ] Usuarios
         └── [ ] Configuración
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-confirmations` y consolidar Confirmaciones solo con gate verde.
-2. Implementar Auditoría como superficie de trazabilidad transversal.
-3. Implementar Usuarios y cerrar la política ADMIN vs SUPERADMIN antes de Configuración.
+1. Ejecutar CI completo sobre `feat/ux2-audit` y consolidar Auditoría solo con gate verde.
+2. Implementar Usuarios y cerrar explícitamente la política ADMIN vs SUPERADMIN.
+3. Implementar Configuración únicamente con parámetros autorizados por Foundation y la política de permisos.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
