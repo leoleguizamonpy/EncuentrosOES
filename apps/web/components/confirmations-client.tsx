@@ -16,6 +16,7 @@ import type { Actor } from '../lib/auth-api';
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const CONTROL_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 type DecisionKind = 'CHAMPION' | 'DRAW' | 'QUALIFICATION' | 'RESULT';
@@ -159,12 +160,12 @@ function ConfirmationsWorkspace({ actor }: { readonly actor: Actor }): React.JSX
   async function retry(): Promise<void> {
     setLoading(true); setError(null);
     try { await reload(); }
-    catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
+    catch (caught: unknown) { setItems(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
     finally { setLoading(false); }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando confirmaciones…</strong><p>Buscando decisiones que requieren una segunda autoridad.</p></div>;
-  if (items === null) return <div className="empty-state"><strong>No fue posible cargar Confirmaciones.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Buscando decisiones que requieren una segunda autoridad." title="Cargando confirmaciones…" />;
+  if (items === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Confirmaciones." tone="error" />;
 
   const actionable = items.filter((item) => item.originatorId !== actor.id).length;
   const own = items.length - actionable;
