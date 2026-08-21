@@ -47,7 +47,7 @@ const control: readonly NavEntry[] = [
   { href: '/admin/confirmations', icon: 'confirmation', id: 'confirmations', label: 'Confirmaciones' },
   { href: '/admin/audit', icon: 'audit', id: 'audit', label: 'Auditoría' },
   { href: '/admin/users', icon: 'users', id: 'users', label: 'Usuarios', superadminOnly: true },
-  { icon: 'settings', id: 'settings', label: 'Configuración', soon: true, superadminOnly: true },
+  { href: '/admin/settings', icon: 'settings', id: 'settings', label: 'Configuración', superadminOnly: true },
 ];
 
 function NavIcon({ kind }: { readonly kind: NavIconKind }): React.JSX.Element {

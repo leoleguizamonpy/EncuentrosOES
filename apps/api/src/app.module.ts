@@ -16,6 +16,7 @@ import { CsrfGuard } from './security/csrf.guard.js';
 import { OriginGuard } from './security/origin.guard.js';
 import { RolesGuard } from './security/roles.guard.js';
 import { SessionGuard } from './security/session.guard.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   controllers: [OperationsController],
@@ -30,6 +31,7 @@ import { SessionGuard } from './security/session.guard.js';
     IdentityModule,
     NextRoundModule,
     ResultsModule,
+    SettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },
