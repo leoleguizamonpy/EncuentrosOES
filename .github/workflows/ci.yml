@@ -115,3 +115,111 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  visual-e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://oes:oes@localhost:5432/oes?schema=public
+      E2E_SCREENSHOT_DIR: artifacts/visual-e2e
+      E2E_SUPERADMIN_EMAIL: e2e-superadmin@oes.test
+      E2E_SUPERADMIN_PASSWORD: e2e-superadmin-password-2026
+      E2E_WEB_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3001/api/v1
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: oes
+          POSTGRES_PASSWORD: oes
+          POSTGRES_USER: oes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oes -d oes"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare E2E environment
+        shell: bash
+        run: |
+          cat > .env <<'EOF'
+          DATABASE_URL=postgresql://oes:oes@localhost:5432/oes?schema=public
+          API_PORT=3001
+          SESSION_ABSOLUTE_MINUTES=720
+          SESSION_IDLE_MINUTES=30
+          WEB_ORIGIN=http://127.0.0.1:3000
+          NEXT_PUBLIC_API_URL=http://127.0.0.1:3001/api/v1
+          EOF
+          pnpm db:migrate:deploy
+
+      - name: Bootstrap E2E superadmin
+        env:
+          OES_BOOTSTRAP_DISPLAY_NAME: E2E Superadmin
+          OES_BOOTSTRAP_EMAIL: e2e-superadmin@oes.test
+          OES_BOOTSTRAP_PASSWORD: e2e-superadmin-password-2026
+        run: pnpm --filter @oes/api bootstrap:superadmin
+
+      - name: Build application for browser drill
+        run: pnpm build
+
+      - name: Install pinned browser runner
+        shell: bash
+        run: |
+          pnpm add -Dw --lockfile=false --ignore-scripts playwright@1.55.0
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Start API and web
+        shell: bash
+        run: |
+          pnpm --filter @oes/api start > /tmp/oes-api.log 2>&1 &
+          echo $! > /tmp/oes-api.pid
+          pnpm --filter @oes/web start > /tmp/oes-web.log 2>&1 &
+          echo $! > /tmp/oes-web.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null && curl --fail --silent http://127.0.0.1:3001/api/v1/auth/me > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/oes-api.log
+          cat /tmp/oes-web.log
+          exit 1
+
+      - name: Exercise responsive workspace in Chromium
+        run: node .github/e2e/admin-responsive.mjs
+
+      - name: Upload visual E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: visual-e2e-screenshots
+          path: artifacts/visual-e2e
+
+      - name: Stop API and web
+        if: always()
+        shell: bash
+        run: |
+          test ! -f /tmp/oes-api.pid || kill "$(cat /tmp/oes-api.pid)" 2>/dev/null || true
+          test ! -f /tmp/oes-web.pid || kill "$(cat /tmp/oes-web.pid)" 2>/dev/null || true
