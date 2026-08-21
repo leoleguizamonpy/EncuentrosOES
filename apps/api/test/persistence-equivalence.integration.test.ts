@@ -192,7 +192,7 @@ integration('competition persistence equivalence', () => {
       occurredAt,
     });
 
-    await expect(repository.save(stale as Competition, 1)).rejects.toMatchObject({
+    await expect(repository.save(stale!, 1)).rejects.toMatchObject({
       code: 'CONCURRENCY_CONFLICT',
     } satisfies Partial<DomainError>);
 
