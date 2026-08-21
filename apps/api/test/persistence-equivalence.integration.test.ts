@@ -110,6 +110,11 @@ function createAggregate(id: string): Competition {
   });
 }
 
+function requireCompetition(value: Competition | null): Competition {
+  if (value === null) throw new Error('Expected persisted competition to exist.');
+  return value;
+}
+
 beforeEach(async () => {
   if (process.env.DATABASE_URL === undefined) return;
   await client.$executeRawUnsafe(
@@ -169,8 +174,7 @@ integration('competition persistence equivalence', () => {
     const aggregate = createAggregate(ids.competitionB);
     await repository.insert(aggregate);
 
-    const stale = await repository.findById(ids.competitionB);
-    expect(stale).not.toBeNull();
+    const stale = requireCompetition(await repository.findById(ids.competitionB));
 
     await store.addParticipant({
       actorId: ids.actor,
@@ -182,7 +186,7 @@ integration('competition persistence equivalence', () => {
       institutionId: ids.institutionA,
     });
 
-    stale?.addParticipant({
+    stale.addParticipant({
       actorId: ids.actor,
       displayName: 'Equipo B',
       eventId: ids.event,
@@ -192,7 +196,7 @@ integration('competition persistence equivalence', () => {
       occurredAt,
     });
 
-    await expect(repository.save(stale!, 1)).rejects.toMatchObject({
+    await expect(repository.save(stale, 1)).rejects.toMatchObject({
       code: 'CONCURRENCY_CONFLICT',
     } satisfies Partial<DomainError>);
 
