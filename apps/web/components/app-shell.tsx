@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { logout, type Actor } from '../lib/auth-api';
+import styles from './app-shell.module.css';
 import { OesMark } from './oes-mark';
 
 type NavIconKind = 'audit' | 'competition' | 'confirmation' | 'dashboard' | 'edition' | 'event' | 'institution' | 'match' | 'modality' | 'settings' | 'sport' | 'standings' | 'draw' | 'users';
@@ -31,11 +32,11 @@ const roleLabels = {
 } as const;
 
 const organization: readonly NavEntry[] = [
-  { href: '/admin/editions', icon: 'edition', id: 'editions', label: 'Ediciones', soon: true },
-  { href: '/admin/events', icon: 'event', id: 'events', label: 'Eventos', soon: true },
-  { href: '/admin/institutions', icon: 'institution', id: 'institutions', label: 'Instituciones', soon: true },
-  { href: '/admin/sports', icon: 'sport', id: 'sports', label: 'Deportes', soon: true },
-  { href: '/admin/modalities', icon: 'modality', id: 'modalities', label: 'Modalidades', soon: true },
+  { icon: 'edition', id: 'editions', label: 'Ediciones', soon: true },
+  { icon: 'event', id: 'events', label: 'Eventos', soon: true },
+  { icon: 'institution', id: 'institutions', label: 'Instituciones', soon: true },
+  { icon: 'sport', id: 'sports', label: 'Deportes', soon: true },
+  { icon: 'modality', id: 'modalities', label: 'Modalidades', soon: true },
 ];
 
 const competition: readonly NavEntry[] = [
@@ -70,7 +71,11 @@ function NavIcon({ kind }: { readonly kind: NavIconKind }): React.JSX.Element {
     users: <><circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0M16 6a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></>,
   } as const;
 
-  return <svg aria-hidden="true" className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7">{path[kind]}</svg>;
+  return <svg aria-hidden="true" className={styles.navIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7">{path[kind]}</svg>;
+}
+
+function NavLabel({ icon, label }: { readonly icon: NavIconKind; readonly label: string }): React.JSX.Element {
+  return <span className={styles.navLabel}><NavIcon kind={icon}/><span className={styles.navText}>{label}</span></span>;
 }
 
 function NavGroup({ active, entries, label }: { readonly active: string; readonly entries: readonly NavEntry[]; readonly label: string }): React.JSX.Element {
@@ -79,9 +84,9 @@ function NavGroup({ active, entries, label }: { readonly active: string; readonl
       <span className="nav-heading">{label}</span>
       {entries.map((entry) => {
         const className = `nav-item${active === entry.id ? ' nav-item--active' : ''}${entry.soon ? ' nav-item--disabled' : ''}`;
-        const content = <><NavIcon kind={entry.icon}/><span>{entry.label}</span>{entry.soon ? <small>Próximo</small> : null}</>;
+        const content = <><NavLabel icon={entry.icon} label={entry.label}/>{entry.soon ? <small>Próximo</small> : null}</>;
         return entry.soon || entry.href === undefined
-          ? <span className={className} key={entry.id}>{content}</span>
+          ? <span aria-disabled="true" className={className} key={entry.id}>{content}</span>
           : <a className={className} href={entry.href} key={entry.id}>{content}</a>;
       })}
     </>
@@ -94,8 +99,7 @@ export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', t
   async function closeSession(): Promise<void> {
     try {
       await logout();
-      router.replace('/login');
-    } catch {
+    } finally {
       router.replace('/login');
     }
   }
@@ -105,7 +109,7 @@ export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', t
       <aside className="sidebar">
         <OesMark />
         <nav aria-label="Navegación principal">
-          <a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavIcon kind="dashboard"/><span>Inicio</span></a>
+          <a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>
           {actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" />}
           <NavGroup active={active} entries={competition} label="Competencia" />
           {actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" />}
