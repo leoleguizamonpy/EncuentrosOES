@@ -45,8 +45,11 @@ try {
   await menu.click();
   const closeToggle = page.locator('button[aria-controls="workspace-navigation"][aria-expanded="true"]');
   await closeToggle.waitFor();
-  const navigationBox = await page.locator('#workspace-navigation').boundingBox();
-  assert(navigationBox !== null && navigationBox.x >= -1, 'Mobile navigation drawer is not visible after opening.');
+  await page.waitForFunction(() => {
+    const navigation = document.querySelector('#workspace-navigation');
+    if (!(navigation instanceof HTMLElement)) return false;
+    return navigation.getBoundingClientRect().x >= -1;
+  });
   await screenshot(page, 'mobile-navigation');
   await page.locator('button[aria-label="Cerrar navegación"]:not([aria-controls])').click();
 
