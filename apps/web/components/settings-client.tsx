@@ -6,6 +6,7 @@ import { runtimeSettings, type SafeRuntimeSettings } from '../lib/settings-api';
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const SETTINGS_ROLES = ['SUPERADMIN'] as const;
 
@@ -15,9 +16,16 @@ function SettingsWorkspace(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   async function reload(): Promise<void> {
+    setLoading(true);
     setError(null);
-    const value = await runtimeSettings();
-    setSettings(value);
+    try {
+      setSettings(await runtimeSettings());
+    } catch (caught: unknown) {
+      setSettings(null);
+      setError(caught instanceof Error ? caught.message : 'No fue posible cargar la configuración.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -29,8 +37,8 @@ function SettingsWorkspace(): React.JSX.Element {
     return () => { mounted = false; };
   }, []);
 
-  if (loading) return <div className="empty-state"><strong>Cargando configuración…</strong><p>Consultando la política operativa segura del sistema.</p></div>;
-  if (settings === null) return <div className="empty-state"><strong>No fue posible cargar Configuración.</strong><p>{error ?? 'Revisa la conexión con el servidor.'}</p><button className={styles.primaryButton} onClick={() => { setLoading(true); void reload().finally(() => setLoading(false)); }} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Consultando la política operativa segura del sistema." title="Cargando configuración…" />;
+  if (settings === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor.'} onAction={() => void reload()} title="No fue posible cargar Configuración." tone="error" />;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
@@ -41,7 +49,6 @@ function SettingsWorkspace(): React.JSX.Element {
       <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>Fuente: entorno</span>
       <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>Solo lectura</span>
     </section>
-    {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
     <section aria-label="Política operativa" className={styles.tableCard}>
       <div className={styles.tableHeader}><span>Parámetro</span><span>Valor efectivo</span><span>Gobierno</span><span>Observación</span><span /></div>
       <article className={styles.row}><strong>Sesión inactiva</strong><span>{settings.sessionIdleMinutes} minutos</span><span className={styles.status}>Entorno</span><span>Expira una sesión sin actividad.</span><span /></article>
