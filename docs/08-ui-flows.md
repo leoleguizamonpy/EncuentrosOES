@@ -1,200 +1,445 @@
-# Flujos de interfaz — Sistema Web de Competencias OES
+# Arquitectura de producto y experiencia — EncuentrosOES UX 2.0
 
-> **Estado:** Borrador funcional 0.1.0
-> **Fecha:** 6 de agosto de 2026
-> **Deriva de:** `FOUNDATION.md` 2.0.0 y `docs/01-domain-model.md` a `docs/07-security-and-audit.md`
-> **Autoridad:** Navegación, interacción, estados y presentación web
-> **Siguiente documento:** `docs/09-test-strategy.md`
+> **Estado:** Especificación activa 2.0.0  
+> **Fecha:** 21 de agosto de 2026  
+> **Deriva de:** `FOUNDATION.md` y `docs/01-domain-model.md` a `docs/07-security-and-audit.md`  
+> **Autoridad:** arquitectura de información, navegación, interacción, estados y presentación web  
+> **Regla:** la interfaz no inventa reglas competitivas; representa y opera las reglas definidas por Foundation
 
 ## 1. Propósito
 
-Este documento define cómo las autoridades, operadores y público recorren el Sistema Web de Competencias OES. Convierte casos de uso, permisos y estados persistidos en navegación, pantallas y comportamientos observables.
+EncuentrosOES debe sentirse como un sistema operativo para una competencia, no como una colección de formularios técnicos.
 
-No fija la estética final ni crea componentes de código. Define qué debe entender y poder hacer cada persona sin que la interfaz invente reglas, oculte riesgos o presente como oficial una operación todavía pendiente.
+La experiencia administrativa se organiza por tareas reales de la organización:
 
-## 2. Principios de experiencia
+1. preparar la estructura de OES;
+2. crear y configurar competencias;
+3. ejecutar sorteos oficiales;
+4. operar encuentros y resultados;
+5. confirmar decisiones con autoridad independiente;
+6. visualizar clasificación y continuidad;
+7. cerrar y publicar evidencia verificable.
 
-1. La competencia activa siempre es visible.
-2. El próximo paso permitido debe ser evidente.
-3. Un estado pendiente nunca parece confirmado.
-4. La simulación se distingue del sorteo oficial.
-5. Confirmar no permite editar.
-6. Las acciones destructivas muestran impacto antes de ejecutarse.
-7. La interfaz representa el estado del servidor, no una suposición local.
-8. La vista pública muestra únicamente información confirmada y publicada.
-9. El sistema funciona en escritorio, tablet y móvil sin perder autoridad.
-10. El movimiento es opcional y nunca determina el resultado.
+Los nombres internos de tablas, stores, repositorios, catálogos o entidades técnicas no gobiernan la navegación del usuario.
 
-## 3. Superficies del producto
+## 2. Jerarquía de autoridad
+
+La experiencia deriva de tres niveles:
+
+```text
+FOUNDATION
+    ↓
+DIRECTRICES DE PRODUCTO
+    ↓
+ARQUITECTURA UX
+    ↓
+IMPLEMENTACIÓN
+```
+
+Ante contradicción:
+
+1. `FOUNDATION.md` gobierna reglas, autoridad e invariantes competitivas;
+2. este documento gobierna experiencia, navegación y comportamiento observable;
+3. el código implementa ambas fuentes y no crea decisiones nuevas.
+
+## 3. Principios de experiencia
+
+1. **Una tarea, un módulo.** Crear una institución no comparte pantalla con crear un deporte.
+2. **El próximo paso debe ser evidente.** El sistema explica qué falta y adónde ir.
+3. **El estado del servidor es la verdad.** Nunca se presenta una acción como completada solo porque el navegador la intentó.
+4. **Pendiente no es confirmado.** Estados oficiales se distinguen por texto, iconografía y estructura, no solo color.
+5. **La doble autoridad es visible.** Cuando un actor no puede confirmar su propia acción, la interfaz explica por qué.
+6. **No hay pantallas técnicas para usuarios.** “Catálogos”, “stores” o “migraciones” no son conceptos de navegación.
+7. **Crear y administrar pertenecen al mismo módulo.** Una entidad se lista, crea, edita y activa desde una sola experiencia coherente.
+8. **Los recursos visuales son parte de la identidad.** Escudos e iconos se tratan como activos propios de cada entidad.
+9. **Las acciones destructivas explican impacto.** No se ocultan consecuencias downstream.
+10. **El sistema funciona sin memoria del operador.** Breadcrumb, contexto, estados y llamadas a acción indican dónde está y qué puede hacer.
+11. **Responsive real.** Móvil no es una tabla encogida; cambia la representación sin perder funciones esenciales.
+12. **Accesibilidad por defecto.** Foco, teclado, etiquetas, contraste y reducción de movimiento forman parte del contrato.
+
+## 4. Superficies del producto
 
 | Superficie | Audiencia | Propósito |
 | --- | --- | --- |
-| Administración | Administrador y superadministrador | Configurar, ejecutar, registrar, confirmar y auditar |
-| Operación | Operador y autoridades | Consultar estado interno y controlar presentación |
-| Presentación | Pantallas de evento o transmisión | Mostrar un resultado ya persistido |
-| Consulta pública | Público | Consultar grupos, cruces, encuentros, resultados y tablas publicados |
-| Verificación | Público y autoridades | Verificar actas, evidencia y vigencia |
+| Workspace administrativo | ADMIN / SUPERADMIN según permiso | Organización, competencias y control |
+| Workspace operativo | OPERATOR y autoridades habilitadas | Consultar y operar funciones asignadas |
+| Presentación oficial | Pantalla de evento / transmisión | Mostrar resultados ya persistidos |
+| Consulta pública | Público | Ver competencia publicada |
+| Verificación | Público y autoridades | Validar actas, códigos y vigencia |
 
-Las superficies pueden compartir componentes visuales, pero no permisos ni fuentes de datos incompatibles.
+Las superficies pueden compartir componentes visuales, pero no permisos ni contratos incompatibles.
 
-## 4. Arquitectura de información
-
-```mermaid
-flowchart TD
-    Login["Acceso"] --> Home["Inicio administrativo"]
-    Home --> Competition["Competencia activa"]
-    Competition --> Setup["Configuración"]
-    Competition --> Draw["Sorteo"]
-    Competition --> Play["Encuentros y resultados"]
-    Competition --> Standing["Tabla y avance"]
-    Competition --> Publish["Publicación y auditoría"]
-```
-
-### Navegación administrativa principal
-
-- Inicio;
-- Competencias;
-- Confirmaciones;
-- Presentación;
-- Auditoría, según rol;
-- Usuarios y catálogo, solo superadministrador;
-- Cuenta y sesión.
-
-La navegación no replica tablas técnicas. Agrupa tareas de la organización.
-
-## 5. Rutas conceptuales
-
-Las rutas finales pueden cambiar, pero la estructura debe conservarse:
+## 5. Arquitectura de información principal
 
 ```text
-/admin
-/admin/competitions
-/admin/competitions/{competitionId}/overview
-/admin/competitions/{competitionId}/participants
-/admin/competitions/{competitionId}/rules
-/admin/competitions/{competitionId}/draws
-/admin/competitions/{competitionId}/matches
-/admin/competitions/{competitionId}/standings
-/admin/competitions/{competitionId}/advancement
-/admin/competitions/{competitionId}/publications
-/admin/confirmations
-/admin/audit
-/present/{publicationId}
-/competitions/{competitionId}
-/verify/{code}
+OES WORKSPACE
+│
+├── Inicio
+│
+├── ORGANIZACIÓN
+│   ├── Ediciones
+│   ├── Eventos
+│   ├── Instituciones
+│   ├── Deportes
+│   └── Modalidades
+│
+├── COMPETENCIA
+│   ├── Competencias
+│   ├── Sorteos
+│   ├── Encuentros
+│   └── Clasificación
+│
+└── CONTROL
+    ├── Confirmaciones
+    ├── Auditoría
+    ├── Usuarios
+    └── Configuración
 ```
 
-Una URL administrativa no concede permiso. Abrir una ruta no autorizada produce una respuesta segura y una salida clara, no una pantalla parcialmente funcional.
+### 5.1 Combinaciones
 
-## 6. Shell administrativo
+`Evento + Deporte + Modalidad` sigue existiendo como estructura de dominio, pero no necesita una sección primaria independiente en el menú.
 
-### Escritorio
+Se administra contextualmente desde Eventos o desde la configuración de Competencias. El usuario no debe pensar en “combinaciones” como una tabla técnica.
 
-- barra superior fija;
-- navegación lateral de ancho medio;
-- selector visible de edición, evento, deporte y modalidad;
-- área principal con ancho útil controlado;
-- panel contextual opcional para resumen, ayuda o impacto;
-- cuenta y estado de sesión accesibles desde la barra superior.
+## 6. AppShell único
 
-### Tablet
+Toda pantalla autenticada utiliza un mismo `AppShell`.
 
-- barra superior fija;
-- navegación lateral colapsable;
-- acciones primarias permanecen visibles;
-- paneles secundarios se convierten en drawer.
+```text
+AppShell
+├── Sidebar
+├── Topbar
+├── Breadcrumb / contexto
+├── Área principal
+├── Zona de feedback global
+└── AccountMenu
+```
 
-### Móvil
+### 6.1 Sidebar
 
-- encabezado compacto con competencia activa;
-- navegación mediante drawer accesible;
-- una acción primaria por zona;
-- tablas se transforman en filas apiladas o tarjetas, no texto ilegible;
-- confirmaciones y carga de resultados siguen siendo posibles;
-- tareas de configuración extensa pueden recomendar escritorio sin bloquear móvil.
+Características:
 
-## 7. Contexto competitivo persistente
+- navegación persistente en escritorio;
+- colapsable en tablet;
+- drawer en móvil;
+- sección activa visible;
+- iconos SVG consistentes;
+- títulos de grupo: Organización, Competencia, Control;
+- opciones ocultas o deshabilitadas según permisos reales;
+- no duplica lógica de sesión dentro de cada pantalla.
 
-El encabezado administrativo muestra siempre:
+### 6.2 Topbar
 
-`Edición / Evento / Deporte / Modalidad`
+Muestra:
 
-También muestra:
+- título del módulo;
+- breadcrumb;
+- contexto competitivo cuando existe;
+- pendientes críticos;
+- cuenta y rol;
+- cierre de sesión.
 
-- estado de competencia;
-- formato;
-- ronda o fase actual;
-- revisión de datos cuando sea útil;
-- indicador de publicación;
-- pendientes que afectan continuidad.
+### 6.3 Contexto competitivo
 
-Cambiar de competencia exige una selección explícita. El sistema no conserva silenciosamente formularios o acciones de la competencia anterior.
+Dentro de una competencia activa se muestra siempre:
 
-## 8. Inicio administrativo
+```text
+Edición / Evento / Deporte / Modalidad
+Estado · Formato · Fase/Ronda · Pendientes
+```
 
-El inicio responde tres preguntas:
+Cambiar de competencia es explícito. Un formulario de una competencia nunca se reutiliza silenciosamente para otra.
 
-1. ¿Qué competencias existen y en qué estado están?
-2. ¿Qué requiere mi atención?
-3. ¿Cuál es la próxima acción válida?
+## 7. Patrones globales de pantalla
 
-### Secciones
+### 7.1 Pantalla de colección
+
+Se usa para Ediciones, Eventos, Instituciones, Deportes, Modalidades y Competencias.
+
+```text
+[Título]                         [+ Nueva entidad]
+Descripción breve
+
+[Buscar] [Filtros] [Estado]
+
+┌──────────────────────────────────────────┐
+│ Lista / tabla adaptable                  │
+│ entidad · contexto · estado · acciones  │
+└──────────────────────────────────────────┘
+```
+
+Reglas:
+
+- la acción primaria está arriba a la derecha en escritorio;
+- la búsqueda filtra por nombre/código relevante;
+- filtros persistentes mientras el usuario permanezca en el módulo;
+- fila/tarjeta completa es navegable cuando existe detalle;
+- acciones secundarias viven en menú contextual;
+- no hay seis formularios apilados en la misma pantalla.
+
+### 7.2 Alta / edición
+
+Preferencia:
+
+- **drawer lateral** para formularios cortos;
+- **página propia** para flujos largos o con múltiples etapas;
+- modal solo para confirmaciones o decisiones pequeñas.
+
+El usuario siempre sabe si está creando o editando.
+
+### 7.3 Estados vacíos
+
+Un módulo vacío explica:
+
+1. qué significa la entidad;
+2. por qué todavía no hay registros;
+3. cuál es la acción siguiente.
+
+Ejemplo:
+
+```text
+No hay instituciones todavía.
+Carga las instituciones que podrán participar en eventos OES.
+[+ Nueva institución]
+```
+
+### 7.4 Carga
+
+No se usa una pantalla vacía con texto “Loading”. Se utiliza skeleton estructural del módulo cuando sea viable.
+
+### 7.5 Error
+
+Los errores se clasifican:
+
+- sesión expirada → `/login`;
+- permiso insuficiente → pantalla 403 clara;
+- recurso inexistente → 404 contextual;
+- conflicto de dominio → mensaje dentro del módulo;
+- backend inaccesible → estado de servicio con opción de reintento;
+- validación → error junto al campo.
+
+Los mensajes técnicos (`Cannot GET`, stack traces, `Failed to fetch`) nunca son la experiencia final.
+
+### 7.6 Feedback
+
+Después de una mutación exitosa:
+
+- actualizar estado desde servidor;
+- mostrar confirmación breve;
+- conservar contexto;
+- no reiniciar toda la navegación.
+
+## 8. Iconografía
+
+La interfaz usa una biblioteca única de iconos SVG consistente. Los iconos del sistema no son emojis.
+
+Mapa conceptual recomendado:
+
+```text
+Inicio          → LayoutDashboard
+Ediciones       → CalendarDays
+Eventos         → Trophy
+Instituciones   → School
+Deportes        → Goal / Dumbbell
+Modalidades     → Shapes
+Competencias    → Swords
+Sorteos         → Dices
+Encuentros      → ClipboardList
+Clasificación   → Table2
+Confirmaciones  → BadgeCheck
+Auditoría       → ScrollText
+Usuarios        → Users
+Configuración   → Settings
+```
+
+Los escudos de instituciones y recursos propios de deportes/modalidades son assets del contenido, no sustitutos de los iconos de navegación.
+
+## 9. Módulo Inicio
+
+Objetivo: responder rápidamente:
+
+1. ¿qué está ocurriendo?
+2. ¿qué necesita mi atención?
+3. ¿cuál es la siguiente acción válida?
+
+Secciones:
 
 - competencias activas;
 - confirmaciones pendientes compatibles con el actor;
-- resultados pendientes de otra autoridad;
-- tablas o avances bloqueados;
-- publicaciones con artefacto pendiente;
-- alertas operativas relevantes;
-- actividad reciente permitida.
-
-No se llena con gráficos decorativos que no ayuden a operar.
-
-## 9. Bandeja de confirmaciones
-
-La bandeja unifica:
-
-- sorteos pendientes;
 - resultados pendientes;
-- clasificaciones de grupos;
-- ganadores de ronda;
-- ganador final.
+- avances bloqueados;
+- actividad reciente relevante;
+- accesos rápidos basados en contexto.
 
-Cada elemento muestra:
+No se usan gráficos decorativos sin valor operativo.
 
-- tipo de acción;
-- competencia completa;
-- iniciador o registrador;
-- momento;
-- revisión;
-- resumen del contenido;
-- si el actor actual puede confirmar y por qué.
+## 10. Módulo Ediciones
 
-Elementos incompatibles no muestran un botón engañoso. Pueden permanecer visibles con explicación como “Registraste este resultado; debe confirmarlo otra autoridad”.
+### Lista
 
-## 10. Acceso y MFA
+Muestra:
 
-### Inicio de sesión
+- nombre;
+- año;
+- estado `OPEN/CLOSED` traducido a lenguaje de interfaz;
+- cantidad de competencias asociadas cuando esté disponible;
+- acciones permitidas.
 
-- correo;
-- contraseña;
-- mensaje genérico de error;
-- indicador de espera si existe límite temporal;
-- sin revelar si una cuenta está registrada.
+### Crear / editar
 
-### Segundo factor
+Campos:
 
-- código TOTP o desafío WebAuthn;
-- opción de código de recuperación;
-- identificación del paso actual;
-- reintentos limitados;
-- retorno al destino original después de autenticar.
+- nombre;
+- año;
+- estado.
 
-### Sesión expirada
+Reglas UX:
 
-El sistema conserva, cuando sea seguro, un borrador local no oficial y solicita nuevo acceso. Nunca confirma automáticamente después de reautenticar.
+- año único muestra conflicto comprensible;
+- cerrar una edición exige confirmar impacto si existen operaciones activas;
+- no borrar historial mediante eliminación física desde UI.
 
-## 11. Lista de competencias
+## 11. Módulo Eventos
+
+Ejemplos: Colegiales, Universitarios.
+
+### Lista
+
+- nombre;
+- código;
+- estado;
+- deportes/modalidades habilitados resumidos;
+- instituciones asociadas.
+
+### Detalle
+
+Tabs o secciones:
+
+```text
+General
+Deportes y modalidades
+Instituciones
+```
+
+La relación Evento/Deporte/Modalidad se administra aquí de forma contextual, evitando un menú llamado “Combinaciones”.
+
+## 12. Módulo Instituciones
+
+Este es el primer módulo que debe implementarse bajo UX 2.0.
+
+### Objetivo
+
+Administrar instituciones reales participantes de OES con identidad visual propia.
+
+### Pantalla principal
+
+```text
+Instituciones                              [+ Nueva institución]
+Administra las instituciones habilitadas para participar.
+
+[ Buscar por nombre o código... ] [Evento ▼] [Estado ▼]
+
+┌──────┬───────────────────────────┬───────────────┬────────┬─────────┐
+│Logo  │ Institución               │ Evento        │ Estado │ Acciones│
+├──────┼───────────────────────────┼───────────────┼────────┼─────────┤
+│[ESC] │ Escuela Nac. de Comercio │ Colegiales    │ Activa │   ⋯     │
+│[ESC] │ Colegio Alen S. Espínola │ Colegiales    │ Activa │   ⋯     │
+└──────┴───────────────────────────┴───────────────┴────────┴─────────┘
+```
+
+### Nueva institución
+
+Drawer o página compacta:
+
+```text
+Nueva institución
+
+Información
+- Evento *
+- Nombre *
+- Código *
+
+Identidad visual
+- Escudo
+- vista previa
+- reemplazar / retirar
+- PNG, JPEG o WEBP
+- máximo 1,5 MB
+
+Estado
+- Activa
+
+[Cancelar] [Guardar institución]
+```
+
+### Escudo
+
+Requisitos:
+
+- archivo opcional;
+- preview antes de guardar;
+- reemplazo posterior;
+- eliminación sin eliminar la institución;
+- fallback visual consistente si no existe;
+- el sistema conserva relación persistente al asset;
+- los escudos se reutilizan en participantes, cruces, tablas, resultados, campeón y vista pública cuando corresponda.
+
+### Acciones
+
+- crear;
+- ver;
+- editar;
+- activar/desactivar;
+- reemplazar escudo;
+- retirar escudo.
+
+No se ofrece “eliminar” si compromete historial competitivo.
+
+## 13. Módulo Deportes
+
+### Lista
+
+- icono propio o fallback;
+- nombre;
+- código;
+- estado;
+- eventos habilitados.
+
+### Alta / edición
+
+- nombre;
+- código;
+- icono opcional;
+- estado.
+
+El icono propio es opcional; la navegación mantiene un icono del sistema independiente.
+
+## 14. Módulo Modalidades
+
+### Lista
+
+- icono opcional;
+- nombre;
+- código;
+- estado.
+
+### Alta / edición
+
+- nombre;
+- código;
+- icono opcional;
+- estado.
+
+Ejemplos: Masculino, Femenino.
+
+## 15. Módulo Competencias
+
+La competencia representa:
+
+`Edición + Evento + Deporte + Modalidad`
+
+### Lista
 
 Filtros:
 
@@ -204,729 +449,376 @@ Filtros:
 - modalidad;
 - estado.
 
-Cada fila o tarjeta muestra la identidad completa, estado, formato, fase y próxima acción. Crear competencia solo aparece para roles autorizados.
+Cada fila/tarjeta muestra:
 
-No se usa únicamente color para diferenciar Colegiales y Universitarios.
+- identidad completa;
+- estado;
+- formato;
+- fase/ronda;
+- cantidad de participantes;
+- próxima acción válida.
 
-## 12. Creación de competencia
+### Crear competencia
 
-El flujo se divide en cuatro pasos:
-
-1. Identidad: edición, evento, deporte y modalidad.
-2. Participantes: instituciones habilitadas.
-3. Plantilla: resultado, puntos, métricas y desempates.
-4. Formato: grupos o eliminación directa y parámetros.
-
-El progreso es guardado como borrador en servidor. Avanzar de paso no congela nada.
-
-La pantalla final presenta un resumen y faltantes antes de permitir el bloqueo.
-
-## 13. Participantes
-
-La vista contiene:
-
-- buscador de instituciones compatibles con el evento;
-- lista habilitada;
-- contador total;
-- advertencia de duplicados;
-- impacto sobre configuraciones de grupos posibles;
-- estado de edición o bloqueo.
-
-Después de bloquear, los controles de alta y retiro desaparecen y se muestra la instantánea congelada.
-
-El selector nunca ofrece instituciones de otro evento como si fueran elegibles.
-
-## 14. Plantilla competitiva
-
-### Estructura
-
-- perfil de resultado;
-- política de desenlace;
-- puntos por desenlace;
-- métricas habilitadas;
-- lista ordenada de desempates;
-- resolución eliminatoria;
-- estado y revisión.
-
-### Interacción
-
-- reordenar desempates mediante botones accesibles además de arrastrar;
-- validar incompatibilidades al editar y al guardar;
-- mostrar una vista legible del reglamento resultante;
-- distinguir ejemplo conceptual de valor configurado;
-- confirmar congelamiento con resumen completo.
-
-Una plantilla congelada se presenta como solo lectura. No existe una falsa opción “editar” que después falle.
-
-## 15. Configuración de grupos
-
-El administrador introduce la cantidad de grupos. La interfaz calcula inmediatamente:
-
-- si cumple `3G ≤ N ≤ 4G`;
-- tamaños previstos;
-- qué grupos A, B, C… reciben lugares adicionales;
-- cantidad total de encuentros resultantes.
-
-Ejemplo de resumen:
+Flujo por pasos con persistencia de borrador:
 
 ```text
-11 participantes / 3 grupos
-A: 4, B: 4, C: 3
-Encuentros: 6 + 6 + 3 = 15
+1. Identidad
+2. Participantes
+3. Plantilla competitiva
+4. Formato
+5. Revisión
 ```
 
-La cantidad inválida se explica; el cliente no intenta corregirla silenciosamente.
+Avanzar entre pasos no congela la competencia.
 
-## 16. Configuración eliminatoria
+## 16. Participantes dentro de Competencia
 
-La vista muestra:
+La gestión de participantes es contextual a una competencia, no un módulo global de instituciones.
 
-- participantes elegibles confirmados;
-- número de ronda;
-- cantidad de cruces;
-- necesidad de pase libre;
-- regla de elegibilidad basada en historial;
-- ausencia de bombos y cabezas de serie.
+Muestra:
 
-No permite elegir manualmente quién recibe el pase ni construir cruces desde la interfaz.
+- instituciones compatibles con evento;
+- escudo;
+- nombre;
+- selección;
+- contador;
+- advertencia de duplicados;
+- impacto sobre el formato.
 
-## 17. Bloqueo de competencia
+Después de bloqueo, el conjunto se muestra solo lectura.
 
-Antes de bloquear se muestra un checklist:
+## 17. Módulo Sorteos
 
-- identidad competitiva;
-- participantes y cantidad;
-- plantilla completa;
-- formato y parámetros;
-- ausencia de pendientes incompatibles;
-- efectos del bloqueo.
+### Lista contextual
 
-El diálogo exige confirmar que participantes y reglas dejarán de ser editables. Tras éxito, la pantalla vuelve a leer el estado del servidor y muestra la revisión congelada.
+Muestra competencias con sorteo:
 
-## 18. Simulación de sorteo
+- pendiente de preparar;
+- preparado;
+- ejecutado pendiente de confirmación;
+- confirmado;
+- publicado;
+- anulado.
 
-La simulación utiliza una superficie claramente rotulada:
-
-- banda persistente “SIMULACIÓN — NO OFICIAL”;
-- resultado temporal;
-- semilla o evidencia diferenciada de la oficial;
-- acción para ejecutar otra simulación;
-- ausencia de publicar o cargar resultados;
-- explicación de que no genera encuentros oficiales.
-
-Una captura de simulación debe seguir mostrando su carácter no oficial.
-
-## 19. Preparación del sorteo oficial
-
-La pantalla previa muestra:
-
-- competencia y ronda;
-- lista congelada;
-- configuración;
-- versión del algoritmo;
-- número de encuentros que se crearán;
-- responsable que ejecutará;
-- necesidad de confirmación independiente.
-
-La acción se denomina “Ejecutar sorteo oficial”, no “Probar” ni “Continuar”. Requiere confirmación explícita.
-
-## 20. Ejecución y presentación del sorteo
-
-```mermaid
-stateDiagram-v2
-    [*] --> Preparado
-    Preparado --> Ejecutado: servidor persiste
-    Ejecutado --> Presentando: animación derivada
-    Presentando --> Pendiente: termina o se omite
-    Pendiente --> Confirmado: otra autoridad
-    Confirmado --> Publicado: publicación oficial
-```
-
-La animación:
-
-- consume el resultado persistido;
-- puede omitirse;
-- respeta reducción de movimiento;
-- no vuelve a aleatorizar;
-- no revela una semilla privada antes de autorización;
-- no retrasa la disponibilidad del resultado para revisión.
-
-Cerrar o recargar durante la animación restaura el sorteo ejecutado, no lo repite.
-
-## 21. Confirmación del sorteo
-
-El confirmador ve:
-
-- competencia y configuración;
-- participantes congelados;
-- grupos, cruces o pase libre;
-- hashes y versión relevantes;
-- identidad del ejecutor;
-- revisión exacta;
-- encuentros que se generarán.
-
-Solo puede aceptar o rechazar conforme al flujo. Confirmar no ofrece controles para cambiar un integrante o cruce.
-
-Si el actor es el ejecutor, se explica la prohibición y se ofrece volver a la bandeja.
-
-## 22. Resultado confirmado del sorteo
-
-Después de confirmar:
-
-- se muestran grupos o llave oficial;
-- se confirma la cantidad de encuentros generados;
-- aparece acceso a encuentros;
-- se habilita publicación;
-- se muestra trazabilidad básica;
-- el estado visual cambia de pendiente a confirmado sin depender solo del color.
-
-Un pase libre aparece como “Avanza por pase libre” y no como partido ganado 0–0 o encuentro inexistente.
-
-## 23. Publicación del sorteo
-
-La pantalla de publicación permite:
-
-- revisar qué información será pública;
-- generar identificador y código;
-- comprobar estado del acta;
-- publicar una revisión confirmada;
-- copiar enlace público;
-- descargar acta cuando esté disponible;
-- abrir verificador.
-
-Si el PDF está pendiente, se informa sin afirmar que el acta está disponible. La carga canónica permanece identificada.
-
-## 24. Lista de encuentros
-
-Filtros:
-
-- grupo o ronda;
-- participante;
-- estado del resultado;
-- pendientes del actor.
-
-Cada encuentro muestra:
-
-- origen lógico;
-- secuencia;
-- participantes;
-- estado;
-- resultado confirmado o pendiente según permiso;
-- acción permitida.
-
-No muestra campos ficticios de fecha, hora, sede, cancha o árbitro, porque están fuera de alcance.
-
-## 25. Registro de resultado por marcador
+### Sorteo oficial
 
 Flujo:
 
-1. Seleccionar encuentro pendiente.
-2. Verificar participantes y plantilla.
-3. Ingresar marcador A y B.
-4. Completar resolución eliminatoria si la plantilla la exige.
-5. Revisar resumen.
-6. Enviar para confirmación.
+```text
+Preparar
+   ↓
+Revisar snapshot
+   ↓
+Ejecutar sorteo oficial
+   ↓
+Resultado persistido
+   ↓
+Presentación opcional
+   ↓
+Confirmación independiente
+   ↓
+Publicación
+```
 
-La interfaz no solicita puntos de tabla, ganador manual ni posición. Los deriva el servidor.
+Nunca se vuelve a aleatorizar en navegador.
 
-Después de enviar, bloquea la revisión presentada y muestra “Pendiente de otra autoridad”.
+## 18. Módulo Encuentros
 
-## 26. Registro de resultado por sets
+Filtros:
 
-La captura permite:
-
-- agregar los sets requeridos por la plantilla;
-- ingresar puntos de A y B;
-- ver sets ganados derivados;
-- detectar sets incompletos o imposibles;
-- eliminar solo sets del borrador;
-- revisar el ganador derivado antes de enviar.
-
-No permite editar sets después de presentar el resultado. Corregir exige rechazar el pendiente o anular y reemplazar uno confirmado.
-
-## 27. Confirmación de resultado
-
-El confirmador ve en una comparación legible:
-
-- participantes;
-- resultado completo;
-- perfil y plantilla;
-- ganador derivado cuando aplica;
-- impacto previsto: tabla o avance;
-- registrador;
-- revisión y momento.
-
-Las acciones son confirmar o rechazar con motivo conforme a permisos. No existe edición en la pantalla de confirmación.
-
-Al rechazar, el resultado conserva la revisión y el motivo como evidencia, el encuentro vuelve a pendiente de carga y ninguna tabla, avance o publicación cambia. El registrador puede presentar una nueva revisión.
-
-Al confirmar, se muestra el resultado oficial y la tabla recalculada o ganador derivado desde la respuesta autoritativa.
-
-## 28. Tabla de posiciones
-
-La tabla muestra solamente métricas habilitadas para el deporte:
-
-- posición;
+- competencia;
+- grupo/ronda;
 - participante;
-- jugados, ganados, empatados y perdidos aplicables;
-- puntos de tabla;
-- diferencias y métricas deportivas aplicables;
-- estado parcial, completo o empate no resuelto.
+- estado;
+- pendiente del actor.
 
-Características:
+Cada encuentro muestra:
 
-- encabezados comprensibles y abreviaturas explicadas;
-- celdas numéricas centradas y alineadas;
-- criterio de desempate accesible por fila;
-- indicador de resultados fuente;
-- sin controles de edición.
+- participantes y escudos cuando existan;
+- origen lógico;
+- ronda/grupo;
+- estado;
+- resultado confirmado o pendiente;
+- acción permitida.
 
-En móvil, cada participante puede mostrarse como fila expandible manteniendo comparación de posición y puntos.
+No se inventan fecha, hora, cancha o árbitro si Foundation no los incorpora.
 
-## 29. Explicación de desempates
+## 19. Registro de resultados
 
-Al abrir una posición se muestra:
+La interfaz deriva formularios desde la plantilla congelada.
 
-1. criterio aplicado;
-2. conjunto de participantes empatados;
-3. valores comparados;
-4. mini-tabla de enfrentamiento directo si corresponde;
-5. siguiente criterio usado;
-6. resultado o bloqueo final.
+No solicita:
 
-Si el empate no se resuelve, la UI no inventa un orden alfabético. Muestra “Clasificación bloqueada” y el mecanismo oficial pendiente.
+- puntos de tabla manuales;
+- ganador manual cuando es derivable;
+- posición;
+- clasificación manual.
 
-## 30. Propuesta de clasificación
+Flujo:
 
-Cuando un grupo está completo:
+```text
+Seleccionar encuentro
+→ cargar resultado
+→ revisar resumen derivado
+→ enviar
+→ pendiente de otra autoridad
+```
 
-- se muestran tabla final y resultados fuente;
-- posición 1 y 2 aparecen como propuestos;
-- se explica que no existen mejores terceros;
-- se identifica quién puede confirmar;
-- la próxima ronda permanece bloqueada.
+## 20. Módulo Clasificación
 
-La UI no permite sustituir manualmente un clasificado. Un error exige corregir la fuente o resolución oficial.
+Para fase de grupos:
 
-## 31. Avance eliminatorio
+- tabla derivada;
+- criterios de desempate visibles;
+- empates bloqueantes explícitos;
+- propuesta de dos clasificados;
+- estado de confirmación.
 
-La vista de ronda muestra:
+Para eliminación:
 
-- cruces y resultados;
-- ganadores derivados;
-- pase libre;
-- pendientes;
-- propuesta de conjunto para la ronda siguiente.
+- ganadores confirmados;
+- BYE claramente representado;
+- preparación de siguiente ronda;
+- nuevo sorteo obligatorio cuando corresponde.
 
-Después de confirmar el conjunto, la acción primaria es “Preparar nuevo sorteo”. No se generan cruces automáticos por posición.
+## 21. Módulo Confirmaciones
 
-## 32. Finalización
+Bandeja única para:
 
-La pantalla final reúne:
+- sorteos;
+- resultados;
+- clasificaciones;
+- avance;
+- campeón.
 
-- ronda decisiva;
-- resultado confirmado;
-- ganador propuesto;
-- evidencia y trazabilidad;
-- confirmación final pendiente o completada;
-- publicación final.
+Cada elemento muestra:
 
-Finalizar deshabilita nuevos sorteos y resultados. La interfaz explica que una corrección posterior requiere anulación formal del superadministrador.
+- tipo;
+- competencia;
+- actor iniciador;
+- momento;
+- contenido resumido;
+- impacto;
+- posibilidad de confirmar o motivo por el cual no puede.
 
-## 33. Anulación y reemplazo
+Si el usuario inició la acción, se explica que otra autoridad debe confirmarla.
 
-Solo el superadministrador ve la acción. El flujo exige:
+## 22. Módulo Auditoría
 
-1. reautenticación o verificación de sesión reforzada cuando la política lo requiera;
-2. motivo obligatorio;
-3. vista previa del impacto;
-4. dependencias que se invalidarán o bloquearán;
-5. confirmación explícita;
-6. resultado de la operación y siguiente acción.
+Objetivo: trazabilidad, no edición.
 
-No se usan mensajes vagos como “¿Estás seguro?”. Debe nombrarse el sorteo, resultado o avance afectado.
-
-Si existe actividad posterior incompatible, la UI bloquea la anulación simple y explica la revisión requerida.
-
-## 34. Auditoría
-
-La vista autorizada permite filtrar por:
+Filtros:
 
 - competencia;
 - actor;
 - acción;
 - recurso;
-- intervalo temporal;
-- correlación.
+- rango temporal.
 
-Cada entrada muestra antes y después de la revisión, motivo y vínculos relacionados. Los administradores ven solo el alcance permitido; el superadministrador accede al historial completo.
+Cada entrada permite inspeccionar:
 
-Exportar auditoría es una acción explícita, limitada y auditada.
+- acción;
+- actor/rol;
+- correlación;
+- recurso;
+- revisión;
+- metadata segura;
+- relación con competencia.
 
-## 35. Gestión de cuentas
+No expone secretos ni información sensible innecesaria.
 
-Solo superadministrador:
+## 23. Módulo Usuarios
 
-- lista cuentas y estado;
-- crea una cuenta individual;
-- asigna o retira roles;
-- exige activación y MFA;
-- revoca sesiones;
-- bloquea o deshabilita;
-- inicia recuperación controlada;
-- revisa expiración de cuentas temporales.
+Se mantiene separado de datos competitivos.
 
-La pantalla impide retirar el último superadministrador activo y explica el motivo.
+Capacidades finales dependerán de la política de Foundation y seguridad:
 
-## 36. Operación de presentación
+- listar cuentas;
+- rol;
+- estado;
+- activar/desactivar;
+- gestionar credenciales conforme a política.
 
-La superficie de control permite:
+No se implementarán capacidades adicionales hasta cerrar el contrato de permisos.
 
-- seleccionar una publicación confirmada;
-- previsualizarla;
-- abrir pantalla completa;
-- avanzar entre escenas visuales ya derivadas;
-- mostrar u ocultar detalles públicos permitidos;
-- reiniciar una animación visual sin repetir el sorteo;
-- volver al resultado estático.
+## 24. Módulo Configuración
 
-El operador no puede crear, confirmar, publicar ni anular datos.
+Solo contiene parámetros de sistema que sean realmente editables y estén autorizados.
 
-## 37. Pantalla pública de competencia
+No se convierte en un “cajón de sastre”.
 
-Estructura:
+## 25. Roles y presentación de permisos
 
-- identidad de competencia;
-- estado y fase;
-- navegación entre grupos o llave, encuentros, resultados y tabla;
-- clasificados o ganador cuando estén confirmados;
-- enlace de acta y verificación;
-- marca temporal de última actualización.
+La UI nunca confía en ocultar botones como control de seguridad; el backend sigue siendo autoridad.
 
-No muestra menús administrativos, pendientes internos, actores, correos o auditoría reservada.
+La interfaz, además:
 
-## 38. Grupos públicos
+- oculta acciones irrelevantes cuando el rol no puede usarlas;
+- explica restricciones cuando la visibilidad aporta contexto;
+- no muestra formularios que inevitablemente fallarán por permiso.
 
-Cada grupo muestra:
+### Política pendiente
 
-- etiqueta;
-- participantes en orden publicado;
-- encuentros confirmados y pendientes;
-- tabla publicada;
-- clasificados confirmados.
+La autorización final sobre datos maestros (`ADMIN` vs `SUPERADMIN`) queda como decisión explícita antes de cerrar los módulos Organización. No debe resolverse por accidente desde el frontend.
 
-La vista diferencia “tabla parcial” de “clasificación confirmada”. Estar primero temporalmente no se presenta como clasificado.
+## 26. Sesión
 
-## 39. Llave pública
+### Login
 
-La llave:
+- correo;
+- contraseña;
+- error genérico;
+- no revelar existencia de cuenta.
 
-- se adapta horizontalmente en escritorio;
-- usa vista por rondas o tarjetas en móvil;
-- muestra pase libre sin partido ficticio;
-- diferencia ganador de resultado pendiente;
-- permite abrir detalle de encuentro;
-- identifica sorteos separados por ronda.
+### Sesión expirada
 
-No dibuja una continuidad fija entre rondas que se re-sortean. Cada ronda debe visualizarse como sorteo independiente conectado por el conjunto de clasificados.
+```text
+HTTP 401
+   ↓
+limpiar estado local sensible
+   ↓
+/login?returnTo=<ruta segura>
+```
 
-## 40. Verificador público
+Nunca se deja una pantalla completa con “Invalid credentials” dentro de un módulo.
 
-Entrada:
+### CSRF inválido
 
-- código completo o enlace directo.
+Se trata como pérdida de sesión útil y conduce a reautenticación segura.
 
-Salida:
+## 27. Responsive
 
-- estado: vigente, reemplazado o anulado;
-- identificador;
-- competencia y ronda;
-- fecha oficial;
-- participantes congelados;
-- configuración;
-- algoritmo y versión;
-- semilla revelada cuando corresponda;
-- resultado y SHA-256;
-- acta descargable;
-- relación de reemplazo.
+### Escritorio
 
-Un código inválido devuelve un mensaje genérico y permite reintentar dentro de límites.
+- sidebar persistente;
+- contenido amplio;
+- tabla para colecciones densas;
+- drawer para altas cortas.
 
-## 41. Estados de carga
+### Tablet
 
-Toda pantalla de datos define:
+- sidebar colapsable;
+- tablas reducen columnas secundarias;
+- drawers usan mayor ancho relativo.
 
-- estado inicial;
-- carga;
-- éxito con datos;
-- éxito vacío;
-- error recuperable;
-- error no recuperable;
-- permiso insuficiente;
-- sesión expirada;
-- estado obsoleto;
-- sin conexión.
+### Móvil
 
-El skeleton conserva la estructura aproximada y no imita datos oficiales inexistentes.
+- drawer de navegación;
+- listas en cards;
+- acción primaria sticky cuando corresponda;
+- formularios de una columna;
+- confirmaciones y resultados siguen siendo operables;
+- no se obliga a hacer zoom horizontal.
 
-## 42. Estado vacío
+## 28. Estados visuales obligatorios
 
-Un vacío explica:
+Todos los módulos deben contemplar:
 
-- qué falta;
-- por qué todavía no existen datos;
-- quién puede resolverlo;
-- acción válida, si el actor tiene permiso.
-
-Ejemplos:
-
-- “Aún no hay encuentros: el sorteo oficial debe confirmarse”.
-- “No hay resultados pendientes de tu confirmación”.
-- “La tabla aparecerá al confirmar el primer resultado”.
-
-## 43. Errores y recuperación
-
-Los errores contienen:
-
-- mensaje humano;
-- código normativo accesible en detalle;
-- acción posible;
-- identificador de correlación;
-- conservación segura del formulario cuando aplica.
-
-No se muestra stack trace ni mensaje SQL.
-
-Para conflictos de revisión, la interfaz ofrece recargar la versión actual y comparar cambios; no reenvía automáticamente contenido obsoleto.
-
-## 44. Conectividad y reintentos
-
-Si se pierde conexión:
-
-- un formulario no enviado puede conservarse localmente como borrador;
-- una operación enviada queda como “estado por verificar”, no confirmada;
-- el cliente consulta el servidor;
-- un reintento usa la misma clave idempotente;
-- nunca crea una nueva ejecución por incertidumbre.
-
-El indicador de conexión no reemplaza la revisión de cada recurso.
-
-## 45. Actualización en tiempo real
-
-Al recibir un evento:
-
-- se compara la revisión;
-- se actualiza o invalida la consulta correspondiente;
-- se muestra un aviso no intrusivo si el actor está editando;
-- no se sobrescribe un formulario activo;
-- no se reproducen animaciones automáticamente en pantallas administrativas.
-
-La reconexión realiza una consulta completa. No asume haber recibido todos los eventos.
-
-## 46. Notificaciones internas
-
-Solo dentro de la aplicación:
-
-- confirmación requerida;
-- resultado confirmado o rechazado;
-- tabla recalculada;
-- avance disponible;
-- publicación o acta lista;
-- conflicto o acción invalidada.
-
-Mensajería externa, correo, SMS y push están fuera de alcance. La UI no debe insinuar que esas notificaciones fueron enviadas.
-
-## 47. Acciones y jerarquía visual
-
-- una acción primaria por sección;
-- acciones secundarias agrupadas;
-- anulación separada visualmente;
-- confirmar y publicar no comparten etiqueta;
-- cancelar nunca ocupa la posición de confirmar por accidente;
-- botones expresan verbo y objeto: “Confirmar resultado”, “Publicar sorteo”;
-- estados no se presentan como botones.
-
-El orden de tabulación coincide con la prioridad visual.
-
-## 48. Sistema de espaciado y tipografía
-
-Lineamientos iniciales:
-
-- tamaño base de texto de 16 px;
-- escala de espaciado basada en 4 px;
-- títulos con peso suficiente para jerarquía;
-- ancho de lectura controlado para textos largos;
-- datos tabulares alineados consistentemente;
-- objetivos táctiles mínimos de 44 por 44 px;
-- zoom del navegador sin pérdida de función;
-- no se reduce texto para hacer caber una tabla.
-
-Estos valores orientan accesibilidad; la identidad visual final se deriva después sin romperlos.
-
-## 49. Color e iconografía
-
-- el color no comunica estado por sí solo;
-- cada estado combina texto, forma o icono;
-- contraste mínimo conforme a WCAG AA;
-- iconos tienen etiqueta accesible cuando son acciones;
-- Colegiales y Universitarios se distinguen por nombre visible además de cualquier color;
-- rojo se reserva para error o acción destructiva, no para decoración dominante en controles.
-
-## 50. Movimiento
-
-Las animaciones deben:
-
-- respetar `prefers-reduced-motion`;
-- ser omitibles;
-- no bloquear revisión;
-- no usar parpadeo peligroso;
-- no cambiar el resultado persistido;
-- conservar una representación estática equivalente;
-- evitar duración excesiva en operaciones repetidas.
-
-La experiencia del sorteo puede ser expresiva, pero la confianza proviene de la evidencia, no del espectáculo.
-
-## 51. Accesibilidad
-
-Objetivo mínimo: WCAG 2.2 nivel AA.
-
-- navegación completa por teclado;
-- foco visible y orden lógico;
-- enlace para saltar al contenido;
-- regiones, encabezados y landmarks semánticos;
-- etiquetas y errores asociados a campos;
-- anuncios discretos mediante live regions;
-- tablas con encabezados correctos;
-- diálogos con foco contenido y retorno al disparador;
-- alternativas a arrastrar y animar;
-- idioma de página declarado;
-- mensajes comprensibles, no solo códigos.
-
-## 52. Responsive por tarea
-
-| Tarea | Escritorio | Tablet | Móvil |
-| --- | --- | --- | --- |
-| Configuración extensa | Dos columnas y resumen lateral | Una columna + drawer | Pasos lineales |
-| Sorteo/presentación | Control + vista previa | Control apilado | Control esencial |
-| Resultado | Formulario y contexto juntos | Secciones apiladas | Formulario compacto |
-| Tabla | Tabla completa | Desplazamiento controlado | Filas expandibles |
-| Llave | Rondas horizontales | Zoom o ronda enfocada | Navegación por ronda |
-| Auditoría | Tabla con filtros | Filtros colapsables | Tarjetas y detalle |
-
-Responsive no significa comprimir la versión de escritorio; cambia la representación sin perder información.
-
-## 53. Contenido y lenguaje
-
-- español claro y consistente;
-- términos del dominio, no nombres técnicos de tablas;
-- fechas y horas en zona operativa de OES, guardadas en UTC;
-- números y marcadores sin ambigüedad;
-- “pendiente”, “confirmado”, “publicado”, “anulado” y “reemplazado” no se usan como sinónimos;
-- acciones críticas explican consecuencia antes de confirmar;
-- códigos técnicos quedan disponibles para soporte, no como mensaje principal.
-
-## 54. Privacidad visual
-
-- correos y roles no aparecen en vista pública;
-- bandejas administrativas no se incluyen en presentación;
-- modo presentación elimina navegación y datos internos;
-- al compartir enlace se usa URL pública, no administrativa;
-- el autocompletado de contraseña sigue prácticas seguras;
-- datos sensibles no se colocan en título de página, URL o analítica.
-
-## 55. Telemetría de experiencia
-
-Si se incorpora analítica, solo mide:
-
-- rendimiento;
-- errores y correlación;
-- rutas o acciones agregadas;
-- uso de tamaño de pantalla y reducción de movimiento;
-- tiempos operativos sin contenido sensible.
-
-No captura contraseñas, MFA, semillas, resultados pendientes, observaciones, auditoría ni texto de formularios.
-
-## 56. Criterios de aceptación UI
-
-1. La competencia activa es visible en toda mutación.
-2. Un actor no puede confundir Colegiales con Universitarios.
-3. Una simulación permanece marcada como no oficial.
-4. Recargar durante el sorteo no lo vuelve a ejecutar.
-5. El ejecutor no puede confirmar su sorteo.
-6. El registrador no puede confirmar su resultado.
-7. Confirmar nunca permite editar el contenido.
-8. Un resultado pendiente no aparece como público.
-9. La tabla no contiene controles de puntos o posiciones.
-10. Un empate no resuelto bloquea y se explica.
-11. Un pase libre no aparece como encuentro.
-12. Cada ronda eliminatoria se presenta como nuevo sorteo.
-13. Una anulación muestra impacto y exige motivo.
-14. El operador no accede a mutaciones.
-15. La vista pública no filtra datos internos.
-16. Escritorio, tablet y móvil completan las tareas esenciales.
-17. Teclado y reducción de movimiento conservan funcionalidad.
-18. Un conflicto de revisión no sobrescribe datos.
-19. Una pérdida de red no genera duplicados.
-20. La verificación pública muestra vigencia y evidencia.
-
-## 57. Escenarios de prueba visual
-
-### Flujo A — Sorteo de grupos
-
-Crear competencia, configurar 11 participantes y 3 grupos, bloquear, simular, ejecutar oficialmente, presentar, confirmar con otra cuenta, verificar 4/4/3, generar 15 encuentros y publicar.
-
-### Flujo B — Resultado y tabla
-
-Registrar un resultado por una cuenta, confirmar con otra, comprobar que la tabla cambia solo después de confirmar y abrir la explicación del criterio aplicado.
-
-### Flujo C — Eliminación con pase libre
-
-Visualizar ronda impar, pase libre explícito, cruces, resultados, propuesta de ganadores y preparación de nuevo sorteo sin continuidad fija falsa.
-
-### Flujo D — Conflicto
-
-Dos autoridades abren la misma revisión, una confirma y la otra recibe conflicto con opción de recargar, sin sobrescritura.
-
-### Flujo E — Anulación
-
-Superadministrador abre impacto, proporciona motivo, confirma, observa invalidación y registra reemplazo sin perder historial.
-
-### Flujo F — Accesibilidad
-
-Completar acceso, selección de competencia, registro y confirmación usando teclado, zoom, lector de pantalla y reducción de movimiento.
-
-## 58. Decisiones diferidas
-
-Este documento no fija:
-
-- logotipo, colores finales o tipografías de marca;
-- biblioteca concreta de componentes;
-- diseño visual pixel-perfect;
-- tecnología final de gráficos o llave;
-- microcopys completos;
-- ilustraciones o recursos audiovisuales;
-- analítica específica;
-- nombres definitivos de rutas.
-
-Estas decisiones se toman durante implementación visual sin contradecir los flujos.
-
-## 59. Gate de flujos UI
-
-El documento se considera aprobable cuando:
-
-1. Cada rol tiene una superficie coherente con sus permisos.
-2. La navegación usa tareas y no tablas técnicas.
-3. La competencia activa permanece visible.
-4. Configuración, bloqueo, sorteo, resultados, tabla y avance tienen flujo completo.
-5. Simulación, ejecución, confirmación y publicación son estados distintos.
-6. La presentación consume resultados persistidos.
-7. La carga de resultados no acepta puntos o posiciones manuales.
-8. Las anulaciones muestran impacto y preservan historia.
-9. La consulta pública no expone datos internos.
-10. Todos los estados de carga, vacío, error, conflicto y conexión están definidos.
-11. Responsive y accesibilidad cubren tareas esenciales.
-12. Movimiento puede omitirse sin perder información.
-13. Seguridad y doble control son visibles y no se debilitan.
-14. Los criterios de aceptación pueden convertirse en pruebas.
-15. `docs/09-test-strategy.md` puede derivar escenarios sin inventar comportamiento.
-
-Si una composición visual vuelve confuso el estado oficial o la autoridad, debe cambiarse la composición; no se simplifica la regla de dominio.
+```text
+LOADING
+EMPTY
+READY
+SUBMITTING
+SUCCESS
+VALIDATION_ERROR
+DOMAIN_CONFLICT
+UNAUTHORIZED
+FORBIDDEN
+NOT_FOUND
+OFFLINE/API_UNAVAILABLE
+READ_ONLY/LOCKED
+```
+
+No se implementa una pantalla sin definir antes sus estados.
+
+## 29. Contrato de implementación por módulo
+
+Antes de escribir código de un módulo se documenta:
+
+```text
+MÓDULO
+├── objetivo
+├── usuarios y permisos
+├── ruta
+├── pantalla principal
+├── estados
+├── acciones
+├── formularios
+├── datos requeridos
+├── API utilizada
+├── impactos downstream
+├── responsive
+├── accesibilidad
+└── pruebas
+```
+
+Después:
+
+```text
+Especificar
+→ aprobar arquitectura
+→ implementar
+→ typecheck/lint/test/build
+→ prueba visual
+→ commit
+→ actualizar ROADMAP
+```
+
+## 30. Orden de implementación UX 2.0
+
+```text
+UX-FOUNDATION
+├── [ ] AppShell
+├── [ ] Sidebar
+├── [ ] Topbar
+├── [ ] SessionBoundary
+├── [ ] RoleGate
+├── [ ] Feedback global
+└── [ ] patrones de colección/formulario
+
+ORGANIZACIÓN
+├── [ ] Instituciones
+├── [ ] Deportes
+├── [ ] Modalidades
+├── [ ] Ediciones
+└── [ ] Eventos
+
+COMPETENCIA
+├── [ ] Competencias
+├── [ ] Sorteos
+├── [ ] Encuentros
+└── [ ] Clasificación
+
+CONTROL
+├── [ ] Confirmaciones
+├── [ ] Auditoría
+├── [ ] Usuarios
+└── [ ] Configuración
+```
+
+El primer módulo funcional será **Instituciones**, pero únicamente después de contar con el AppShell y patrones comunes mínimos.
+
+## 31. Criterio de cierre de UX 2.0
+
+No se considera cerrada esta fase porque las rutas existan.
+
+Debe demostrarse que un usuario autorizado puede recorrer visualmente:
+
+```text
+Login
+→ preparar Organización
+→ crear Competencia
+→ agregar Instituciones
+→ configurar reglas/formato
+→ ejecutar Sorteo
+→ confirmar
+→ registrar Resultados
+→ confirmar
+→ observar Clasificación
+→ preparar siguiente ronda
+→ finalizar Campeón
+→ consultar evidencia pública
+```
+
+sin depender de conocimiento técnico del repositorio ni de URLs escritas manualmente.
