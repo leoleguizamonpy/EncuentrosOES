@@ -108,10 +108,10 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
 - [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida.
 - [x] Política de autorización cerrada: ADMIN gestiona organización/competencia/control operativo; SUPERADMIN conserva administración de cuentas, roles y configuración sensible.
-- [~] Consolidación de persistencia competitiva activa en `refactor/persistence-equivalence`: primero equivalencia observable, luego sustitución incremental; sin limpieza destructiva.
+- [~] Consolidación de persistencia competitiva activa: equivalencia → transaction-aware → delegación incremental; sin limpieza destructiva.
 - [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
-- [x] Baseline de equivalencia de `Competition` validado en PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; `quality + visual-e2e` verdes en `e7b8bead5906be25b080674b3e41ccafd0427d16`.
-- [ ] Hacer `PrismaCompetitionRepository` transaction-aware para poder reutilizar persistencia dentro de la transacción Serializable del Store sin romper auditoría ni idempotencia.
+- [x] Baseline de equivalencia de `Competition` validado y consolidado mediante PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
+- [~] `PrismaCompetitionRepository` transaction-aware activo en PR #56: variantes `insert/find/save` reutilizables dentro de una transacción externa, con rollback y read/save transaccional cubiertos por integración PostgreSQL.
 - [ ] Delegar gradualmente lectura/escritura del agregado `Competition` desde `PrismaCompetitionStore` al repositorio compartido con equivalencia verde.
 - [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
 - [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
@@ -192,7 +192,8 @@ EncuentrosOES
 ├── [~] Saneamiento técnico (Gate 9)
 │   ├── [x] UI heredada de Catálogos retirada
 │   ├── [x] Inventario de persistencia competitiva
-│   └── [~] Equivalencia/consolidación incremental — PR #55 activo
+│   ├── [x] Baseline de equivalencia Competition — PR #55
+│   └── [~] Repositorio Competition transaction-aware — PR #56
 └── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary
@@ -210,9 +211,9 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Consolidar PR #55 después de verificar `quality + visual-e2e` también sobre este head documental final.
-2. Hacer `PrismaCompetitionRepository` transaction-aware sin crear transacciones anidadas ni separar persistencia de auditoría/idempotencia.
-3. Delegar incrementalmente el agregado `Competition` desde `PrismaCompetitionStore` y demostrar equivalencia antes de retirar cada bloque duplicado.
+1. Validar PR #56 en PostgreSQL real: rollback del outer transaction y read/save transaccional, seguido de `quality + visual-e2e` completos.
+2. Solo después, delegar incrementalmente el agregado `Competition` desde `PrismaCompetitionStore` manteniendo audit + idempotency dentro de la misma transacción Serializable.
+3. Demostrar equivalencia y atomicidad después de cada sustitución antes de retirar código duplicado.
 4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
