@@ -21,11 +21,11 @@ import {
 
 type ResourceKind = 'edition' | 'event' | 'institution' | 'modality' | 'sport';
 
-type Feedback = {
+interface Feedback {
   readonly onError: (message: string) => void;
   readonly onNotice: (message: string) => void;
   readonly onSaved: () => Promise<void>;
-};
+}
 
 function AssetThumb({ item, fallback }: { readonly item: AdminVisualItem; readonly fallback: string }): React.JSX.Element {
   return <span className="catalog-avatar">{item.iconAssetId === null ? fallback : <img alt="" src={catalogAssetUrl(item.iconAssetId)} />}</span>;
