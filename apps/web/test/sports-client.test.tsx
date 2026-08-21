@@ -10,8 +10,10 @@ const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const catalogApi = vi.hoisted(() => ({
   adminCatalog: vi.fn(),
   catalogAssetUrl: vi.fn((id: string) => `/asset/${id}`),
+  createModality: vi.fn(),
   createSport: vi.fn(),
   iconFromFile: vi.fn(),
+  updateModality: vi.fn(),
   updateSport: vi.fn(),
 }));
 vi.mock('../lib/auth-api', () => authApi);
