@@ -106,7 +106,7 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Mapeo de `CatalogAsset` cubierto con prueba PostgreSQL/Prisma de integración.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
 - [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
-- [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida; no se eliminan por confundir UI heredada con contrato de datos.
+- [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida.
 - [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
 - [~] Reducir componentes frontend grandes durante la migración al AppShell y módulos de producto.
@@ -130,29 +130,20 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Competencias deja de duplicar sesión, logout, sidebar y topbar; usa `SessionBoundary + AppShell`.
 - [x] Gate de Competencias verde: lint, typecheck, Prisma, integración PostgreSQL, cobertura y build.
 - [x] Deportes implementado en `/admin/sports`, gate completo verde y consolidado en `main` mediante PR #37.
-- [x] Deportes usa búsqueda, filtro de estado, alta, edición, icono, activar/desactivar, estados vacíos y reintento.
-- [x] Prueba de creación de Deporte añadida a web.
 - [x] Modalidades implementado en `/admin/modalities`, gate completo verde y consolidado en `main` mediante PR #38.
-- [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual y el patrón de colección/drawer.
-- [x] Prueba de creación de Modalidad añadida a web.
+- [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual.
 - [x] Ediciones implementado en `/admin/editions`, gate completo verde y consolidado en `main` mediante PR #39.
-- [x] Ediciones contempla búsqueda, estado OPEN/CLOSED, alta, edición, año, estados vacíos y reintento.
-- [x] Prueba de creación de Edición añadida a web.
 - [x] Eventos implementado en `/admin/events`, gate completo verde y consolidado en `main` mediante PR #40.
-- [x] Eventos contempla listado, búsqueda, estado, alta, edición y resumen de instituciones/combinaciones.
-- [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`, sin exponer una sección primaria llamada Combinaciones.
-- [x] Pruebas de creación de Evento y habilitación contextual Deporte/Modalidad añadidas a web.
+- [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`.
 - [x] Organización UX 2.0 cubierta por Ediciones, Eventos, Instituciones, Deportes y Modalidades.
 - [x] Sorteos implementado como bandeja operativa en `/draws`, gate completo verde y consolidado en `main` mediante PR #42.
-- [x] Sorteos clasifica competencias como no listas, pendientes de preparar, preparadas, pendientes de confirmación, confirmadas o publicadas.
-- [x] La ejecución oficial sigue reutilizando el flujo existente dentro de `/competitions/[id]`; no se duplica el motor de sorteo.
-- [x] Publicaciones oficiales siguen disponibles en `/draws/[id]` y se enlazan desde la bandeja cuando existen.
-- [x] Pruebas de estados preparado/publicado y navegación operativa añadidas a web.
-- [~] Encuentros implementado como bandeja operativa en `/matches` dentro de `feat/ux2-matches`; pendiente gate CI.
-- [x] Encuentros agrega partidos materializados de todas las competencias bloqueadas/finalizadas y expone pendientes de resultado/confirmación.
-- [x] La carga, confirmación y anulación de resultados sigue reutilizando `ResultsWorkspacePanel` dentro de `/competitions/[id]`; no se duplica lógica de resultados.
-- [x] Prueba de encuentro pendiente con rol OPERATOR y navegación al workspace existente añadida a web.
-- [ ] Implementar Clasificación como módulo operativo.
+- [x] Sorteos reutiliza el flujo oficial existente dentro de `/competitions/[id]` y mantiene publicaciones en `/draws/[id]`.
+- [x] Encuentros implementado como bandeja operativa en `/matches`, gate completo verde y consolidado en `main` mediante PR #43.
+- [x] Encuentros agrega partidos materializados y expone pendientes de resultado/confirmación reutilizando `ResultsWorkspacePanel`.
+- [~] Clasificación implementada como vista transversal en `/standings` dentro de `feat/ux2-standings`; pendiente gate CI.
+- [x] Clasificación reutiliza `resultsWorkspace()` como única fuente de tablas, posiciones, métricas y clasificados; no recalcula standings en frontend.
+- [x] Clasificación contempla SCORE_BASED y SET_BASED, tablas parciales/completas y clasificación propuesta/confirmada.
+- [x] Prueba de tabla calculada y clasificación confirmada con rol OPERATOR añadida a web.
 - [ ] Implementar Confirmaciones como bandeja única.
 - [ ] Implementar Auditoría.
 - [ ] Implementar Usuarios y cerrar política de permisos.
@@ -176,17 +167,18 @@ EncuentrosOES
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary base
     ├── [x] Organización funcional
-    ├── [x] Competencias → AppShell
+    ├── [x] Competencias
     ├── [x] Sorteos
-    ├── [~] Encuentros (CI pendiente)
-    └── [ ] Clasificación / Control
+    ├── [x] Encuentros
+    ├── [~] Clasificación (CI pendiente)
+    └── [ ] Control
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-matches` y consolidar Encuentros solo con gate verde.
-2. Implementar Clasificación sin duplicar el cálculo de tablas ya existente en `resultsWorkspace`.
-3. Implementar Confirmaciones como bandeja transversal de decisiones pendientes.
+1. Ejecutar CI completo sobre `feat/ux2-standings` y consolidar Clasificación solo con gate verde.
+2. Implementar Confirmaciones como bandeja transversal de decisiones pendientes.
+3. Implementar Auditoría y después Usuarios/Configuración con política de permisos explícita.
 4. Resolver autorización definitiva de datos maestros y consolidación de persistencia sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
