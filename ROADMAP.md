@@ -124,7 +124,9 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [~] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado, escudo y reintento de carga.
 - [x] Actualizaciones de escudo omiten correctamente `icon` cuando no existe cambio, respetando `exactOptionalPropertyTypes`.
 - [x] Prueba de creación de Institución añadida a web.
-- [ ] Migrar Competencias al AppShell común.
+- [~] Migración de Competencias al AppShell común implementada en `feat/ux2-competitions-appshell`; pendiente gate CI antes de consolidar en `main`.
+- [x] Competencias deja de duplicar sesión, logout, sidebar y topbar; usa `SessionBoundary + AppShell`.
+- [x] Prueba de Competencias actualizada para exigir navegación UX 2.0 y ausencia del acceso heredado `Catálogos`.
 - [ ] Implementar Deportes.
 - [ ] Implementar Modalidades.
 - [ ] Implementar Ediciones.
@@ -155,15 +157,16 @@ EncuentrosOES
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary base
     ├── [~] Instituciones
+    ├── [~] Competencias → AppShell (CI pendiente)
     └── [ ] Resto de módulos
 ```
 
 ## Prioridad inmediata
 
-1. Validar `main` con typecheck, tests y build del nuevo AppShell/Instituciones.
-2. Corregir cualquier regresión antes de extender UX 2.0.
-3. Migrar Competencias al AppShell compartido.
-4. Continuar Organización con Deportes y Modalidades.
+1. Ejecutar CI completo sobre `feat/ux2-competitions-appshell`: lint, typecheck, integración PostgreSQL, cobertura y build.
+2. Corregir cualquier regresión y consolidar la migración de Competencias en `main` solo con gate verde.
+3. Continuar Organización con Deportes y Modalidades.
+4. Migrar Ediciones y Eventos fuera de la experiencia heredada `/admin/catalog`.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
