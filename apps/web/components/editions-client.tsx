@@ -12,6 +12,7 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const ADMIN_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 type EditionStatusFilter = 'ALL' | 'CLOSED' | 'OPEN';
@@ -95,10 +96,15 @@ function EditionsWorkspace(): React.JSX.Element {
   function startCreate(): void { setEditing(null); setDrawerOpen(true); setError(null); setNotice(null); }
   function startEdit(item: AdminEdition): void { setEditing(item); setDrawerOpen(true); setError(null); setNotice(null); }
   async function saved(message: string): Promise<void> { await reload(); setNotice(message); setError(null); }
-  async function retry(): Promise<void> { setLoading(true); setError(null); try { await reload(); } catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); } finally { setLoading(false); } }
+  async function retry(): Promise<void> {
+    setLoading(true); setError(null);
+    try { await reload(); }
+    catch (caught: unknown) { setCatalog(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
+    finally { setLoading(false); }
+  }
 
-  if (loading) return <div className="empty-state"><strong>Cargando ediciones…</strong><p>Recuperando los ciclos OES desde el servidor.</p></div>;
-  if (catalog === null) return <div className="empty-state"><strong>No fue posible cargar este módulo.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando los ciclos OES desde el servidor." title="Cargando ediciones…" />;
+  if (catalog === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar este módulo." tone="error" />;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}><div><span className="eyebrow eyebrow--dark">Organización</span><h2>Ediciones</h2><p>Administra cada ciclo anual de OES y controla cuándo una edición queda abierta o cerrada para su operación.</p></div><button className={styles.primaryButton} onClick={startCreate} type="button">+ Nueva edición</button></section>
