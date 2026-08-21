@@ -163,8 +163,11 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Bloque Control UX 2.0 cubierto por Confirmaciones, Auditoría, Usuarios y Configuración.
 - [~] Estados vacíos, carga, error, sesión y permisos en homogeneización transversal.
 - [x] Primer lote de hardening consolidado mediante PR #49: `WorkspaceState`, Auditoría, Configuración y recuperación de `SessionBoundary`, con gate completo verde.
-- [~] Segundo lote activo en `chore/ux2-state-hardening-2`: Usuarios y Confirmaciones migrados a `WorkspaceState`; prueba de recuperación de Usuarios añadida.
-- [ ] Auditar y migrar Sorteos, Encuentros y Clasificación respetando su tolerancia interna a fallos por competencia.
+- [x] Segundo lote consolidado mediante PR #50: Usuarios y Confirmaciones migrados a `WorkspaceState`, con recuperación de carga probada y gate completo verde.
+- [~] Tercer lote activo en `chore/ux2-competition-state-hardening` / PR #51: Sorteos, Encuentros y Clasificación migrados al estado compartido para fallos globales y con degradación parcial explícita por competencia.
+- [x] Sorteos diferencia un fallo de `drawWorkspace` de una ausencia real de sorteo mediante `Estado no disponible`; regresión cubierta por prueba web.
+- [x] Encuentros y Clasificación conservan datos cargados de otras competencias y advierten cuántas competencias no pudieron recuperarse.
+- [ ] Validar PR #51 con gate CI completo antes de consolidar este tercer lote.
 - [ ] Auditar superficies de Organización restantes para cerrar el patrón de estados donde aplique.
 - [ ] Responsive completo escritorio/tablet/móvil.
 - [ ] Prueba visual end-to-end antes de cerrar el gate.
@@ -188,16 +191,17 @@ EncuentrosOES
     ├── [x] Control funcional
     └── [~] Hardening transversal
         ├── [x] Estados base + recuperación de sesión — PR #49
-        ├── [~] Usuarios + Confirmaciones — segundo lote
-        ├── [ ] Sorteos + Encuentros + Clasificación
+        ├── [x] Usuarios + Confirmaciones — PR #50
+        ├── [~] Sorteos + Encuentros + Clasificación — PR #51
+        ├── [ ] Organización restante
         ├── [ ] Responsive administrativo
         └── [ ] E2E visual
 ```
 
 ## Prioridad inmediata
 
-1. Validar y consolidar el segundo lote de estados de Usuarios/Confirmaciones solo con CI completo verde.
-2. Auditar Sorteos/Encuentros/Clasificación y migrar estados sin ocultar fallos parciales por competencia.
+1. Ejecutar CI completo sobre PR #51 y consolidar el hardening de Sorteos/Encuentros/Clasificación solo con gate verde.
+2. Auditar las superficies restantes de Organización y cerrar estados vacíos/carga/error donde aplique.
 3. Completar responsive administrativo escritorio/tablet/móvil.
 4. Ejecutar prueba visual end-to-end antes de cerrar Gate 10.
 5. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.

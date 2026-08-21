@@ -12,6 +12,7 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const WORKSPACE_ROLES = ['ADMIN', 'OPERATOR', 'SUPERADMIN'] as const;
 type StandingFilter = 'ALL' | 'COMPLETE' | 'PARTIAL' | 'QUALIFIED' | 'PENDING_QUALIFICATION';
@@ -20,6 +21,11 @@ interface StandingGroup {
   readonly competition: CompetitionSummary;
   readonly group: ResultsWorkspace['groups'][number];
   readonly resultProfile: ResultsWorkspace['resultProfile'];
+}
+
+interface CompetitionStandingsLoad {
+  readonly failed: boolean;
+  readonly groups: readonly StandingGroup[];
 }
 
 function groupState(group: StandingGroup['group']): Exclude<StandingFilter, 'ALL'> {
@@ -48,6 +54,7 @@ function MetricCells({ row, setBased }: { readonly row: StandingRowView; readonl
 
 function StandingsWorkspace(): React.JSX.Element {
   const [groups, setGroups] = useState<readonly StandingGroup[] | null>(null);
+  const [failedCompetitionCount, setFailedCompetitionCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -55,16 +62,17 @@ function StandingsWorkspace(): React.JSX.Element {
 
   async function reload(): Promise<void> {
     const list = await competitions();
-    const workspaces = await Promise.all(list.map(async (competition) => {
-      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return [] as StandingGroup[];
+    const loaded = await Promise.all(list.map(async (competition): Promise<CompetitionStandingsLoad> => {
+      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return { failed: false, groups: [] };
       try {
         const workspace = await resultsWorkspace(competition.id);
-        return workspace.groups.map((group) => ({ competition, group, resultProfile: workspace.resultProfile } satisfies StandingGroup));
+        return { failed: false, groups: workspace.groups.map((group) => ({ competition, group, resultProfile: workspace.resultProfile } satisfies StandingGroup)) };
       } catch {
-        return [] as StandingGroup[];
+        return { failed: true, groups: [] };
       }
     }));
-    setGroups(workspaces.flat());
+    setFailedCompetitionCount(loaded.filter((entry) => entry.failed).length);
+    setGroups(loaded.flatMap((entry) => entry.groups));
   }
 
   useEffect(() => {
@@ -88,12 +96,12 @@ function StandingsWorkspace(): React.JSX.Element {
   async function retry(): Promise<void> {
     setLoading(true); setError(null);
     try { await reload(); }
-    catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
+    catch (caught: unknown) { setGroups(null); setFailedCompetitionCount(0); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
     finally { setLoading(false); }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando clasificación…</strong><p>Recuperando tablas oficiales desde el servidor.</p></div>;
-  if (groups === null) return <div className="empty-state"><strong>No fue posible cargar Clasificación.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando tablas oficiales desde el servidor." title="Cargando clasificación…" />;
+  if (groups === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Clasificación." tone="error" />;
 
   const confirmed = groups.filter(({ group }) => group.qualification?.status === 'CONFIRMED').length;
   const pending = groups.filter(({ group }) => group.qualification?.status === 'PENDING_CONFIRMATION').length;
@@ -102,7 +110,7 @@ function StandingsWorkspace(): React.JSX.Element {
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Clasificación</h2><p>Consulta las tablas calculadas por el motor competitivo y el estado oficial de los clasificados. Esta vista no recalcula posiciones: presenta la misma fuente de verdad utilizada por cada competencia.</p></div>
     </section>
-    {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
+    {failedCompetitionCount === 0 ? null : <p className={styles.error} role="status">No fue posible recuperar tablas de {failedCompetitionCount} {failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Las tablas disponibles de las demás competencias siguen visibles.</p>}
     <section aria-label="Resumen de clasificación" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
       <span className={[styles.status, styles.active].filter(Boolean).join(' ')}>{confirmed} grupos confirmados</span>
       <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>{pending} por confirmar</span>
