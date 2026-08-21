@@ -6,6 +6,7 @@ import { auditTimeline, type AuditTimelineEntry } from '../lib/audit-api';
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const CONTROL_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 type AuditFilter = 'ALL' | 'COMPETITION' | 'DRAW' | 'RESULT' | 'QUALIFICATION' | 'OTHER';
@@ -37,12 +38,22 @@ function AuditWorkspace(): React.JSX.Element {
   const [filter, setFilter] = useState<AuditFilter>('ALL');
 
   async function reload(): Promise<void> {
-    setEntries(await auditTimeline());
+    setLoading(true);
+    setError(null);
+    try {
+      setEntries(await auditTimeline());
+    } catch (caught: unknown) {
+      setEntries(null);
+      setError(caught instanceof Error ? caught.message : 'No fue posible cargar la auditoría.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     let mounted = true;
-    void reload()
+    void auditTimeline()
+      .then((value) => { if (mounted) setEntries(value); })
       .catch((caught: unknown) => { if (mounted) setError(caught instanceof Error ? caught.message : 'No fue posible cargar la auditoría.'); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
@@ -57,21 +68,13 @@ function AuditWorkspace(): React.JSX.Element {
     });
   }, [entries, filter, query]);
 
-  async function retry(): Promise<void> {
-    setLoading(true); setError(null);
-    try { await reload(); }
-    catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
-    finally { setLoading(false); }
-  }
-
-  if (loading) return <div className="empty-state"><strong>Cargando auditoría…</strong><p>Recuperando la evidencia persistida del sistema.</p></div>;
-  if (entries === null) return <div className="empty-state"><strong>No fue posible cargar Auditoría.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando la evidencia persistida del sistema." title="Cargando auditoría…" />;
+  if (entries === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void reload()} title="No fue posible cargar Auditoría." tone="error" />;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Control</span><h2>Auditoría</h2><p>Consulta la bitácora persistida de acciones críticas. Cada entrada conserva actor, recurso, revisiones, correlación y motivo cuando corresponde.</p></div>
     </section>
-    {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
     <section aria-label="Filtros de auditoría" className={styles.toolbar}>
       <input aria-label="Buscar en auditoría" placeholder="Buscar acción, actor, recurso o correlación…" value={query} onChange={(event) => setQuery(event.target.value)} />
       <select aria-label="Filtrar auditoría por dominio" value={filter} onChange={(event) => setFilter(event.target.value as AuditFilter)}>
