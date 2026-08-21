@@ -48,7 +48,7 @@ const competition: readonly NavEntry[] = [
 
 const control: readonly NavEntry[] = [
   { href: '/admin/confirmations', icon: 'confirmation', id: 'confirmations', label: 'Confirmaciones' },
-  { icon: 'audit', id: 'audit', label: 'Auditoría', soon: true },
+  { href: '/admin/audit', icon: 'audit', id: 'audit', label: 'Auditoría' },
   { icon: 'users', id: 'users', label: 'Usuarios', soon: true },
   { icon: 'settings', id: 'settings', label: 'Configuración', soon: true },
 ];
@@ -79,54 +79,15 @@ function NavLabel({ icon, label }: { readonly icon: NavIconKind; readonly label:
 }
 
 function NavGroup({ active, entries, label }: { readonly active: string; readonly entries: readonly NavEntry[]; readonly label: string }): React.JSX.Element {
-  return (
-    <>
-      <span className="nav-heading">{label}</span>
-      {entries.map((entry) => {
-        const className = `nav-item${active === entry.id ? ' nav-item--active' : ''}${entry.soon ? ' nav-item--disabled' : ''}`;
-        const content = <><NavLabel icon={entry.icon} label={entry.label}/>{entry.soon ? <small>Próximo</small> : null}</>;
-        return entry.soon || entry.href === undefined
-          ? <span aria-disabled="true" className={className} key={entry.id}>{content}</span>
-          : <a className={className} href={entry.href} key={entry.id}>{content}</a>;
-      })}
-    </>
-  );
+  return <><span className="nav-heading">{label}</span>{entries.map((entry) => {
+    const className = `nav-item${active === entry.id ? ' nav-item--active' : ''}${entry.soon ? ' nav-item--disabled' : ''}`;
+    const content = <><NavLabel icon={entry.icon} label={entry.label}/>{entry.soon ? <small>Próximo</small> : null}</>;
+    return entry.soon || entry.href === undefined ? <span aria-disabled="true" className={className} key={entry.id}>{content}</span> : <a className={className} href={entry.href} key={entry.id}>{content}</a>;
+  })}</>;
 }
 
 export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', title }: AppShellProps): React.JSX.Element {
   const router = useRouter();
-
-  async function closeSession(): Promise<void> {
-    try {
-      await logout();
-    } finally {
-      router.replace('/login');
-    }
-  }
-
-  return (
-    <div className="dashboard-shell">
-      <aside className="sidebar">
-        <OesMark />
-        <nav aria-label="Navegación principal">
-          <a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>
-          {actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" />}
-          <NavGroup active={active} entries={competition} label="Competencia" />
-          {actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" />}
-        </nav>
-        <div className="sidebar__footer">Sistema oficial · OES</div>
-      </aside>
-      <main className="dashboard-main">
-        <header className="topbar">
-          <div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div>
-          <div className="account-menu">
-            <span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span>
-            <span><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span>
-            <button className="text-button" onClick={() => void closeSession()} type="button">Salir</button>
-          </div>
-        </header>
-        {children}
-      </main>
-    </div>
-  );
+  async function closeSession(): Promise<void> { try { await logout(); } finally { router.replace('/login'); } }
+  return <div className="dashboard-shell"><aside className="sidebar"><OesMark /><nav aria-label="Navegación principal"><a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" />}<NavGroup active={active} entries={competition} label="Competencia" />{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" />}</nav><div className="sidebar__footer">Sistema oficial · OES</div></aside><main className="dashboard-main"><header className="topbar"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className="account-menu"><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><button className="text-button" onClick={() => void closeSession()} type="button">Salir</button></div></header>{children}</main></div>;
 }
