@@ -161,7 +161,10 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Configuración es de solo lectura porque Foundation no autoriza parámetros globales mutables; reglas de puntuación/desempate/formato permanecen dentro de cada competencia.
 - [x] Pruebas API/web verifican política segura, navegación y ausencia de secretos.
 - [x] Bloque Control UX 2.0 cubierto por Confirmaciones, Auditoría, Usuarios y Configuración.
-- [ ] Estados vacíos, carga, error, sesión y permisos coherentes en todos los módulos.
+- [~] Estados vacíos, carga, error, sesión y permisos en homogeneización dentro de `chore/ux2-hardening` / PR #49.
+- [x] `WorkspaceState` compartido creado para loading/error/reintento accesible; Auditoría y Configuración migradas como primer lote.
+- [x] `SessionBoundary` incorpora recuperación explícita ante fallo de restauración de sesión, con prueba de reintento.
+- [ ] Migrar Usuarios, Confirmaciones, Sorteos, Encuentros, Clasificación y superficies restantes al patrón compartido cuando aplique.
 - [ ] Responsive completo escritorio/tablet/móvil.
 - [ ] Prueba visual end-to-end antes de cerrar el gate.
 
@@ -181,12 +184,16 @@ EncuentrosOES
     ├── [x] AppShell + SessionBoundary base
     ├── [x] Organización funcional
     ├── [x] Competencia funcional
-    └── [x] Control funcional
+    ├── [x] Control funcional
+    └── [~] Hardening transversal
+        ├── [~] Estados y recuperación — PR #49
+        ├── [ ] Responsive administrativo
+        └── [ ] E2E visual
 ```
 
 ## Prioridad inmediata
 
-1. Homogeneizar estados vacíos/carga/error/sesión/permisos en todos los módulos UX 2.0.
+1. Completar PR #49 y extender `WorkspaceState` a las superficies restantes sin duplicar lógica.
 2. Completar responsive administrativo escritorio/tablet/móvil.
 3. Ejecutar prueba visual end-to-end antes de cerrar Gate 10.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
