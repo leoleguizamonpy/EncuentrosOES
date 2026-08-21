@@ -11,6 +11,7 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const WORKSPACE_ROLES = ['ADMIN', 'OPERATOR', 'SUPERADMIN'] as const;
 type MatchFilter = 'ALL' | 'CONFIRMED' | 'PENDING_CONFIRMATION' | 'PENDING_RESULT';
@@ -18,6 +19,11 @@ type MatchFilter = 'ALL' | 'CONFIRMED' | 'PENDING_CONFIRMATION' | 'PENDING_RESUL
 interface MatchRow {
   readonly competition: CompetitionSummary;
   readonly match: ResultMatchView;
+}
+
+interface CompetitionMatchesLoad {
+  readonly failed: boolean;
+  readonly rows: readonly MatchRow[];
 }
 
 const statusLabel: Readonly<Record<ResultMatchView['status'], string>> = {
@@ -44,6 +50,7 @@ function locationOf(match: ResultMatchView): string {
 
 function MatchesWorkspace(): React.JSX.Element {
   const [rows, setRows] = useState<readonly MatchRow[] | null>(null);
+  const [failedCompetitionCount, setFailedCompetitionCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -51,16 +58,17 @@ function MatchesWorkspace(): React.JSX.Element {
 
   async function reload(): Promise<void> {
     const list = await competitions();
-    const workspaces = await Promise.all(list.map(async (competition) => {
-      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return [] as MatchRow[];
+    const loaded = await Promise.all(list.map(async (competition): Promise<CompetitionMatchesLoad> => {
+      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return { failed: false, rows: [] };
       try {
         const workspace = await resultsWorkspace(competition.id);
-        return workspace.matches.map((match) => ({ competition, match } satisfies MatchRow));
+        return { failed: false, rows: workspace.matches.map((match) => ({ competition, match } satisfies MatchRow)) };
       } catch {
-        return [] as MatchRow[];
+        return { failed: true, rows: [] };
       }
     }));
-    setRows(workspaces.flat());
+    setFailedCompetitionCount(loaded.filter((entry) => entry.failed).length);
+    setRows(loaded.flatMap((entry) => entry.rows));
   }
 
   useEffect(() => {
@@ -86,12 +94,12 @@ function MatchesWorkspace(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try { await reload(); }
-    catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
+    catch (caught: unknown) { setRows(null); setFailedCompetitionCount(0); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
     finally { setLoading(false); }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando encuentros…</strong><p>Recuperando partidos y resultados desde el servidor.</p></div>;
-  if (rows === null) return <div className="empty-state"><strong>No fue posible cargar Encuentros.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando partidos y resultados desde el servidor." title="Cargando encuentros…" />;
+  if (rows === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Encuentros." tone="error" />;
 
   const pendingResults = rows.filter(({ match }) => match.status === 'PENDING_RESULT').length;
   const pendingConfirmations = rows.filter(({ match }) => match.status === 'RESULT_PENDING_CONFIRMATION').length;
@@ -101,7 +109,7 @@ function MatchesWorkspace(): React.JSX.Element {
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Encuentros</h2><p>Consulta todos los encuentros materializados, detecta resultados pendientes y entra a la competencia correspondiente para registrar o confirmar el marcador.</p></div>
     </section>
-    {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
+    {failedCompetitionCount === 0 ? null : <p className={styles.error} role="status">No fue posible recuperar los encuentros de {failedCompetitionCount} {failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Los datos disponibles de las demás competencias siguen visibles.</p>}
     <section aria-label="Resumen de encuentros" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
       <span className={summaryClass}>{pendingResults} sin resultado</span>
       <span className={summaryClass}>{pendingConfirmations} por confirmar</span>
