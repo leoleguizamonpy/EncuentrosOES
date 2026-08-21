@@ -110,7 +110,7 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Política de autorización cerrada: ADMIN gestiona organización/competencia/control operativo; SUPERADMIN conserva administración de cuentas, roles y configuración sensible.
 - [~] Consolidación de persistencia competitiva activa en `refactor/persistence-equivalence`: primero equivalencia observable, luego sustitución incremental; sin limpieza destructiva.
 - [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
-- [~] Baseline de equivalencia de `Competition` en PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; pendiente gate final del head actual.
+- [x] Baseline de equivalencia de `Competition` validado en PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; `quality + visual-e2e` verdes en `e7b8bead5906be25b080674b3e41ccafd0427d16`.
 - [ ] Hacer `PrismaCompetitionRepository` transaction-aware para poder reutilizar persistencia dentro de la transacción Serializable del Store sin romper auditoría ni idempotencia.
 - [ ] Delegar gradualmente lectura/escritura del agregado `Competition` desde `PrismaCompetitionStore` al repositorio compartido con equivalencia verde.
 - [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
@@ -210,7 +210,7 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Cerrar PR #55 únicamente cuando Store → Repository, Repository → Store y control optimista queden verdes en PostgreSQL real junto con `quality + visual-e2e`.
+1. Consolidar PR #55 después de verificar `quality + visual-e2e` también sobre este head documental final.
 2. Hacer `PrismaCompetitionRepository` transaction-aware sin crear transacciones anidadas ni separar persistencia de auditoría/idempotencia.
 3. Delegar incrementalmente el agregado `Competition` desde `PrismaCompetitionStore` y demostrar equivalencia antes de retirar cada bloque duplicado.
 4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
