@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { currentActor, type AccountRole, type Actor } from '../lib/auth-api';
+import { WorkspaceState } from './workspace-state';
 
 export interface SessionBoundaryProps {
   readonly allowedRoles?: readonly AccountRole[];
@@ -16,41 +17,41 @@ export function SessionBoundary({ allowedRoles, children }: SessionBoundaryProps
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-
-    void currentActor()
-      .then((current) => {
-        if (!active) return;
-        if (current === null) {
-          router.replace('/login');
-          return;
-        }
-        if (allowedRoles !== undefined && !allowedRoles.includes(current.role)) {
-          router.replace('/dashboard');
-          return;
-        }
-        setActor(current);
-      })
-      .catch(() => {
-        if (!active) return;
-        setError('No fue posible restaurar la sesión. Revisa la conexión e inténtalo nuevamente.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+  const restore = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const current = await currentActor();
+      if (current === null) {
+        router.replace('/login');
+        return;
+      }
+      if (allowedRoles !== undefined && !allowedRoles.includes(current.role)) {
+        router.replace('/dashboard');
+        return;
+      }
+      setActor(current);
+    } catch {
+      setActor(null);
+      setError('No fue posible restaurar la sesión. Revisa la conexión e inténtalo nuevamente.');
+    } finally {
+      setLoading(false);
+    }
   }, [allowedRoles, router]);
 
+  useEffect(() => {
+    void restore();
+  }, [restore]);
+
   if (loading) {
-    return <main className="session-state" aria-live="polite">Restaurando sesión segura…</main>;
+    return <main className="session-state"><WorkspaceState detail="Validando tu cuenta y permisos." title="Restaurando sesión segura…" /></main>;
   }
 
   if (actor === null) {
-    return <main className="session-state" role={error === null ? undefined : 'alert'}>{error ?? 'Redirigiendo…'}</main>;
+    if (error !== null) {
+      return <main className="session-state"><WorkspaceState detail={error} onAction={() => void restore()} title="No fue posible restaurar la sesión." tone="error" /></main>;
+    }
+    return <main className="session-state" aria-live="polite">Redirigiendo…</main>;
   }
 
   return <>{children(actor)}</>;
