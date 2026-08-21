@@ -106,11 +106,11 @@ export class UsersAdminService {
       const invalidateCredentials = passwordHash !== undefined || current.role !== input.role || current.status !== input.status;
       const user = await tx.user.update({
         data: {
-          credentialVersion: invalidateCredentials ? { increment: 1 } : undefined,
           displayName: input.displayName.trim(),
-          passwordHash,
           role: input.role,
           status: input.status,
+          ...(invalidateCredentials ? { credentialVersion: { increment: 1 } } : {}),
+          ...(passwordHash === undefined ? {} : { passwordHash }),
         },
         where: { id: input.userId },
       });
