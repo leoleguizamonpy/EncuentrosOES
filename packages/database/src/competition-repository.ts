@@ -8,7 +8,7 @@ import {
   type ParticipantStatus,
 } from '@oes/domain';
 
-import type { PrismaClient } from './generated/prisma/client.js';
+import type { Prisma, PrismaClient } from './generated/prisma/client.js';
 
 const competitionStatuses = new Set<CompetitionStatus>([
   'DRAFT',
@@ -55,51 +55,65 @@ export class PrismaCompetitionRepository {
   }
 
   public async insert(competition: Competition): Promise<void> {
-    const snapshot = competition.toSnapshot();
-
     await this.#client.$transaction(async (transaction) => {
-      await transaction.competition.create({
-        data: {
-          createdAt: snapshot.createdAt,
-          createdById: snapshot.createdBy,
-          editionId: snapshot.key.editionId,
-          eventId: snapshot.key.eventId,
-          finalizedAt: snapshot.finalizedAt,
-          finalizedById: snapshot.finalizedBy,
-          formatCode: snapshot.formatCode,
-          groupCount: snapshot.groupCount,
-          id: snapshot.id,
-          lockedAt: snapshot.lockedAt,
-          lockedById: snapshot.lockedBy,
-          modalityId: snapshot.key.modalityId,
-          revision: snapshot.revision,
-          sportId: snapshot.key.sportId,
-          status: snapshot.status,
-          updatedAt: snapshot.updatedAt,
-          updatedById: snapshot.updatedBy,
-        },
-      });
-
-      if (snapshot.participants.length > 0) {
-        await transaction.competitionParticipant.createMany({
-          data: snapshot.participants.map((participant) => ({
-            competitionId: snapshot.id,
-            displayName: participant.displayName,
-            enabledAt: participant.enabledAt,
-            enabledById: participant.enabledBy,
-            eventId: participant.eventId,
-            id: participant.id,
-            institutionId: participant.institutionId,
-            revision: participant.revision,
-            status: participant.status,
-          })),
-        });
-      }
+      await this.insertInTransaction(transaction, competition);
     });
   }
 
+  public async insertInTransaction(
+    transaction: Prisma.TransactionClient,
+    competition: Competition,
+  ): Promise<void> {
+    const snapshot = competition.toSnapshot();
+
+    await transaction.competition.create({
+      data: {
+        createdAt: snapshot.createdAt,
+        createdById: snapshot.createdBy,
+        editionId: snapshot.key.editionId,
+        eventId: snapshot.key.eventId,
+        finalizedAt: snapshot.finalizedAt,
+        finalizedById: snapshot.finalizedBy,
+        formatCode: snapshot.formatCode,
+        groupCount: snapshot.groupCount,
+        id: snapshot.id,
+        lockedAt: snapshot.lockedAt,
+        lockedById: snapshot.lockedBy,
+        modalityId: snapshot.key.modalityId,
+        revision: snapshot.revision,
+        sportId: snapshot.key.sportId,
+        status: snapshot.status,
+        updatedAt: snapshot.updatedAt,
+        updatedById: snapshot.updatedBy,
+      },
+    });
+
+    if (snapshot.participants.length > 0) {
+      await transaction.competitionParticipant.createMany({
+        data: snapshot.participants.map((participant) => ({
+          competitionId: snapshot.id,
+          displayName: participant.displayName,
+          enabledAt: participant.enabledAt,
+          enabledById: participant.enabledBy,
+          eventId: participant.eventId,
+          id: participant.id,
+          institutionId: participant.institutionId,
+          revision: participant.revision,
+          status: participant.status,
+        })),
+      });
+    }
+  }
+
   public async findById(id: string): Promise<Competition | null> {
-    const record = await this.#client.competition.findUnique({
+    return this.findByIdInTransaction(this.#client, id);
+  }
+
+  public async findByIdInTransaction(
+    transaction: Prisma.TransactionClient | PrismaClient,
+    id: string,
+  ): Promise<Competition | null> {
+    const record = await transaction.competition.findUnique({
       include: { participants: { orderBy: { id: 'asc' } } },
       where: { id },
     });
@@ -148,56 +162,63 @@ export class PrismaCompetitionRepository {
     competition: Competition,
     expectedRevision: number,
   ): Promise<void> {
-    const snapshot = competition.toSnapshot();
-
     await this.#client.$transaction(async (transaction) => {
-      const update = await transaction.competition.updateMany({
-        data: {
-          finalizedAt: snapshot.finalizedAt,
-          finalizedById: snapshot.finalizedBy,
-          formatCode: snapshot.formatCode,
-          groupCount: snapshot.groupCount,
-          lockedAt: snapshot.lockedAt,
-          lockedById: snapshot.lockedBy,
-          revision: snapshot.revision,
-          status: snapshot.status,
-          updatedAt: snapshot.updatedAt,
-          updatedById: snapshot.updatedBy,
-        },
-        where: { id: snapshot.id, revision: expectedRevision },
-      });
-
-      if (update.count !== 1) {
-        throw new DomainError(
-          'CONCURRENCY_CONFLICT',
-          'The persisted competition revision no longer matches.',
-        );
-      }
-
-      const persisted = await transaction.competitionParticipant.findMany({
-        select: { id: true },
-        where: { competitionId: snapshot.id },
-      });
-      const persistedIds = new Set(persisted.map(({ id }) => id));
-      const additions = snapshot.participants.filter(
-        ({ id }) => !persistedIds.has(id),
-      );
-
-      if (additions.length > 0) {
-        await transaction.competitionParticipant.createMany({
-          data: additions.map((participant) => ({
-            competitionId: snapshot.id,
-            displayName: participant.displayName,
-            enabledAt: participant.enabledAt,
-            enabledById: participant.enabledBy,
-            eventId: participant.eventId,
-            id: participant.id,
-            institutionId: participant.institutionId,
-            revision: participant.revision,
-            status: participant.status,
-          })),
-        });
-      }
+      await this.saveInTransaction(transaction, competition, expectedRevision);
     });
+  }
+
+  public async saveInTransaction(
+    transaction: Prisma.TransactionClient,
+    competition: Competition,
+    expectedRevision: number,
+  ): Promise<void> {
+    const snapshot = competition.toSnapshot();
+    const update = await transaction.competition.updateMany({
+      data: {
+        finalizedAt: snapshot.finalizedAt,
+        finalizedById: snapshot.finalizedBy,
+        formatCode: snapshot.formatCode,
+        groupCount: snapshot.groupCount,
+        lockedAt: snapshot.lockedAt,
+        lockedById: snapshot.lockedBy,
+        revision: snapshot.revision,
+        status: snapshot.status,
+        updatedAt: snapshot.updatedAt,
+        updatedById: snapshot.updatedBy,
+      },
+      where: { id: snapshot.id, revision: expectedRevision },
+    });
+
+    if (update.count !== 1) {
+      throw new DomainError(
+        'CONCURRENCY_CONFLICT',
+        'The persisted competition revision no longer matches.',
+      );
+    }
+
+    const persisted = await transaction.competitionParticipant.findMany({
+      select: { id: true },
+      where: { competitionId: snapshot.id },
+    });
+    const persistedIds = new Set(persisted.map(({ id }) => id));
+    const additions = snapshot.participants.filter(
+      ({ id }) => !persistedIds.has(id),
+    );
+
+    if (additions.length > 0) {
+      await transaction.competitionParticipant.createMany({
+        data: additions.map((participant) => ({
+          competitionId: snapshot.id,
+          displayName: participant.displayName,
+          enabledAt: participant.enabledAt,
+          enabledById: participant.enabledBy,
+          eventId: participant.eventId,
+          id: participant.id,
+          institutionId: participant.institutionId,
+          revision: participant.revision,
+          status: participant.status,
+        })),
+      });
+    }
   }
 }
