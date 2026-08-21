@@ -33,7 +33,7 @@ const roleLabels = {
 
 const organization: readonly NavEntry[] = [
   { href: '/admin/editions', icon: 'edition', id: 'editions', label: 'Ediciones' },
-  { icon: 'event', id: 'events', label: 'Eventos', soon: true },
+  { href: '/admin/events', icon: 'event', id: 'events', label: 'Eventos' },
   { href: '/admin/institutions', icon: 'institution', id: 'institutions', label: 'Instituciones' },
   { href: '/admin/sports', icon: 'sport', id: 'sports', label: 'Deportes' },
   { href: '/admin/modalities', icon: 'modality', id: 'modalities', label: 'Modalidades' },
