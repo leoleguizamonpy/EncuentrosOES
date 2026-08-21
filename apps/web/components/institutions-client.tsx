@@ -14,6 +14,7 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const ADMIN_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 
@@ -182,14 +183,15 @@ function InstitutionsWorkspace(): React.JSX.Element {
     try {
       await reload();
     } catch (caught: unknown) {
+      setCatalog(null);
       setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.');
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando instituciones…</strong><p>Recuperando la organización desde el servidor.</p></div>;
-  if (catalog === null) return <div className="empty-state"><strong>No fue posible cargar este módulo.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando la organización desde el servidor." title="Cargando instituciones…" />;
+  if (catalog === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar este módulo." tone="error" />;
 
   return (
     <div className={styles.workspace}>
