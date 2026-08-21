@@ -51,6 +51,14 @@ export class UsersAdminController {
     const userId = uuidSchema.safeParse(id);
     const parsed = updateSchema.safeParse(body);
     if (!userId.success || !parsed.success) throw new BadRequestException('Los datos del usuario no son válidos.');
-    return this.service.update({ ...parsed.data, ...context(request, correlationId), userId: userId.data });
+    const input = {
+      ...context(request, correlationId),
+      displayName: parsed.data.displayName,
+      role: parsed.data.role,
+      status: parsed.data.status,
+      userId: userId.data,
+      ...(parsed.data.password === undefined ? {} : { password: parsed.data.password }),
+    };
+    return this.service.update(input);
   }
 }
