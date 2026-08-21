@@ -52,7 +52,10 @@ describe('UsersAdminService', () => {
     const current = user();
     const updated = user({ credentialVersion: 3, role: 'ADMIN' });
     const auditCreate = vi.fn(() => Promise.resolve({}));
-    const updateUser = vi.fn((_input: UpdateArgs): Promise<UserRecord> => Promise.resolve(updated));
+    const updateUser = vi.fn((input: UpdateArgs): Promise<UserRecord> => {
+      void input;
+      return Promise.resolve(updated);
+    });
     const tx = {
       auditEntry: { create: auditCreate },
       user: {
