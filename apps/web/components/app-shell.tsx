@@ -23,13 +23,10 @@ interface NavEntry {
   readonly id: string;
   readonly label: string;
   readonly soon?: boolean;
+  readonly superadminOnly?: boolean;
 }
 
-const roleLabels = {
-  ADMIN: 'Administrador',
-  OPERATOR: 'Operador',
-  SUPERADMIN: 'Superadministrador',
-} as const;
+const roleLabels = { ADMIN: 'Administrador', OPERATOR: 'Operador', SUPERADMIN: 'Superadministrador' } as const;
 
 const organization: readonly NavEntry[] = [
   { href: '/admin/editions', icon: 'edition', id: 'editions', label: 'Ediciones' },
@@ -49,8 +46,8 @@ const competition: readonly NavEntry[] = [
 const control: readonly NavEntry[] = [
   { href: '/admin/confirmations', icon: 'confirmation', id: 'confirmations', label: 'Confirmaciones' },
   { href: '/admin/audit', icon: 'audit', id: 'audit', label: 'Auditoría' },
-  { icon: 'users', id: 'users', label: 'Usuarios', soon: true },
-  { icon: 'settings', id: 'settings', label: 'Configuración', soon: true },
+  { href: '/admin/users', icon: 'users', id: 'users', label: 'Usuarios', superadminOnly: true },
+  { icon: 'settings', id: 'settings', label: 'Configuración', soon: true, superadminOnly: true },
 ];
 
 function NavIcon({ kind }: { readonly kind: NavIconKind }): React.JSX.Element {
@@ -70,7 +67,6 @@ function NavIcon({ kind }: { readonly kind: NavIconKind }): React.JSX.Element {
     standings: <><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7"/></>,
     users: <><circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0M16 6a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></>,
   } as const;
-
   return <svg aria-hidden="true" className={styles.navIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7">{path[kind]}</svg>;
 }
 
@@ -78,8 +74,8 @@ function NavLabel({ icon, label }: { readonly icon: NavIconKind; readonly label:
   return <span className={styles.navLabel}><NavIcon kind={icon}/><span className={styles.navText}>{label}</span></span>;
 }
 
-function NavGroup({ active, entries, label }: { readonly active: string; readonly entries: readonly NavEntry[]; readonly label: string }): React.JSX.Element {
-  return <><span className="nav-heading">{label}</span>{entries.map((entry) => {
+function NavGroup({ active, entries, label, role }: { readonly active: string; readonly entries: readonly NavEntry[]; readonly label: string; readonly role: Actor['role'] }): React.JSX.Element {
+  return <><span className="nav-heading">{label}</span>{entries.filter((entry) => entry.superadminOnly !== true || role === 'SUPERADMIN').map((entry) => {
     const className = `nav-item${active === entry.id ? ' nav-item--active' : ''}${entry.soon ? ' nav-item--disabled' : ''}`;
     const content = <><NavLabel icon={entry.icon} label={entry.label}/>{entry.soon ? <small>Próximo</small> : null}</>;
     return entry.soon || entry.href === undefined ? <span aria-disabled="true" className={className} key={entry.id}>{content}</span> : <a className={className} href={entry.href} key={entry.id}>{content}</a>;
@@ -89,5 +85,5 @@ function NavGroup({ active, entries, label }: { readonly active: string; readonl
 export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', title }: AppShellProps): React.JSX.Element {
   const router = useRouter();
   async function closeSession(): Promise<void> { try { await logout(); } finally { router.replace('/login'); } }
-  return <div className="dashboard-shell"><aside className="sidebar"><OesMark /><nav aria-label="Navegación principal"><a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" />}<NavGroup active={active} entries={competition} label="Competencia" />{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" />}</nav><div className="sidebar__footer">Sistema oficial · OES</div></aside><main className="dashboard-main"><header className="topbar"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className="account-menu"><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><button className="text-button" onClick={() => void closeSession()} type="button">Salir</button></div></header>{children}</main></div>;
+  return <div className="dashboard-shell"><aside className="sidebar"><OesMark /><nav aria-label="Navegación principal"><a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" role={actor.role} />}<NavGroup active={active} entries={competition} label="Competencia" role={actor.role} />{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" role={actor.role} />}</nav><div className="sidebar__footer">Sistema oficial · OES</div></aside><main className="dashboard-main"><header className="topbar"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className="account-menu"><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><button className="text-button" onClick={() => void closeSession()} type="button">Salir</button></div></header>{children}</main></div>;
 }

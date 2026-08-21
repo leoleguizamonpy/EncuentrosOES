@@ -107,7 +107,7 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] README y ROADMAP corregidos para no declarar 99% global.
 - [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
 - [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida.
-- [ ] Resolver autorización definitiva de datos maestros (ADMIN vs SUPERADMIN) durante la especificación UX.
+- [x] Política de autorización cerrada: ADMIN gestiona organización/competencia/control operativo; SUPERADMIN conserva administración de cuentas, roles y configuración sensible.
 - [ ] Consolidar la persistencia competitiva duplicada entre adaptadores de `apps/api` y servicios de `packages/database` mediante un refactor con pruebas de equivalencia; no se hará como limpieza destructiva.
 - [~] Reducir componentes frontend grandes durante la migración al AppShell y módulos de producto.
 
@@ -147,11 +147,15 @@ Referencia activa: `docs/08-ui-flows.md` UX 2.0.
 - [x] Confirmaciones implementada como bandeja única en `/admin/confirmations`, gate completo verde y consolidada en `main` mediante PR #45.
 - [x] Confirmaciones agrega sorteos, resultados, clasificados y campeón pendientes usando contratos existentes, sin entidad paralela de workflow.
 - [x] Confirmaciones bloquea en UI la autoconfirmación cuando el actor actual originó la decisión y delega la validación definitiva al backend.
-- [~] Auditoría implementada en `/admin/audit` dentro de `feat/ux2-audit`; pendiente gate CI.
+- [x] Auditoría implementada en `/admin/audit`, gate completo verde y consolidada en `main` mediante PR #46.
 - [x] Auditoría consume directamente `AuditEntry` persistido y expone fecha, actor/rol, acción, recurso, competencia, revisiones, correlación y motivo.
 - [x] Endpoint `GET /admin/audit` protegido para ADMIN/SUPERADMIN y limitado a las 200 trazas más recientes.
-- [x] Pruebas API y web añadidas para mapeo de evidencia persistida y navegación UX 2.0.
-- [ ] Implementar Usuarios y cerrar política de permisos.
+- [~] Usuarios implementado en `/admin/users` dentro de `feat/ux2-users`; pendiente gate CI.
+- [x] Usuarios queda reservado a SUPERADMIN: listado, alta, edición, rol, activación/desactivación y cambio de contraseña.
+- [x] Cambios sensibles de usuario incrementan `credentialVersion` para invalidar sesiones existentes y generan `AuditEntry`.
+- [x] El SUPERADMIN no puede degradar ni desactivar su propia cuenta desde el módulo.
+- [x] Política ADMIN vs SUPERADMIN cerrada y reflejada en navegación: Usuarios/Configuración sensible solo aparecen al SUPERADMIN.
+- [x] Pruebas API y web añadidas para invariantes de credenciales, creación y navegación de Usuarios.
 - [ ] Implementar Configuración solo con parámetros autorizados.
 - [ ] Estados vacíos, carga, error, sesión y permisos coherentes en todos los módulos.
 - [ ] Responsive completo escritorio/tablet/móvil.
@@ -175,16 +179,16 @@ EncuentrosOES
     ├── [x] Competencia funcional
     └── [~] Control
         ├── [x] Confirmaciones
-        ├── [~] Auditoría (CI pendiente)
-        ├── [ ] Usuarios
+        ├── [x] Auditoría
+        ├── [~] Usuarios (CI pendiente)
         └── [ ] Configuración
 ```
 
 ## Prioridad inmediata
 
-1. Ejecutar CI completo sobre `feat/ux2-audit` y consolidar Auditoría solo con gate verde.
-2. Implementar Usuarios y cerrar explícitamente la política ADMIN vs SUPERADMIN.
-3. Implementar Configuración únicamente con parámetros autorizados por Foundation y la política de permisos.
+1. Ejecutar CI completo sobre `feat/ux2-users` y consolidar Usuarios solo con gate verde.
+2. Implementar Configuración únicamente con parámetros autorizados por Foundation y la política SUPERADMIN.
+3. Homogeneizar estados vacíos/carga/error/permisos y completar responsive administrativo.
 4. Resolver consolidación de persistencia competitiva con pruebas de equivalencia, sin refactor destructivo.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa adecuada.
 
