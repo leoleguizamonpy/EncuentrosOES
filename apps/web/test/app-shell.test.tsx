@@ -24,9 +24,11 @@ describe('AppShell', () => {
     expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument();
 
     fireEvent.click(trigger);
-    expect(screen.getByRole('button', { name: 'Cerrar navegación' })).toHaveAttribute('aria-expanded', 'true');
-
     const closeButtons = screen.getAllByRole('button', { name: 'Cerrar navegación' });
+    const toggle = closeButtons.find((button) => button.getAttribute('aria-controls') === 'workspace-navigation');
+    if (toggle === undefined) throw new Error('Expected mobile navigation toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
     const backdrop = closeButtons.find((button) => button.getAttribute('aria-controls') === null);
     if (backdrop === undefined) throw new Error('Expected mobile navigation backdrop');
     fireEvent.click(backdrop);
