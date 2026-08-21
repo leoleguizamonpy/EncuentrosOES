@@ -1,0 +1,18 @@
+.navLabel {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.navIcon {
+  flex: 0 0 auto;
+  height: 17px;
+  width: 17px;
+}
+
+.navText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
