@@ -87,16 +87,16 @@ export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', t
   const [navigationOpen, setNavigationOpen] = useState(false);
   async function closeSession(): Promise<void> { try { await logout(); } finally { router.replace('/login'); } }
 
-  return <div className={`dashboard-shell ${styles.shell}`}>
+  return <div className={`dashboard-shell ${styles.shell ?? ''}`}>
     <button aria-expanded={navigationOpen} aria-controls="workspace-navigation" aria-label={navigationOpen ? 'Cerrar navegación' : 'Abrir navegación'} className={styles.menuButton} onClick={() => setNavigationOpen((current) => !current)} type="button"><span/><span/><span/></button>
     {navigationOpen ? <button aria-label="Cerrar navegación" className={styles.backdrop} onClick={() => setNavigationOpen(false)} type="button" /> : null}
-    <aside className={`sidebar ${styles.sidebar}${navigationOpen ? ` ${styles.sidebarOpen}` : ''}`} id="workspace-navigation">
+    <aside className={`sidebar ${styles.sidebar ?? ''}${navigationOpen ? ` ${styles.sidebarOpen ?? ''}` : ''}`} id="workspace-navigation">
       <OesMark />
       <nav aria-label="Navegación principal"><a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" role={actor.role} />}<NavGroup active={active} entries={competition} label="Competencia" role={actor.role} />{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" role={actor.role} />}</nav>
       <div className="sidebar__footer">Sistema oficial · OES</div>
     </aside>
-    <main className={`dashboard-main ${styles.main}`}>
-      <header className={`topbar ${styles.topbar}`}><div className={styles.titleBlock}><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className={`account-menu ${styles.accountMenu}`}><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span className={styles.accountIdentity}><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><button className="text-button" onClick={() => void closeSession()} type="button">Salir</button></div></header>
+    <main className={`dashboard-main ${styles.main ?? ''}`}>
+      <header className={`topbar ${styles.topbar ?? ''}`}><div className={styles.titleBlock}><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className={`account-menu ${styles.accountMenu ?? ''}`}><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span className={styles.accountIdentity}><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><button className="text-button" onClick={() => void closeSession()} type="button">Salir</button></div></header>
       {children}
     </main>
   </div>;
