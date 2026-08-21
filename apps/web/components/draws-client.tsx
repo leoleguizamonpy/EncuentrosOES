@@ -11,17 +11,20 @@ import {
 import { AppShell } from './app-shell';
 import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
+import { WorkspaceState } from './workspace-state';
 
 const WORKSPACE_ROLES = ['ADMIN', 'OPERATOR', 'SUPERADMIN'] as const;
 type DrawFilter = 'ALL' | 'CONFIRMED' | 'NOT_READY' | 'PENDING' | 'PREPARED' | 'PUBLISHED';
 
 interface DrawRow {
   readonly competition: CompetitionSummary;
+  readonly loadFailed: boolean;
   readonly workspace: DrawWorkspace | null;
 }
 
 function stateOf(row: DrawRow): Readonly<{ filter: DrawFilter; label: string }> {
-  const { competition, workspace } = row;
+  const { competition, loadFailed, workspace } = row;
+  if (loadFailed) return { filter: 'NOT_READY', label: 'Estado no disponible' };
   if (workspace?.publication !== null && workspace?.publication !== undefined) return { filter: 'PUBLISHED', label: 'Publicado' };
   if (workspace?.execution?.status === 'CONFIRMED') return { filter: 'CONFIRMED', label: 'Confirmado' };
   if (workspace?.execution?.status === 'PENDING_CONFIRMATION') return { filter: 'PENDING', label: 'Pendiente de confirmación' };
@@ -46,11 +49,11 @@ function DrawsWorkspace(): React.JSX.Element {
   async function reload(): Promise<void> {
     const list = await competitions();
     const loaded = await Promise.all(list.map(async (competition) => {
-      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return { competition, workspace: null } satisfies DrawRow;
+      if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return { competition, loadFailed: false, workspace: null } satisfies DrawRow;
       try {
-        return { competition, workspace: await drawWorkspace(competition.id) } satisfies DrawRow;
+        return { competition, loadFailed: false, workspace: await drawWorkspace(competition.id) } satisfies DrawRow;
       } catch {
-        return { competition, workspace: null } satisfies DrawRow;
+        return { competition, loadFailed: true, workspace: null } satisfies DrawRow;
       }
     }));
     setRows(loaded);
@@ -80,18 +83,20 @@ function DrawsWorkspace(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try { await reload(); }
-    catch (caught: unknown) { setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
+    catch (caught: unknown) { setRows(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
     finally { setLoading(false); }
   }
 
-  if (loading) return <div className="empty-state"><strong>Cargando sorteos…</strong><p>Recuperando el estado oficial de las competencias.</p></div>;
-  if (rows === null) return <div className="empty-state"><strong>No fue posible cargar Sorteos.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
+  if (loading) return <WorkspaceState detail="Recuperando el estado oficial de las competencias." title="Cargando sorteos…" />;
+  if (rows === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Sorteos." tone="error" />;
+
+  const failedCount = rows.filter((row) => row.loadFailed).length;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Sorteos</h2><p>Consulta qué competencias están listas para sortear, cuáles esperan confirmación y cuáles ya fueron publicadas oficialmente.</p></div>
     </section>
-    {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
+    {failedCount === 0 ? null : <p className={styles.error} role="status">No fue posible recuperar el estado de {failedCount} {failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.</p>}
     <section aria-label="Filtros de sorteos" className={styles.toolbar}>
       <input aria-label="Buscar sorteo" placeholder="Buscar por edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} />
       <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as DrawFilter)}>
