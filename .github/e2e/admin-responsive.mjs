@@ -36,7 +36,8 @@ try {
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Ingresar al sistema' }).click();
   await page.waitForURL('**/dashboard');
-  await page.getByRole('heading', { level: 1, name: 'Inicio' }).waitFor();
+  await screenshot(page, 'post-login-dashboard');
+  await page.getByRole('heading', { level: 1, name: 'Centro de operaciones' }).waitFor();
   await assertNoHorizontalOverflow(page, 'mobile dashboard');
   await screenshot(page, 'mobile-dashboard');
 
