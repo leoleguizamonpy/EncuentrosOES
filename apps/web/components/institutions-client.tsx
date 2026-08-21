@@ -176,8 +176,20 @@ function InstitutionsWorkspace(): React.JSX.Element {
     setError(null);
   }
 
+  async function retry(): Promise<void> {
+    setLoading(true);
+    setError(null);
+    try {
+      await reload();
+    } catch (caught: unknown) {
+      setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (loading) return <div className="empty-state"><strong>Cargando instituciones…</strong><p>Recuperando la organización desde el servidor.</p></div>;
-  if (catalog === null) return <div className="empty-state"><strong>No fue posible cargar este módulo.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => { setLoading(true); void reload().then(() => setError(null)).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.')).finally(() => setLoading(false)); }} type="button">Reintentar</button></div>;
+  if (catalog === null) return <div className="empty-state"><strong>No fue posible cargar este módulo.</strong><p>{error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'}</p><button className={styles.primaryButton} onClick={() => void retry()} type="button">Reintentar</button></div>;
 
   return (
     <div className={styles.workspace}>
