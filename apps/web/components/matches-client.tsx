@@ -95,6 +95,7 @@ function MatchesWorkspace(): React.JSX.Element {
 
   const pendingResults = rows.filter(({ match }) => match.status === 'PENDING_RESULT').length;
   const pendingConfirmations = rows.filter(({ match }) => match.status === 'RESULT_PENDING_CONFIRMATION').length;
+  const summaryClass = [styles.status, styles.inactive].filter(Boolean).join(' ');
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
@@ -102,8 +103,8 @@ function MatchesWorkspace(): React.JSX.Element {
     </section>
     {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
     <section aria-label="Resumen de encuentros" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-      <span className={styles.status + ' ' + styles.inactive}>{pendingResults} sin resultado</span>
-      <span className={styles.status + ' ' + styles.inactive}>{pendingConfirmations} por confirmar</span>
+      <span className={summaryClass}>{pendingResults} sin resultado</span>
+      <span className={summaryClass}>{pendingConfirmations} por confirmar</span>
     </section>
     <section aria-label="Filtros de encuentros" className={styles.toolbar}>
       <input aria-label="Buscar encuentro" placeholder="Buscar competencia o participante…" value={query} onChange={(event) => setQuery(event.target.value)} />
