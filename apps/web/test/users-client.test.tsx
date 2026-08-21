@@ -3,29 +3,31 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UsersClient } from '../components/users-client';
 
-const replace = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => navigation }));
 
 const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const usersApi = vi.hoisted(() => ({ createManagedUser: vi.fn(), managedUsers: vi.fn(), updateManagedUser: vi.fn() }));
 vi.mock('../lib/auth-api', () => authApi);
 vi.mock('../lib/users-admin-api', () => usersApi);
 
+const firstUser = {
+  createdAt: '2026-08-21T12:00:00.000Z',
+  displayName: 'Operador Uno',
+  email: 'operador@oes.test',
+  id: 'user-1',
+  lastLoginAt: null,
+  role: 'OPERATOR',
+  status: 'ACTIVE',
+  updatedAt: '2026-08-21T12:00:00.000Z',
+};
+
 describe('UsersClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authApi.currentActor.mockResolvedValue({ displayName: 'Super OES', id: 'actor-1', role: 'SUPERADMIN' });
     authApi.logout.mockResolvedValue(undefined);
-    usersApi.managedUsers.mockResolvedValue([{
-      createdAt: '2026-08-21T12:00:00.000Z',
-      displayName: 'Operador Uno',
-      email: 'operador@oes.test',
-      id: 'user-1',
-      lastLoginAt: null,
-      role: 'OPERATOR',
-      status: 'ACTIVE',
-      updatedAt: '2026-08-21T12:00:00.000Z',
-    }]);
+    usersApi.managedUsers.mockResolvedValue([firstUser]);
     usersApi.createManagedUser.mockResolvedValue({
       createdAt: '2026-08-21T15:00:00.000Z',
       displayName: 'Admin Dos',
@@ -59,5 +61,18 @@ describe('UsersClient', () => {
       role: 'ADMIN',
     }));
     expect(await screen.findByText('Admin Dos')).toBeInTheDocument();
+  });
+
+  it('recovers from an initial users loading failure', async () => {
+    usersApi.managedUsers.mockRejectedValueOnce(new Error('servicio temporalmente no disponible')).mockResolvedValueOnce([firstUser]);
+
+    render(<UsersClient />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No fue posible cargar Usuarios.');
+    expect(screen.getByText('servicio temporalmente no disponible')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Operador Uno')).toBeInTheDocument();
+    expect(usersApi.managedUsers).toHaveBeenCalledTimes(2);
   });
 });
