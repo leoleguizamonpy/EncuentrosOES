@@ -32,6 +32,7 @@ export function OfficialDrawPanel({
   actorId,
   canAnnul,
   canOperate,
+  canSelfConfirm,
   detail,
   onChange,
   onError,
@@ -40,6 +41,7 @@ export function OfficialDrawPanel({
   readonly actorId: string;
   readonly canAnnul: boolean;
   readonly canOperate: boolean;
+  readonly canSelfConfirm: boolean;
   readonly detail: CompetitionDetail;
   readonly onChange: (workspace: DrawWorkspace) => void;
   readonly onError: (message: string | null) => void;
@@ -54,6 +56,7 @@ export function OfficialDrawPanel({
   const readyToPrepare = detail.formatCode !== null && detail.ruleSet?.status === 'FROZEN';
   const canPrepare = canOperate && (workspace.competitionStatus === 'DRAFT' || workspace.competitionStatus === 'OPEN');
   const sameExecutor = execution?.executedBy.id === actorId;
+  const requiresIndependentConfirmer = sameExecutor && !canSelfConfirm;
 
   async function run(kind: 'confirm' | 'execute' | 'prepare' | 'publish'): Promise<void> {
     onError(null);
@@ -121,7 +124,7 @@ export function OfficialDrawPanel({
                 <div><button className="danger-button" disabled={action !== null || annulmentReason.trim().length < 10} onClick={() => void annul()} type="button">{action === 'annul' ? 'Anulando…' : 'Confirmar anulación'}</button><button disabled={action !== null} onClick={() => { setAnnulmentOpen(false); setAnnulmentReason(''); }} type="button">Cancelar</button></div>
               </div>}
             </div> : null}
-          </> : sameExecutor ? <p className="readonly-note">La autoridad que ejecutó el sorteo no puede confirmarlo. Debe ingresar otro administrador o el superadministrador.</p> : canOperate ? <button className="primary-button" disabled={action !== null} onClick={() => void run('confirm')} type="button">{action === 'confirm' ? 'Confirmando…' : 'Confirmar sorteo y generar encuentros'}</button> : <p className="readonly-note">Esperando confirmación de una autoridad independiente.</p>}
+          </> : requiresIndependentConfirmer ? <p className="readonly-note">Un administrador no puede confirmar el mismo sorteo que ejecutó. Debe ingresar otra autoridad.</p> : canOperate ? <button className="primary-button" disabled={action !== null} onClick={() => void run('confirm')} type="button">{action === 'confirm' ? 'Confirmando…' : sameExecutor ? 'Confirmar mi sorteo y generar encuentros' : 'Confirmar sorteo y generar encuentros'}</button> : <p className="readonly-note">Esperando confirmación de una autoridad habilitada.</p>}
         </div>
       )}
     </section>
