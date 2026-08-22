@@ -1,7 +1,8 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 21 de agosto de 2026  
+> Estado auditado: 22 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md`  
+> Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`
 
 Este roadmap distingue el **software definido por Foundation** de las validaciones que requieren infraestructura externa real. No se declara completada una prueba operativa externa mediante simulaciones o almacenamiento local.
@@ -31,6 +32,7 @@ EncuentrosOES
 - [x] Modelo de dominio, reglas de sorteo, resultados, desempates y clasificación documentados.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
 - [x] CI con lint, tipos, pruebas, build y PostgreSQL real.
+- [x] `AGENTS.md` define la disciplina operativa obligatoria para agentes humanos o asistidos por IA.
 
 ## Gate 1 — Persistencia competitiva — CERRADO
 
@@ -115,7 +117,7 @@ El punto anterior **no puede cerrarse con CI local/provider-neutral**. Requiere 
 - [x] Accesibilidad y responsive público.
 - [x] Historial público de publicaciones/verificaciones, incluidas `REVOKED` como evidencia histórica.
 
-## Gate 9 — Saneamiento técnico posterior a auditoría — CERRADO
+## Gate 9 — Saneamiento técnico posterior a auditoría — CERRADO Y CONSOLIDADO
 
 Referencias:
 - `docs/AUDIT-CLEANUP-2026-08-20.md`
@@ -141,19 +143,19 @@ Referencias:
 ### Consolidación de Sorteos
 
 - [x] Auditoría específica de responsabilidades API/Database completada.
-- [x] PR #60 — `PrismaDrawConfigurationRepository` transaction-aware, rollback externo y read/freeze/save PostgreSQL; merge `73cf492ebc9e16a5aae4de291b117fac47bb1a41`.
+- [x] PR #60 — `PrismaDrawConfigurationRepository` transaction-aware; merge `73cf492ebc9e16a5aae4de291b117fac47bb1a41`.
 - [x] PR #61 — `PrismaDrawStore.prepare` delega inserción y rehidratación de `DrawConfiguration`; merge `ae3f1e438e828f6addfc609c6adb97004c0245a1`.
 - [x] PR #62 — `PrismaOfficialDrawService` transaction-aware con execute/find/confirm/annul y materialización dentro de transacción externa; merge `ce1e3c2b91bd3c8fddd9d3ef273c6f2d47dd03aa`.
-- [~] PR #63 — `PrismaDrawStore` delega OfficialDraw y materialización al servicio compartido; head productivo `78e91a74f85483617f0d1191f7ee7a289c615a06` con `quality + visual-e2e` verdes antes de este commit documental. Pendiente gate del head final y merge.
+- [x] PR #63 — `PrismaDrawStore` delega OfficialDraw y materialización al servicio compartido; head exacto `1e98dd6857003849247b5996337fdf9ed7e608f9`, `quality + visual-e2e` verdes, merge `7af7604b08afda7403a5e9701ef78e35bafa2cfc`.
 
-### Fronteras ya consolidadas
+### Fronteras consolidadas
 
 - [x] Resultados/Clasificación: API delega a `PrismaMatchResultService` + `PrismaGroupQualificationService`.
 - [x] Continuidad: API delega a `PrismaNextRoundService.prepareInTransaction`.
 - [x] Finalización: API delega a `PrismaChampionFinalizationService`.
 - [x] Lifecycle, restart, annulment, PostgreSQL integration, coverage y build permanecen en el gate obligatorio.
 
-**Criterio de cierre:** Gate 9 se considera cerrado funcionalmente con el cambio de PR #63; su consolidación en `main` queda condicionada únicamente a `quality + visual-e2e` verdes sobre el head que contiene este ROADMAP.
+**Criterio de cierre cumplido:** el head exacto final de PR #63 pasó el gate completo antes de fusionarse y quedó consolidado en `main` mediante `7af7604b08afda7403a5e9701ef78e35bafa2cfc`.
 
 ## Gate 10 — Arquitectura de producto y experiencia administrativa — CERRADO
 
@@ -175,14 +177,17 @@ Cierre de software
 ├── [x] Gates 0–6
 ├── [~] Gate 7 — solo infraestructura externa pendiente
 ├── [x] Gate 8
-├── [x] Gate 9 — código cerrado; PR #63 en gate final
+├── [x] Gate 9 — consolidado en main
 └── [x] Gate 10
 
-Después de PR #63
-├── [ ] Fusionar head final exacto en `main`
-├── [ ] Verificar CI de la rama consolidada
-├── [ ] Eliminar ramas feature/refactor ya fusionadas cuando la API de GitHub lo permita
+Consolidación del repositorio
+├── [x] Fusionar head final de Gate 9 en `main`
+├── [x] Head exacto de PR #63 validado con `quality + visual-e2e` antes del merge
+├── [~] Incorporar `AGENTS.md` y cierre documental final
+├── [ ] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
 └── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
 ```
+
+El merge commit de `main` no dispara un segundo workflow adicional; la garantía de integración se basa en el gate completo ejecutado sobre el mismo head exacto que se fusionó.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de `FOUNDATION.md`.
