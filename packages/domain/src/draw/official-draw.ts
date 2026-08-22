@@ -142,10 +142,10 @@ export class OfficialDraw {
     if (this.#snapshot.status !== 'PENDING_CONFIRMATION') {
       throw new DomainError('DRAW_CONFIRMATION_INVALID', 'Only a pending draw can be confirmed.');
     }
-    if (input.actorId === this.#snapshot.executedBy) {
+    if (input.actorId === this.#snapshot.executedBy && input.actorRole !== 'SUPERADMIN') {
       throw new DomainError(
         'DRAW_CONFIRMATION_INVALID',
-        'The draw executor cannot confirm the same execution.',
+        'An administrator cannot confirm the same draw execution they executed.',
       );
     }
     this.#snapshot = {
