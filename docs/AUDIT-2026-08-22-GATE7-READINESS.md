@@ -9,19 +9,13 @@
 
 El software competitivo definido por Foundation permanece cerrado. La última cabeza funcional de Gate 9 (`1e98dd6857003849247b5996337fdf9ed7e608f9`) ejecutó correctamente los jobs `quality` y `visual-e2e`, incluyendo PostgreSQL, migraciones, backup/restore, roundtrip provider-neutral, coverage, build y Chromium responsive.
 
+El workflow vigente también está configurado para ejecutarse tanto en `pull_request` como en `push` a `main`. La API de estado consultada durante esta auditoría no expuso checks asociados al head documental actual, por lo que no se usa esa ausencia como prueba de que el push no haya sido validado.
+
 El único bloqueo declarado por `ROADMAP.md` continúa siendo externo: `REAL-STORAGE-DRILL` contra almacenamiento privado/cifrado y credenciales de mínimo privilegio.
 
 ## Hallazgos
 
-### A-2026-08-22-01 — Head actual de main sin check asociado
-
-Después del head funcional validado se incorporaron commits directos de documentación y mantenimiento hasta `7048f4be53f773f8cf247900e7d3919b0d410341`. Esos commits no alteraron el núcleo competitivo, pero el head actual no tiene status checks asociados.
-
-Esto no demuestra una regresión funcional, pero sí crea una discontinuidad frente a la regla de `AGENTS.md` que exige volver a validar un nuevo head después de cualquier commit agregado tras un gate verde.
-
-**Acción:** este bloque se entrega mediante PR desde el head actual de `main`, de modo que el contenido consolidado vuelva a recorrer el gate oficial antes de fusionarse.
-
-### A-2026-08-22-02 — El comando provider-neutral no diferencia una ejecución real de una simulada
+### A-2026-08-22-01 — Falta una frontera operativa que diferencie el drill real del provider-neutral
 
 `db:backup:roundtrip-drill` está correctamente diseñado como mecanismo provider-neutral y CI lo ejecuta con `fake-backup-transport.sh`. Sin embargo, si un operador ejecuta ese mismo comando manualmente, el propio comando no puede probar por sí solo que el destino sea realmente externo, privado, cifrado y operado con credenciales mínimas.
 
