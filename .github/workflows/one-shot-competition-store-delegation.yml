@@ -1,17 +1,16 @@
 name: One-shot competition store delegation
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/competition-store-delegation
-    paths:
-      - .github/workflows/one-shot-competition-store-delegation.yml
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.event.pull_request.head.ref == 'refactor/competition-store-delegation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
