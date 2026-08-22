@@ -98,7 +98,7 @@ function QualificationPanel({ actorId, canOperate, canSelfConfirm, onChange, onE
   </section>;
 }
 
-export function ResultsWorkspacePanel({ actorId, canAnnul, canOperate, canSelfConfirm, onChange, onError, workspace }: { readonly actorId: string; readonly canAnnul: boolean; readonly canOperate: boolean; readonly canSelfConfirm: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
+export function ResultsWorkspacePanel({ actorId, canAnnul, canOperate, canSelfConfirm = false, onChange, onError, workspace }: { readonly actorId: string; readonly canAnnul: boolean; readonly canOperate: boolean; readonly canSelfConfirm?: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
   const setBased = workspace.resultProfile === 'SET_BASED';
   return <section className="setup-card results-workspace" id="results-workspace" aria-labelledby="results-workspace-title">
     <div className="section-title"><div><span className="eyebrow eyebrow--dark">Paso 5</span><h3 id="results-workspace-title">Encuentros y tabla</h3></div><span>{workspace.matches.length}</span></div>
