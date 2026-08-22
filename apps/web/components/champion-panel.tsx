@@ -22,6 +22,7 @@ function finalReady(draw: DrawWorkspace, results: ResultsWorkspace): boolean {
 export function ChampionPanel({
   actorId,
   canOperate,
+  canSelfConfirm,
   champion,
   competitionId,
   draw,
@@ -31,6 +32,7 @@ export function ChampionPanel({
 }: {
   readonly actorId: string;
   readonly canOperate: boolean;
+  readonly canSelfConfirm: boolean;
   readonly champion: ChampionView | null;
   readonly competitionId: string;
   readonly draw: DrawWorkspace;
@@ -57,14 +59,16 @@ export function ChampionPanel({
     finally { setSubmitting(null); }
   }
 
+  const ownPendingProposal = champion?.status === 'PENDING_CONFIRMATION' && champion.proposedBy === actorId;
+
   return <section className="setup-card qualification-panel" id="champion-workspace" aria-labelledby="champion-title">
     <div className="section-title"><div><span className="eyebrow eyebrow--dark">Cierre</span><h3 id="champion-title">Campeón de la competencia</h3></div><span>★</span></div>
     {champion === null ? <div className="draw-empty">
       <div><strong>Final resuelta</strong><p>El último resultado confirmado permite proponer al campeón. El servidor verificará nuevamente toda la evidencia antes de registrar la propuesta.</p></div>
-      {canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void propose()} type="button">{submitting === 'propose' ? 'Proponiendo…' : 'Proponer campeón'}</button> : <p className="readonly-note">Un administrador debe proponer el campeón.</p>}
+      {canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void propose()} type="button">{submitting === 'propose' ? 'Proponiendo…' : 'Proponer campeón'}</button> : <p className="readonly-note">Una autoridad habilitada debe proponer el campeón.</p>}
     </div> : <div className="draw-ready">
       <div className="draw-proof"><span>{champion.status === 'CONFIRMED' ? 'Campeón confirmado' : 'Campeón propuesto'}</span><strong>{champion.participantDisplayName}</strong><small>Ronda {champion.sourceRoundNumber} · evidencia vinculada al resultado final</small></div>
-      {champion.status === 'CONFIRMED' ? <div><p className="draw-confirmed-proof">✓ Competencia finalizada oficialmente.</p><a href={`/competitions/${competitionId}/public`}>Ver campeón y recorrido público</a></div> : champion.proposedBy === actorId ? <p className="readonly-note">Otra autoridad debe confirmar al campeón.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : 'Confirmar campeón y finalizar'}</button> : <p className="readonly-note">Un administrador independiente debe confirmar al campeón.</p>}
+      {champion.status === 'CONFIRMED' ? <div><p className="draw-confirmed-proof">✓ Competencia finalizada oficialmente.</p><a href={`/competitions/${competitionId}/public`}>Ver campeón y recorrido público</a></div> : ownPendingProposal && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar al campeón.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : ownPendingProposal ? 'Confirmar mi propuesta y finalizar' : 'Confirmar campeón y finalizar'}</button> : <p className="readonly-note">Una autoridad habilitada debe confirmar al campeón.</p>}
     </div>}
   </section>;
 }
