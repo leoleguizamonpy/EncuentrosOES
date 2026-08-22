@@ -209,8 +209,8 @@ export class PrismaChampionFinalizationService {
     if (competition.revision !== input.expectedCompetitionRevision) {
       throw new DomainError('CONCURRENCY_CONFLICT', 'The competition revision is stale.');
     }
-    if (proposal.actorId === input.actorId) {
-      throw new DomainError('INVALID_COMPETITION_STATE', 'The authority that proposed the champion cannot confirm the same proposal.');
+    if (proposal.actorId === input.actorId && input.actorRole !== 'SUPERADMIN') {
+      throw new DomainError('INVALID_COMPETITION_STATE', 'An administrator cannot confirm the same champion proposal they created.');
     }
     const existingConfirmation = await transaction.auditEntry.findFirst({
       select: { id: true },
