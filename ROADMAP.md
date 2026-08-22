@@ -113,9 +113,10 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Baseline de equivalencia de `Competition` validado y consolidado mediante PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
 - [x] `PrismaCompetitionRepository` transaction-aware validado y consolidado mediante PR #56: `insertInTransaction`, `findByIdInTransaction` y `saveInTransaction`, rollback externo y read/save transaccional; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
 - [x] Primera delegación productiva consolidada mediante PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable permanecen en API; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
-- [~] Baseline específico de `create` activo en PR #58: agregado inicial, proyección `DRAFT/revision 1`, auditoría `COMPETITION_CREATED`, replay idempotente y conflicto de key equivalentes; `quality + visual-e2e` verdes en `4cb3c976c5e785ddb85eebb161174dcc682c467d`; pendiente gate del head documental final y merge.
-- [ ] Delegar únicamente la inserción de `create` a `insertInTransaction` después de consolidar PR #58; idempotencia, auditoría y `CompetitionSummary` permanecen en API.
-- [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
+- [x] Baseline específico de `create` validado y consolidado mediante PR #58: agregado inicial, proyección `DRAFT/revision 1`, auditoría `COMPETITION_CREATED`, replay idempotente y conflicto de key equivalentes; merge `6b60cc49d437898de3238237994a3bcac196a469`.
+- [~] Segunda delegación productiva activa en PR #59: `create` persiste el agregado mediante `insertInTransaction`, mantiene construcción del agregado, auditoría, idempotencia, proyección y transacción Serializable en API; `quality + visual-e2e` verdes en `08d6381c59491d4ad3af72c5a880ae6abd46c744`; pendiente gate del head documental final y merge.
+- [ ] Auditar la equivalencia de Sorteos como siguiente frontera de consolidación, sin retirar persistencia API hasta contar con baseline PostgreSQL verde.
+- [ ] Ampliar equivalencia a Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
 - [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
 - [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
 
@@ -197,7 +198,8 @@ EncuentrosOES
 │   ├── [x] Baseline de equivalencia Competition — PR #55
 │   ├── [x] Repositorio Competition transaction-aware — PR #56
 │   ├── [x] Primera delegación Store → Repository — PR #57
-│   └── [~] Baseline de create — PR #58
+│   ├── [x] Baseline de create — PR #58
+│   └── [~] Delegación de create → Repository — PR #59
 └── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary
@@ -215,10 +217,10 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Cerrar PR #58 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
-2. Tras consolidar PR #58, delegar únicamente la inserción del agregado en `create` mediante `insertInTransaction`; mantener idempotencia, auditoría y proyección en API.
-3. Demostrar equivalencia y atomicidad después de esa sustitución antes de retirar más código duplicado.
-4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
+1. Cerrar PR #59 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
+2. Tras consolidar PR #59, iniciar la equivalencia de Sorteos: identificar el agregado/estado compartible y fijar baseline PostgreSQL antes de delegar persistencia.
+3. Repetir el patrón para Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
+4. Retirar duplicaciones únicamente cuando cada frontera tenga equivalencia y atomicidad demostradas.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
