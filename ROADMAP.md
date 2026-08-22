@@ -111,8 +111,9 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [~] Consolidación de persistencia competitiva activa: equivalencia → transaction-aware → delegación incremental; sin limpieza destructiva.
 - [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
 - [x] Baseline de equivalencia de `Competition` validado y consolidado mediante PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
-- [~] `PrismaCompetitionRepository` transaction-aware activo en PR #56: variantes `insert/find/save` reutilizables dentro de una transacción externa, con rollback y read/save transaccional cubiertos por integración PostgreSQL.
-- [ ] Delegar gradualmente lectura/escritura del agregado `Competition` desde `PrismaCompetitionStore` al repositorio compartido con equivalencia verde.
+- [x] `PrismaCompetitionRepository` transaction-aware validado y consolidado mediante PR #56: `insertInTransaction`, `findByIdInTransaction` y `saveInTransaction`, rollback externo y read/save transaccional; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
+- [~] Primera delegación productiva activa en PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable siguen en API. `quality + visual-e2e` verdes en `af9a6435985e3b30af0535683cd89c294aa4ea14`; pendiente gate del head documental final y merge.
+- [ ] Delegar el siguiente corte del agregado `Competition` solo después de consolidar PR #57 y conservar equivalencia/atomicidad.
 - [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
 - [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
 - [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
@@ -193,7 +194,8 @@ EncuentrosOES
 │   ├── [x] UI heredada de Catálogos retirada
 │   ├── [x] Inventario de persistencia competitiva
 │   ├── [x] Baseline de equivalencia Competition — PR #55
-│   └── [~] Repositorio Competition transaction-aware — PR #56
+│   ├── [x] Repositorio Competition transaction-aware — PR #56
+│   └── [~] Primera delegación Store → Repository — PR #57
 └── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary
@@ -211,9 +213,9 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Validar PR #56 en PostgreSQL real: rollback del outer transaction y read/save transaccional, seguido de `quality + visual-e2e` completos.
-2. Solo después, delegar incrementalmente el agregado `Competition` desde `PrismaCompetitionStore` manteniendo audit + idempotency dentro de la misma transacción Serializable.
-3. Demostrar equivalencia y atomicidad después de cada sustitución antes de retirar código duplicado.
+1. Cerrar PR #57 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
+2. Tras consolidar PR #57, identificar el siguiente corte seguro del agregado `Competition`; no mover `create`, reglas o proyecciones sin equivalencia específica.
+3. Demostrar equivalencia y atomicidad después de cada sustitución antes de retirar más código duplicado.
 4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
