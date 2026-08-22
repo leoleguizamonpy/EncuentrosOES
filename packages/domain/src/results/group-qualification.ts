@@ -146,8 +146,14 @@ export class GroupQualification {
   public confirm(input: TransitionGroupQualificationInput): void {
     this.#assertRevision(input.expectedRevision);
     assertAuthority(input.actorId);
-    if (this.#snapshot.status !== 'PENDING_CONFIRMATION' || input.actorId === this.#snapshot.proposedBy) {
-      throw new DomainError('QUALIFICATION_CONFIRMATION_INVALID', 'Another authority must confirm the proposal.');
+    if (this.#snapshot.status !== 'PENDING_CONFIRMATION') {
+      throw new DomainError('QUALIFICATION_CONFIRMATION_INVALID', 'Only a pending qualification can be confirmed.');
+    }
+    if (input.actorId === this.#snapshot.proposedBy && input.actorRole !== 'SUPERADMIN') {
+      throw new DomainError(
+        'QUALIFICATION_CONFIRMATION_INVALID',
+        'An administrator cannot confirm the same qualification they proposed.',
+      );
     }
     this.#snapshot = {
       ...this.#snapshot,
