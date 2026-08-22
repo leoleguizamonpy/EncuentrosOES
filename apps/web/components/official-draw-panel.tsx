@@ -32,7 +32,7 @@ export function OfficialDrawPanel({
   actorId,
   canAnnul,
   canOperate,
-  canSelfConfirm,
+  canSelfConfirm = false,
   detail,
   onChange,
   onError,
@@ -41,7 +41,7 @@ export function OfficialDrawPanel({
   readonly actorId: string;
   readonly canAnnul: boolean;
   readonly canOperate: boolean;
-  readonly canSelfConfirm: boolean;
+  readonly canSelfConfirm?: boolean;
   readonly detail: CompetitionDetail;
   readonly onChange: (workspace: DrawWorkspace) => void;
   readonly onError: (message: string | null) => void;
