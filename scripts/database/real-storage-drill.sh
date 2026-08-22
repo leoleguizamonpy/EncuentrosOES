@@ -1,42 +1,19 @@
 #!/usr/bin/env sh
 set -eu
 
-required_var() {
-  name="$1"
-  eval "value=\${$name:-}"
-  if [ -z "$value" ]; then
-    echo "$name is required for REAL-STORAGE-DRILL." >&2
-    exit 1
-  fi
-}
+if [ -z "${DATABASE_URL:-}" ]; then echo "DATABASE_URL is required for REAL-STORAGE-DRILL." >&2; exit 1; fi
+if [ -z "${BACKUP_TRANSPORT_EXECUTABLE:-}" ]; then echo "BACKUP_TRANSPORT_EXECUTABLE is required for REAL-STORAGE-DRILL." >&2; exit 1; fi
+if [ -z "${BACKUP_REMOTE_PREFIX:-}" ]; then echo "BACKUP_REMOTE_PREFIX is required for REAL-STORAGE-DRILL." >&2; exit 1; fi
+if [ -z "${BACKUP_RETENTION_DAYS:-}" ]; then echo "BACKUP_RETENTION_DAYS is required for REAL-STORAGE-DRILL." >&2; exit 1; fi
+if [ -z "${BACKUP_PROVIDER_LABEL:-}" ]; then echo "BACKUP_PROVIDER_LABEL is required for REAL-STORAGE-DRILL." >&2; exit 1; fi
 
-required_var DATABASE_URL
-required_var BACKUP_TRANSPORT_EXECUTABLE
-required_var BACKUP_REMOTE_PREFIX
-required_var BACKUP_RETENTION_DAYS
-required_var BACKUP_PROVIDER_LABEL
-required_var REAL_STORAGE_PRIVATE_CONFIRMED
-required_var REAL_STORAGE_ENCRYPTED_CONFIRMED
-required_var REAL_STORAGE_MIN_PRIVILEGE_CONFIRMED
-
-for confirmation in \
-  REAL_STORAGE_PRIVATE_CONFIRMED \
-  REAL_STORAGE_ENCRYPTED_CONFIRMED \
-  REAL_STORAGE_MIN_PRIVILEGE_CONFIRMED
-do
-  eval "value=\${$confirmation}"
-  if [ "$value" != "YES" ]; then
-    echo "$confirmation must be exactly YES." >&2
-    exit 1
-  fi
-done
+if [ "${REAL_STORAGE_PRIVATE_CONFIRMED:-}" != "YES" ]; then echo "REAL_STORAGE_PRIVATE_CONFIRMED must be exactly YES." >&2; exit 1; fi
+if [ "${REAL_STORAGE_ENCRYPTED_CONFIRMED:-}" != "YES" ]; then echo "REAL_STORAGE_ENCRYPTED_CONFIRMED must be exactly YES." >&2; exit 1; fi
+if [ "${REAL_STORAGE_MIN_PRIVILEGE_CONFIRMED:-}" != "YES" ]; then echo "REAL_STORAGE_MIN_PRIVILEGE_CONFIRMED must be exactly YES." >&2; exit 1; fi
 
 case "$BACKUP_TRANSPORT_EXECUTABLE" in
   /*) ;;
-  *)
-    echo "BACKUP_TRANSPORT_EXECUTABLE must be an absolute path." >&2
-    exit 1
-    ;;
+  *) echo "BACKUP_TRANSPORT_EXECUTABLE must be an absolute path." >&2; exit 1 ;;
 esac
 
 if [ ! -x "$BACKUP_TRANSPORT_EXECUTABLE" ]; then
@@ -74,10 +51,9 @@ if [ -z "${BACKUP_ID:-}" ]; then
 fi
 
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
 sh scripts/database/roundtrip-drill.sh
-
 COMPLETED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 EVIDENCE_DIR="${REAL_STORAGE_EVIDENCE_DIR:-./artifacts/database/real-storage-drill}"
 mkdir -p "$EVIDENCE_DIR"
 EVIDENCE_PATH="$EVIDENCE_DIR/$BACKUP_ID.json"
