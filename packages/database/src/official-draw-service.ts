@@ -35,6 +35,8 @@ const statuses = new Set<OfficialDrawStatus>([
   'PENDING_CONFIRMATION',
 ]);
 
+type DrawPersistenceClient = Prisma.TransactionClient | PrismaClient;
+
 function parseRole(role: string, status: string): AuthorityRole {
   if (status === 'ACTIVE' && (role === 'ADMIN' || role === 'SUPERADMIN')) return role;
   throw new DomainError('DRAW_AUTHORITY_INVALID', 'An active draw authority is required.');
@@ -58,18 +60,28 @@ export class PrismaOfficialDrawService {
     this.#configurationRepository = new PrismaDrawConfigurationRepository(client);
   }
 
-  public async execute(input: ExecutePersistedOfficialDrawInput): Promise<OfficialDraw> {
-    const configuration = await this.#configurationRepository.findById(input.configurationId);
+  public execute(input: ExecutePersistedOfficialDrawInput): Promise<OfficialDraw> {
+    return this.#client.$transaction((transaction) => this.executeInTransaction(transaction, input));
+  }
+
+  public async executeInTransaction(
+    transaction: Prisma.TransactionClient,
+    input: ExecutePersistedOfficialDrawInput,
+  ): Promise<OfficialDraw> {
+    const configuration = await this.#configurationRepository.findByIdInTransaction(
+      transaction,
+      input.configurationId,
+    );
     if (configuration === null) {
       throw new DomainError('DRAW_EXECUTION_INVALID', 'Draw configuration does not exist.');
     }
     const configurationSnapshot = configuration.toSnapshot();
     const [actor, competition] = await Promise.all([
-      this.#client.user.findUnique({
+      transaction.user.findUnique({
         select: { role: true, status: true },
         where: { id: input.actorId },
       }),
-      this.#client.competition.findUnique({
+      transaction.competition.findUnique({
         select: { status: true },
         where: { id: configurationSnapshot.competitionId },
       }),
@@ -87,7 +99,7 @@ export class PrismaOfficialDrawService {
       seed: input.seed,
     });
     const snapshot = draw.toSnapshot();
-    await this.#client.officialDraw.create({
+    await transaction.officialDraw.create({
       data: {
         algorithmVersion: snapshot.evidence.algorithmVersion,
         competitionId: snapshot.competitionId,
@@ -107,10 +119,20 @@ export class PrismaOfficialDrawService {
     return draw;
   }
 
-  public async findById(id: string): Promise<OfficialDraw | null> {
-    const record = await this.#client.officialDraw.findUnique({ where: { id } });
+  public findById(id: string): Promise<OfficialDraw | null> {
+    return this.findByIdInTransaction(this.#client, id);
+  }
+
+  public async findByIdInTransaction(
+    client: DrawPersistenceClient,
+    id: string,
+  ): Promise<OfficialDraw | null> {
+    const record = await client.officialDraw.findUnique({ where: { id } });
     if (record === null) return null;
-    const configuration = await this.#configurationRepository.findById(record.configurationId);
+    const configuration = await this.#configurationRepository.findByIdInTransaction(
+      client,
+      record.configurationId,
+    );
     if (configuration === null) {
       throw new DomainError('DRAW_EXECUTION_INVALID', 'Persisted draw configuration is missing.');
     }
@@ -133,10 +155,17 @@ export class PrismaOfficialDrawService {
     return OfficialDraw.rehydrate(snapshot, configuration.toSnapshot());
   }
 
-  public async confirm(input: ConfirmPersistedOfficialDrawInput): Promise<OfficialDraw> {
+  public confirm(input: ConfirmPersistedOfficialDrawInput): Promise<OfficialDraw> {
+    return this.#client.$transaction((transaction) => this.confirmInTransaction(transaction, input));
+  }
+
+  public async confirmInTransaction(
+    transaction: Prisma.TransactionClient,
+    input: ConfirmPersistedOfficialDrawInput,
+  ): Promise<OfficialDraw> {
     const [draw, actor] = await Promise.all([
-      this.findById(input.executionId),
-      this.#client.user.findUnique({
+      this.findByIdInTransaction(transaction, input.executionId),
+      transaction.user.findUnique({
         select: { role: true, status: true },
         where: { id: input.actorId },
       }),
@@ -151,32 +180,37 @@ export class PrismaOfficialDrawService {
       occurredAt: input.occurredAt,
     });
     const snapshot = draw.toSnapshot();
-    await this.#client.$transaction(async (transaction) => {
-      const changed = await transaction.officialDraw.updateMany({
-        data: {
-          confirmedAt: snapshot.confirmedAt,
-          confirmedById: snapshot.confirmedBy,
-          revision: snapshot.revision,
-          status: snapshot.status,
-        },
-        where: {
-          id: snapshot.id,
-          revision: input.expectedRevision,
-          status: 'PENDING_CONFIRMATION',
-        },
-      });
-      if (changed.count !== 1) {
-        throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted draw revision is stale.');
-      }
-      await this.#materialize(snapshot, transaction);
+    const changed = await transaction.officialDraw.updateMany({
+      data: {
+        confirmedAt: snapshot.confirmedAt,
+        confirmedById: snapshot.confirmedBy,
+        revision: snapshot.revision,
+        status: snapshot.status,
+      },
+      where: {
+        id: snapshot.id,
+        revision: input.expectedRevision,
+        status: 'PENDING_CONFIRMATION',
+      },
     });
+    if (changed.count !== 1) {
+      throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted draw revision is stale.');
+    }
+    await this.#materialize(snapshot, transaction);
     return draw;
   }
 
-  public async annul(input: AnnulPersistedOfficialDrawInput): Promise<OfficialDraw> {
+  public annul(input: AnnulPersistedOfficialDrawInput): Promise<OfficialDraw> {
+    return this.#client.$transaction((transaction) => this.annulInTransaction(transaction, input));
+  }
+
+  public async annulInTransaction(
+    transaction: Prisma.TransactionClient,
+    input: AnnulPersistedOfficialDrawInput,
+  ): Promise<OfficialDraw> {
     const [draw, actor] = await Promise.all([
-      this.findById(input.executionId),
-      this.#client.user.findUnique({
+      this.findByIdInTransaction(transaction, input.executionId),
+      transaction.user.findUnique({
         select: { role: true, status: true },
         where: { id: input.actorId },
       }),
@@ -192,7 +226,7 @@ export class PrismaOfficialDrawService {
       reason: input.reason,
     });
     const snapshot = draw.toSnapshot();
-    const changed = await this.#client.officialDraw.updateMany({
+    const changed = await transaction.officialDraw.updateMany({
       data: {
         annulledAt: snapshot.annulledAt,
         annulledById: snapshot.annulledBy,
