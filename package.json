@@ -15,6 +15,7 @@
     "db:backup:remote-restore-drill": "sh scripts/database/remote-restore-drill.sh",
     "db:backup:roundtrip-drill": "sh scripts/database/roundtrip-drill.sh",
     "db:backup:real-storage-drill": "sh scripts/database/real-storage-drill.sh",
+    "db:backup:real-storage-guards": "sh scripts/database/test/real-storage-drill-guards.sh",
     "db:generate": "pnpm --filter @oes/database generate",
     "db:migrate:deploy": "pnpm --filter @oes/database migrate:deploy",
     "db:restore:drill": "sh scripts/database/restore-drill.sh",
