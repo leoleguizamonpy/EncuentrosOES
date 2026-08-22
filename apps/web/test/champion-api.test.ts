@@ -17,6 +17,11 @@ describe('champion API client', () => {
     });
   });
 
+  it('treats an empty successful response as no champion yet', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 })));
+    await expect(champion('competition-1')).resolves.toBeNull();
+  });
+
   it('proposes and confirms with CSRF, revisions and unique idempotency keys', async () => {
     const proposalResponse = {
       competitionId: 'competition-1',

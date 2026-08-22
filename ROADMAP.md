@@ -64,7 +64,7 @@ EncuentrosOES
 - [x] Desempates ordenados y mini-tabla de enfrentamiento directo.
 - [x] Empates no resueltos explícitos.
 - [x] Anulación y recálculo/invalidation de derivados.
-- [x] `PrismaResultsStore` delega mutaciones a `PrismaMatchResultService` y `PrismaGroupQualificationService`; API conserva proyección y traducción de errores.
+- [x] `PrismaResultsStore` delega mutaciones a `PrismaMatchResultService` + `PrismaGroupQualificationService`; API conserva proyección y traducción de errores.
 
 ## Gate 4 — Clasificación desde grupos — CERRADO
 
@@ -176,6 +176,7 @@ Referencias:
 - [x] `WorkspaceState` y recuperación/degradación transversal consolidados en PRs #49–#52.
 - [x] Responsive administrativo consolidado mediante PR #53.
 - [x] E2E visual real Chromium consolidado mediante PR #54, merge `d031a15f4c48e95a1d5b44e4f09e15963caedd75`.
+- [x] Prueba local real detectó y cubrió la regresión de respuesta vacía al consultar una competencia aún sin campeón; el cliente representa correctamente ese estado como `null`.
 
 ## Ruta final de consolidación
 
