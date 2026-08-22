@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { type Prisma, type PrismaClient } from '@oes/database';
+import {
+  PrismaDrawConfigurationRepository,
+  type Prisma,
+  type PrismaClient,
+} from '@oes/database';
 import {
   CompetitionRuleSet,
   DomainError,
@@ -12,7 +16,6 @@ import {
   verifyPublicDrawAct,
   type AuthorityRole,
   type CompetitionRuleSetSnapshot,
-  type DrawConfigurationSnapshot,
   type DrawEvidence,
   type MetricCode,
   type OfficialDrawSnapshot,
@@ -89,7 +92,11 @@ function evidenceJson(evidence: DrawEvidence): Prisma.InputJsonValue {
 
 @Injectable()
 export class PrismaDrawStore implements DrawStore {
-  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
+  readonly #configurationRepository: PrismaDrawConfigurationRepository;
+
+  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
+    this.#configurationRepository = new PrismaDrawConfigurationRepository(client);
+  }
 
   public workspace(competitionId: string): Promise<DrawWorkspace> {
     return this.client.$transaction((transaction) => this.#workspace(transaction, competitionId));
@@ -141,34 +148,7 @@ export class PrismaDrawStore implements DrawStore {
           throw error;
         }
         const snapshot = configuration.toSnapshot();
-        await transaction.drawConfiguration.create({
-          data: {
-            algorithmVersion: snapshot.algorithmVersion,
-            canonicalHash: snapshot.canonicalHash,
-            competitionId: snapshot.competitionId,
-            createdAt: snapshot.createdAt,
-            createdById: snapshot.createdBy,
-            formatCode: snapshot.formatCode,
-            frozenAt: snapshot.frozenAt,
-            frozenById: snapshot.frozenBy,
-            groupCount: snapshot.groupCount,
-            id: snapshot.id,
-            participantCount: snapshot.participantCount,
-            participants: { create: snapshot.participants.map((participant, index) => ({
-              byeCountSnapshot: participant.byeCount,
-              canonicalOrder: index + 1,
-              competitionId: snapshot.competitionId,
-              competitionParticipantId: participant.id,
-              displayNameSnapshot: participant.displayName,
-            })) },
-            revision: snapshot.revision,
-            roundNumber: snapshot.roundNumber,
-            ruleSetId: snapshot.ruleSetId,
-            status: snapshot.status,
-            updatedAt: snapshot.updatedAt,
-            updatedById: snapshot.updatedBy,
-          },
-        });
+        await this.#configurationRepository.insertInTransaction(transaction, configuration);
         let revision = input.expectedRevision;
         if (competition.status === 'DRAFT') {
           const opened = await transaction.competition.updateMany({
@@ -579,17 +559,8 @@ export class PrismaDrawStore implements DrawStore {
   }
 
   async #configuration(transaction: Prisma.TransactionClient, id: string): Promise<DrawConfiguration | null> {
-    const record = await transaction.drawConfiguration.findUnique({ include: { participants: { orderBy: { canonicalOrder: 'asc' } } }, where: { id } });
-    if (record === null) return null;
     try {
-      return DrawConfiguration.rehydrate({
-        algorithmVersion: 'oes-draw-v1', canonicalHash: record.canonicalHash, competitionId: record.competitionId,
-        createdAt: record.createdAt, createdBy: record.createdById, formatCode: record.formatCode as DrawConfigurationSnapshot['formatCode'],
-        frozenAt: record.frozenAt, frozenBy: record.frozenById, groupCount: record.groupCount, id: record.id,
-        participantCount: record.participantCount, participants: record.participants.map((item) => ({ byeCount: item.byeCountSnapshot, displayName: item.displayNameSnapshot, id: item.competitionParticipantId })),
-        revision: record.revision, roundNumber: record.roundNumber, ruleSetId: record.ruleSetId,
-        status: record.status as DrawConfigurationSnapshot['status'], updatedAt: record.updatedAt, updatedBy: record.updatedById,
-      });
+      return await this.#configurationRepository.findByIdInTransaction(transaction, id);
     } catch (error: unknown) {
       if (error instanceof DomainError) throw mappedDomainError(error, 'DRAW_CONFIGURATION_INVALID');
       throw error;
