@@ -18,6 +18,7 @@ EncuentrosOES
 │   └── [x] Experiencia administrativa 2.0 (Gate 10)
 └── [~] Preparación operativa externa (Gate 7)
     ├── [x] Seguridad, recuperación, backup y contratos de transporte
+    ├── [x] Wrapper protegido + evidencia sanitizada para el drill real
     └── [ ] REAL-STORAGE-DRILL contra proveedor externo real
 ```
 
@@ -106,6 +107,9 @@ EncuentrosOES
 - [x] Contrato provider-neutral `upload`, `download`, `retain`.
 - [x] `pnpm db:backup:roundtrip-drill`.
 - [x] Publicación externa y restore remoto implementados mediante `BACKUP_TRANSPORT_EXECUTABLE` + `BACKUP_REMOTE_PREFIX`.
+- [x] Auditoría `docs/AUDIT-2026-08-22-GATE7-READINESS.md` completada.
+- [x] `pnpm db:backup:real-storage-drill` protege el cierre real contra transporte falso/local evidente y exige atestaciones de privacidad, cifrado y mínimo privilegio.
+- [x] Evidencia JSON sanitizada automática tras un round-trip real exitoso.
 - [ ] **REAL-STORAGE-DRILL**: ejecutar contra un proveedor externo real, privado/cifrado, con credenciales de mínimo privilegio y comprobar publicación + descarga + SHA-256 + restore.
 
 El punto anterior **no puede cerrarse con CI local/provider-neutral**. Requiere infraestructura externa y credenciales reales.
@@ -185,6 +189,7 @@ Consolidación del repositorio
 ├── [x] Head exacto de PR #63 validado con `quality + visual-e2e` antes del merge
 ├── [x] Incorporar `AGENTS.md` y cierre documental final
 ├── [x] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
+├── [x] Preparar comando protegido + evidencia para REAL-STORAGE-DRILL
 └── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
 ```
 
