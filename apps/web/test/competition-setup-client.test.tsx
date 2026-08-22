@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CompetitionSetupClient } from '../components/competition-setup-client';
+import { OfficialDrawPanel } from '../components/official-draw-panel';
 
 const replace = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
@@ -9,6 +10,7 @@ const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const championApi = vi.hoisted(() => ({ champion: vi.fn(), confirmChampion: vi.fn(), proposeChampion: vi.fn() }));
 const competitionApi = vi.hoisted(() => ({
   addCompetitionParticipant: vi.fn(),
+  annulOfficialDraw: vi.fn(),
   confirmOfficialDraw: vi.fn(),
   confirmMatchResult: vi.fn(),
   competitionDetail: vi.fn(),
@@ -17,6 +19,8 @@ const competitionApi = vi.hoisted(() => ({
   executeOfficialDraw: vi.fn(),
   freezeCompetitionRuleSet: vi.fn(),
   prepareOfficialDraw: vi.fn(),
+  publishOfficialDraw: vi.fn(),
+  publicDrawActUrl: vi.fn(),
   recordMatchResult: vi.fn(),
   resultsWorkspace: vi.fn(),
   saveCompetitionRuleSet: vi.fn(),
@@ -93,5 +97,36 @@ describe('CompetitionSetupClient', () => {
     render(<CompetitionSetupClient competitionId="competition-1" />);
     expect(await screen.findByText('Tu rol permite consultar esta configuración, pero no modificarla.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar formato' })).not.toBeInTheDocument();
+  });
+
+  it('prepares the draw with the current detail revision even when the draw workspace snapshot is stale', async () => {
+    const detail = {
+      ...base,
+      formatCode: 'KNOCKOUT' as const,
+      groupCount: null,
+      participantCount: 4,
+      revision: 6,
+      ruleSet: {
+        allowDraws: true,
+        canonicalHash: 'hash',
+        drawPoints: 1,
+        frozenAt: '2026-08-22T00:00:00.000Z',
+        id: 'rules-1',
+        lossPoints: 0,
+        resultProfile: 'SCORE_BASED' as const,
+        revision: 2,
+        status: 'FROZEN' as const,
+        tieBreakCriteria: ['TABLE_POINTS'] as const,
+        winPoints: 3,
+      },
+    };
+    const workspace = { competitionId: detail.id, competitionRevision: 4, competitionStatus: 'DRAFT' as const, configuration: null, execution: null, publication: null };
+    competitionApi.prepareOfficialDraw.mockResolvedValue({ ...workspace, competitionRevision: 8, competitionStatus: 'LOCKED' });
+
+    render(<OfficialDrawPanel actorId="actor-1" canAnnul canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Preparar sorteo oficial' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar y bloquear' }));
+
+    await waitFor(() => expect(competitionApi.prepareOfficialDraw).toHaveBeenCalledWith('competition-1', 6));
   });
 });

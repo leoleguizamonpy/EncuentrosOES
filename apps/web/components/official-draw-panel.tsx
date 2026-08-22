@@ -60,7 +60,7 @@ export function OfficialDrawPanel({
     setAction(kind);
     try {
       const next = kind === 'prepare'
-        ? await prepareOfficialDraw(detail.id, workspace.competitionRevision)
+        ? await prepareOfficialDraw(detail.id, detail.revision)
         : kind === 'execute'
           ? await executeOfficialDraw(configuration?.id ?? '', configuration?.revision ?? 0)
           : kind === 'confirm'
