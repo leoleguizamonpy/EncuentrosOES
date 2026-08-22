@@ -17,6 +17,8 @@ Los siguientes valores describen el entorno, pero no son secretos:
 - `BACKUP_OUTPUT_DIR` define únicamente staging local previo a publicación externa.
 - `BACKUP_ID` identifica un backup concreto; si no se define al ejecutar el round-trip, se genera un identificador UTC.
 - `BACKUP_REMOTE_RESTORE_DIR` aísla el staging local usado durante recuperación remota.
+- `BACKUP_PROVIDER_LABEL` identifica de forma no sensible al proveedor/clase de almacenamiento usado durante el drill real.
+- `REAL_STORAGE_EVIDENCE_DIR` define el destino local de la evidencia sanitizada posterior al drill real.
 
 `.env.production.example` contiene únicamente placeholders y valores públicos de ejemplo. No debe versionarse ninguna variante con credenciales reales.
 
@@ -50,7 +52,7 @@ No deben subirse dumps de producción a artifacts de CI, commits, releases ni co
 
 ## Backup y restauración
 
-El repositorio provee cuatro niveles de operación:
+El repositorio provee los siguientes niveles de operación:
 
 ```bash
 pnpm db:backup -- ./artifacts/database/oes.dump
@@ -58,6 +60,7 @@ pnpm db:restore:drill -- ./artifacts/database/oes.dump
 pnpm db:backup:publish
 pnpm db:backup:remote-restore-drill
 pnpm db:backup:roundtrip-drill
+pnpm db:backup:real-storage-drill
 ```
 
 `db:backup` genera un dump PostgreSQL custom y un SHA-256 portable. `db:restore:drill` verifica el checksum, restaura el dump en una base aislada y comprueba datos centinela e historial de migraciones.
@@ -66,7 +69,7 @@ pnpm db:backup:roundtrip-drill
 
 `db:backup:remote-restore-drill` recorre el camino inverso para un `BACKUP_ID`: descarga manifiesto, checksum y dump; valida que el manifiesto corresponde al objeto solicitado; exige coincidencia de SHA-256; y ejecuta restore únicamente en una base PostgreSQL aislada.
 
-`db:backup:roundtrip-drill` es el comando operativo final. Encadena publicación y recuperación para el mismo `BACKUP_ID`:
+`db:backup:roundtrip-drill` es el mecanismo provider-neutral. Encadena publicación y recuperación para el mismo `BACKUP_ID`:
 
 ```text
 PostgreSQL
@@ -80,7 +83,18 @@ PostgreSQL
 → verificar centinela + migraciones
 ```
 
-CI #206 ejecuta exactamente este comando con un transporte simulado. Producción debe ejecutar el mismo comando sin cambiar lógica; únicamente cambia el adaptador y las credenciales inyectadas por infraestructura.
+CI ejecuta este ciclo con un transporte simulado. Producción reutiliza exactamente la misma lógica con el adaptador y las credenciales inyectadas por infraestructura.
+
+`db:backup:real-storage-drill` es el comando de cierre operativo. No reemplaza el round-trip: lo envuelve con guardas adicionales para impedir que una simulación obvia sea presentada como evidencia de almacenamiento real. Exige además:
+
+```text
+BACKUP_PROVIDER_LABEL
+REAL_STORAGE_PRIVATE_CONFIRMED=YES
+REAL_STORAGE_ENCRYPTED_CONFIRMED=YES
+REAL_STORAGE_MIN_PRIVILEGE_CONFIRMED=YES
+```
+
+El comando rechaza el transporte falso versionado en el repositorio, `BACKUP_FAKE_REMOTE_DIR` y prefijos de filesystem local evidentes. Tras un round-trip exitoso genera evidencia JSON sanitizada con identificador del backup, etiqueta del proveedor, fecha, retención y resultados de verificación. No registra secretos, `DATABASE_URL`, credenciales, contenido del dump ni el prefijo remoto.
 
 ### Contrato del transporte externo
 
@@ -127,12 +141,12 @@ El backup de producción solo se considera operativo cuando el entorno real demu
 - un round-trip real exitoso mediante:
 
 ```bash
-pnpm db:backup:roundtrip-drill
+pnpm db:backup:real-storage-drill
 ```
 
 Ese comando debe subir objetos al proveedor real, volver a descargarlos desde ese destino, validar manifiesto y SHA-256 y completar el restore aislado desde el objeto recuperado.
 
-CI prueba el mismo ciclo con transporte falso, pero **CI no es almacenamiento de producción**. Artifacts de GitHub, disco local, placeholders o credenciales hardcodeadas no satisfacen este gate.
+CI prueba el ciclo provider-neutral con transporte falso, pero **CI no es almacenamiento de producción**. Artifacts de GitHub, disco local, placeholders o credenciales hardcodeadas no satisfacen este gate.
 
 ## Evidencia mínima del REAL-STORAGE-DRILL
 
@@ -147,6 +161,8 @@ Al cerrar Gate 7 deben registrarse sin secretos:
 - resultado exitoso de verificación SHA-256/manifiesto;
 - resultado exitoso del restore aislado;
 - confirmación de centinela y migraciones restauradas.
+
+`db:backup:real-storage-drill` genera automáticamente una evidencia JSON con estos resultados después de completar el recorrido. Esa evidencia es auxiliar: la confirmación de que el proveedor realmente es privado, cifrado y utiliza credenciales de mínimo privilegio sigue siendo una responsabilidad operativa humana/infraestructural.
 
 Nunca se registran `DATABASE_URL`, claves, tokens, secretos de acceso ni contenido del dump.
 
