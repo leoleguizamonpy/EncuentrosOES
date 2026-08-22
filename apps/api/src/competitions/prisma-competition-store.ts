@@ -543,7 +543,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
           sportId: input.sportId,
         },
         occurredAt,
-      }).toSnapshot();
+      });
       await transaction.idempotencyRecord.create({
         data: {
           actorId: input.actorId,
@@ -555,28 +555,16 @@ export class PrismaCompetitionStore implements CompetitionStore {
           status: 'PROCESSING',
         },
       });
-      const created = await transaction.competition.create({
-        data: {
-          createdAt: competition.createdAt,
-          createdById: competition.createdBy,
-          editionId: competition.key.editionId,
-          eventId: competition.key.eventId,
-          formatCode: competition.formatCode,
-          groupCount: competition.groupCount,
-          id: competition.id,
-          modalityId: competition.key.modalityId,
-          revision: competition.revision,
-          sportId: competition.key.sportId,
-          status: competition.status,
-          updatedAt: competition.updatedAt,
-          updatedById: competition.updatedBy,
-        },
+      await this.#competitionRepository.insertInTransaction(transaction, competition);
+      const created = await transaction.competition.findUnique({
         include: {
           _count: { select: { participants: true } },
           combination: { include: { event: true, modality: true, sport: true } },
           edition: true,
         },
+        where: { id },
       });
+      if (created === null) throw new Error('Competition repository insert did not persist aggregate.');
       const response = this.#summary(created);
       await transaction.auditEntry.create({
         data: {
