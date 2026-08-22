@@ -11,11 +11,12 @@ Este roadmap distingue el **software definido por Foundation** de las validacion
 
 ```text
 EncuentrosOES
-├── [x] Software definido por Foundation — COMPLETO
+├── [~] Software definido por Foundation 2.1
 │   ├── [x] Núcleo competitivo (Gates 0–6)
 │   ├── [x] Experiencia pública (Gate 8)
 │   ├── [x] Saneamiento técnico (Gate 9)
-│   └── [x] Experiencia administrativa 2.0 (Gate 10)
+│   ├── [x] Experiencia administrativa 2.0 (Gate 10)
+│   └── [~] Autoridad total SUPERADMIN 2.1 — implementación en validación CI
 └── [~] Preparación operativa externa (Gate 7)
     ├── [x] Seguridad, recuperación, backup y contratos de transporte
     ├── [x] Wrapper protegido + evidencia sanitizada para el drill real
@@ -23,14 +24,14 @@ EncuentrosOES
     └── [ ] REAL-STORAGE-DRILL contra proveedor externo real
 ```
 
-**Estado del producto software:** 100% del alcance actualmente autorizado por `FOUNDATION.md`.  
-**Único pendiente para declarar 100% de readiness de producción:** ejecutar `REAL-STORAGE-DRILL` contra almacenamiento externo real, privado/cifrado y con credenciales de mínimo privilegio.
+**Estado del producto software:** el alcance anterior de Foundation 2.0 permanece completo; Foundation 2.1 está implementada en rama y pendiente de gate CI/merge.  
+**Pendiente externo separado:** `REAL-STORAGE-DRILL` contra almacenamiento externo real, si se adopta despliegue externo.
 
 ---
 
-## Gate 0 — Fundación y arquitectura — CERRADO
+## Gate 0 — Fundación y arquitectura — CERRADO / 2.1 EN VALIDACIÓN
 
-- [x] Foundation 2.0 estable.
+- [x] Foundation 2.1.0 define explícitamente autoridad total del SUPERADMIN con confirmación auditada.
 - [x] Modelo de dominio, reglas de sorteo, resultados, desempates y clasificación documentados.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
 - [x] CI con lint, tipos, pruebas, build y PostgreSQL real.
@@ -44,34 +45,35 @@ EncuentrosOES
 - [x] Bloqueo de competencia con revisión optimista.
 - [x] Separación por edición, evento, deporte y modalidad.
 
-## Gate 2 — Sorteo oficial verificable — CERRADO
+## Gate 2 — Sorteo oficial verificable — CERRADO / POLÍTICA 2.1 IMPLEMENTADA
 
 - [x] Motor determinista `oes-draw-v1`.
 - [x] Semilla criptográfica y compromiso previo.
 - [x] Grupos de 3–4 y eliminación directa sin bombos/cabezas de serie.
 - [x] BYE con historial y no repetición evitable.
-- [x] Doble autoridad para confirmar sorteos.
+- [x] ADMIN requiere confirmante distinto; SUPERADMIN puede confirmar explícitamente su propio sorteo.
+- [x] La auto-confirmación SUPERADMIN conserva estado pendiente, revisión, actor, timestamp y evidencia.
 - [x] Materialización atómica de grupos, cruces y encuentros.
-- [x] Anulación trazable por superadministrador.
+- [x] Anulación trazable exclusiva de SUPERADMIN.
 - [x] Publicación pública con acta, semilla revelada y SHA-256.
 
-## Gate 3 — Resultados y tablas — CERRADO
+## Gate 3 — Resultados y tablas — CERRADO / POLÍTICA 2.1 IMPLEMENTADA
 
 - [x] Encuentros restaurables desde PostgreSQL.
 - [x] Resultados por marcador o sets.
-- [x] Doble autoridad para confirmar resultados.
+- [x] ADMIN no puede confirmar un resultado propio; SUPERADMIN puede registrar y confirmar explícitamente el mismo resultado.
 - [x] Tablas recalculadas automáticamente.
 - [x] Desempates ordenados y mini-tabla de enfrentamiento directo.
 - [x] Empates no resueltos explícitos.
 - [x] Anulación y recálculo/invalidation de derivados.
 - [x] `PrismaResultsStore` delega mutaciones a `PrismaMatchResultService` + `PrismaGroupQualificationService`; API conserva proyección y traducción de errores.
 
-## Gate 4 — Clasificación desde grupos — CERRADO
+## Gate 4 — Clasificación desde grupos — CERRADO / POLÍTICA 2.1 IMPLEMENTADA
 
 - [x] Dos clasificados propuestos automáticamente por grupo.
 - [x] Corte bloqueado ante empate no resuelto.
 - [x] Fuentes exactas de propuesta persistidas.
-- [x] Confirmación independiente desde workspace.
+- [x] ADMIN requiere confirmación independiente; SUPERADMIN puede confirmar una propuesta propia.
 - [x] Idempotencia, concurrencia y auditoría.
 
 ## Gate 5 — Continuidad eliminatoria — CERRADO
@@ -84,11 +86,11 @@ EncuentrosOES
 - [x] Re-sorteo obligatorio entre rondas con `oes-draw-v1`.
 - [x] `PrismaNextRoundStore` delega preparación a `PrismaNextRoundService.prepareInTransaction` dentro de la transacción exterior.
 
-## Gate 6 — Finalización competitiva — CERRADO
+## Gate 6 — Finalización competitiva — CERRADO / POLÍTICA 2.1 IMPLEMENTADA
 
 - [x] Final real detectada correctamente.
 - [x] Propuesta de campeón con fuentes persistidas.
-- [x] Segunda autoridad confirma campeón.
+- [x] ADMIN requiere confirmante distinto; SUPERADMIN puede proponer y confirmar explícitamente el mismo campeón.
 - [x] `LOCKED → FINALIZED` transaccional.
 - [x] `finalizedAt/finalizedBy` persistidos.
 - [x] Mutaciones incompatibles bloqueadas tras finalizar.
@@ -113,9 +115,9 @@ EncuentrosOES
 - [x] Evidencia JSON sanitizada automática tras un round-trip real exitoso.
 - [x] `pnpm db:backup:real-storage-guards` cubre fallos por variables faltantes, atestaciones inválidas, transporte falso, `BACKUP_FAKE_REMOTE_DIR`, prefijos locales y ausencia de evidencia ante fallo.
 - [x] La suite de guardas negativas forma parte del job `quality` de CI.
-- [ ] **REAL-STORAGE-DRILL**: ejecutar contra un proveedor externo real, privado/cifrado, con credenciales de mínimo privilegio y comprobar publicación + descarga + SHA-256 + restore.
+- [ ] **REAL-STORAGE-DRILL**: ejecutar contra un proveedor externo real si el perfil final de despliegue lo requiere.
 
-El punto anterior **no puede cerrarse con CI local/provider-neutral**. Requiere infraestructura externa y credenciales reales.
+El punto anterior no se cierra mediante almacenamiento local o simulación. La decisión futura sobre un perfil formal exclusivamente local deberá versionarse en Foundation si se desea retirar este requisito externo.
 
 ## Gate 8 — Experiencia pública — CERRADO
 
@@ -131,38 +133,11 @@ Referencias:
 - `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`
 - `docs/DRAW-PERSISTENCE-EQUIVALENCE-2026-08-21.md`
 
-### Limpieza estructural
-
 - [x] Árbol de `main` auditado; sin `dist`, `.next`, `node_modules`, dumps o residuos equivalentes versionados.
 - [x] UI heredada de Catálogos retirada mediante PR #41; contratos/endpoints reutilizables conservados.
-- [x] Política ADMIN/SUPERADMIN cerrada.
-- [x] No se realizó eliminación destructiva de persistencia sin equivalencia previa.
-- [x] Componentes frontend grandes evaluados; no queda un refactor cosmético obligatorio que bloquee el gate.
-
-### Consolidación de Competition
-
-- [x] PR #55 — baseline de equivalencia; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
-- [x] PR #56 — `PrismaCompetitionRepository` transaction-aware; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
-- [x] PR #57 — `addParticipant`, `configureFormat` y rehidratación delegados; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
-- [x] PR #58 — baseline específico de `create`; merge `6b60cc49d437898de3238237994a3bcac196a469`.
-- [x] PR #59 — inserción de `create` delegada a `insertInTransaction`; merge `a53925e85f3ab09eaa660a975124841e04ffaa2d`.
-
-### Consolidación de Sorteos
-
-- [x] Auditoría específica de responsabilidades API/Database completada.
-- [x] PR #60 — `PrismaDrawConfigurationRepository` transaction-aware; merge `73cf492ebc9e16a5aae4de291b117fac47bb1a41`.
-- [x] PR #61 — `PrismaDrawStore.prepare` delega inserción y rehidratación de `DrawConfiguration`; merge `ae3f1e438e828f6addfc609c6adb97004c0245a1`.
-- [x] PR #62 — `PrismaOfficialDrawService` transaction-aware con execute/find/confirm/annul y materialización dentro de transacción externa; merge `ce1e3c2b91bd3c8fddd9d3ef273c6f2d47dd03aa`.
-- [x] PR #63 — `PrismaDrawStore` delega OfficialDraw y materialización al servicio compartido; head exacto `1e98dd6857003849247b5996337fdf9ed7e608f9`, `quality + visual-e2e` verdes, merge `7af7604b08afda7403a5e9701ef78e35bafa2cfc`.
-
-### Fronteras consolidadas
-
-- [x] Resultados/Clasificación: API delega a `PrismaMatchResultService` + `PrismaGroupQualificationService`.
-- [x] Continuidad: API delega a `PrismaNextRoundService.prepareInTransaction`.
-- [x] Finalización: API delega a `PrismaChampionFinalizationService`.
+- [x] Fronteras de persistencia Competition, Sorteos, Resultados/Clasificación, Continuidad y Finalización consolidadas.
+- [x] PR #63 cerró la consolidación de sorteo con `quality + visual-e2e` verdes sobre el head exacto antes del merge.
 - [x] Lifecycle, restart, annulment, PostgreSQL integration, coverage y build permanecen en el gate obligatorio.
-
-**Criterio de cierre cumplido:** el head exacto final de PR #63 pasó el gate completo antes de fusionarse y quedó consolidado en `main` mediante `7af7604b08afda7403a5e9701ef78e35bafa2cfc`.
 
 ## Gate 10 — Arquitectura de producto y experiencia administrativa — CERRADO
 
@@ -173,31 +148,48 @@ Referencias:
 - [x] Competencia: Competencias, Sorteos, Encuentros y Clasificación.
 - [x] Control: Confirmaciones, Auditoría, Usuarios y Configuración.
 - [x] Política SUPERADMIN para Usuarios/Configuración sensible.
-- [x] `WorkspaceState` y recuperación/degradación transversal consolidados en PRs #49–#52.
-- [x] Responsive administrativo consolidado mediante PR #53.
-- [x] E2E visual real Chromium consolidado mediante PR #54, merge `d031a15f4c48e95a1d5b44e4f09e15963caedd75`.
-- [x] Prueba local real detectó y cubrió la regresión de respuesta vacía al consultar una competencia aún sin campeón; el cliente representa correctamente ese estado como `null`.
+- [x] `WorkspaceState` y recuperación/degradación transversal consolidados.
+- [x] Responsive administrativo y E2E visual real Chromium consolidados.
+- [x] Prueba local real cubrió la regresión de respuesta vacía al consultar una competencia aún sin campeón.
+- [x] PR #69 corrigió el uso de una revisión de competencia obsoleta al preparar/bloquear un sorteo en la misma sesión.
+
+## Autoridad operativa 2.1 — EN VALIDACIÓN
+
+```text
+SUPERADMIN independiente
+├── [x] Foundation 2.1.0 versionada
+├── [x] Sorteo propio confirmable
+├── [x] Resultado propio confirmable
+├── [x] Clasificación propia confirmable
+├── [x] Campeón propio confirmable
+├── [x] UI de competencia permite confirmar operaciones propias
+├── [x] Bandeja Confirmaciones permite confirmar operaciones propias
+├── [x] ADMIN conserva separación obligatoria
+├── [x] Anulación sigue exclusiva de SUPERADMIN
+├── [x] Regresiones de dominio agregadas
+├── [~] quality + visual-e2e sobre head exacto
+└── [ ] Merge a main
+```
+
+La excepción SUPERADMIN no es auto-confirmación silenciosa: conserva dos transiciones explícitas y toda la evidencia de auditoría.
 
 ## Ruta final de consolidación
 
 ```text
 Cierre de software
-├── [x] Gates 0–6
+├── [x] Gates 0–6 base
+├── [~] Autoridad 2.1 — pendiente CI + merge
 ├── [~] Gate 7 — solo infraestructura externa pendiente
 ├── [x] Gate 8
-├── [x] Gate 9 — consolidado en main
+├── [x] Gate 9
 └── [x] Gate 10
 
-Consolidación del repositorio
-├── [x] Fusionar head final de Gate 9 en `main`
-├── [x] Head exacto de PR #63 validado con `quality + visual-e2e` antes del merge
-├── [x] Incorporar `AGENTS.md` y cierre documental final
-├── [x] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
-├── [x] Preparar comando protegido + evidencia para REAL-STORAGE-DRILL
-├── [x] Integrar suite local negativa del REAL-STORAGE-DRILL al CI
-└── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
+Consolidación inmediata
+├── [x] Corregir stale revision del Paso 4 (PR #69)
+├── [x] Implementar autoridad total explícita SUPERADMIN
+├── [~] Validar autoridad 2.1 con CI completo
+├── [ ] Fusionar autoridad 2.1 en `main`
+└── [ ] Repetir flujo local completo con una única cuenta SUPERADMIN
 ```
-
-El merge commit de `main` no dispara un segundo workflow adicional; la garantía de integración se basa en el gate completo ejecutado sobre el mismo head exacto que se fusionó.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de `FOUNDATION.md`.

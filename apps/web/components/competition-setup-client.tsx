@@ -124,6 +124,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   if (actor === null || detail === null || draw === null || results === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
 
   const canEdit = actor.role !== 'OPERATOR' && (detail.status === 'DRAFT' || detail.status === 'OPEN');
+  const canSelfConfirm = actor.role === 'SUPERADMIN';
   const groupsAvailable = detail.validGroupCounts.length > 0;
   const knockoutAvailable = detail.participantCount >= 2;
 
@@ -204,10 +205,10 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
             </form>
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
-          <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
-          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN' && detail.status !== 'FINALIZED'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} onChange={setResults} onError={setError} workspace={results} />
+          <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
+          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN' && detail.status !== 'FINALIZED'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} onChange={setResults} onError={setError} workspace={results} />
           <NextRoundPanel canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} competitionId={competitionId} draw={draw} onChange={updateDraw} onError={setError} results={results} />
-          <ChampionPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} champion={champion} competitionId={competitionId} draw={draw} onChange={updateChampion} onError={setError} results={results} />
+          <ChampionPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} champion={champion} competitionId={competitionId} draw={draw} onChange={updateChampion} onError={setError} results={results} />
         </div>
       </main>
     </div>

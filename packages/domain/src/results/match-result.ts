@@ -232,8 +232,14 @@ export class MatchResult {
   public confirm(input: ConfirmMatchResultInput): void {
     this.#assertRevision(input.expectedRevision);
     assertAuthority(input.actorId, input.actorRole);
-    if (this.#snapshot.status !== 'PENDING_CONFIRMATION' || input.actorId === this.#snapshot.recordedBy) {
-      throw new DomainError('RESULT_CONFIRMATION_INVALID', 'Another authority must confirm a pending result.');
+    if (this.#snapshot.status !== 'PENDING_CONFIRMATION') {
+      throw new DomainError('RESULT_CONFIRMATION_INVALID', 'Only a pending result can be confirmed.');
+    }
+    if (input.actorId === this.#snapshot.recordedBy && input.actorRole !== 'SUPERADMIN') {
+      throw new DomainError(
+        'RESULT_CONFIRMATION_INVALID',
+        'An administrator cannot confirm the same result they recorded.',
+      );
     }
     this.#snapshot = {
       ...this.#snapshot,

@@ -164,20 +164,21 @@ function ConfirmationsWorkspace({ actor }: { readonly actor: Actor }): React.JSX
     finally { setLoading(false); }
   }
 
-  if (loading) return <WorkspaceState detail="Buscando decisiones que requieren una segunda autoridad." title="Cargando confirmaciones…" />;
+  if (loading) return <WorkspaceState detail="Buscando decisiones pendientes de confirmación." title="Cargando confirmaciones…" />;
   if (items === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Confirmaciones." tone="error" />;
 
-  const actionable = items.filter((item) => item.originatorId !== actor.id).length;
-  const own = items.length - actionable;
+  const canConfirmOwn = actor.role === 'SUPERADMIN';
+  const actionable = items.filter((item) => item.originatorId !== actor.id || canConfirmOwn).length;
+  const ownBlocked = items.filter((item) => item.originatorId === actor.id && !canConfirmOwn).length;
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
-      <div><span className="eyebrow eyebrow--dark">Control</span><h2>Confirmaciones</h2><p>Bandeja única para sorteos, resultados, clasificados y campeón pendientes de segunda autoridad. El actor que originó una decisión no puede confirmarla desde aquí.</p></div>
+      <div><span className="eyebrow eyebrow--dark">Control</span><h2>Confirmaciones</h2><p>Los administradores conservan separación de funciones. El superadministrador puede confirmar también sus propias operaciones críticas, siempre mediante una transición explícita y auditada.</p></div>
     </section>
     {error === null ? null : <p className={styles.error} role="alert">{error}</p>}
     <section aria-label="Resumen de confirmaciones" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
       <span className={[styles.status, styles.active].filter(Boolean).join(' ')}>{actionable} disponibles para confirmar</span>
-      <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>{own} requieren otra autoridad</span>
+      {ownBlocked > 0 ? <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>{ownBlocked} requieren otra autoridad</span> : null}
     </section>
     <section aria-label="Filtros de confirmaciones" className={styles.toolbar}>
       <input aria-label="Buscar confirmación" placeholder="Buscar competencia, participante o autoridad…" value={query} onChange={(event) => setQuery(event.target.value)} />
@@ -195,13 +196,14 @@ function ConfirmationsWorkspace({ actor }: { readonly actor: Actor }): React.JSX
       <div className={styles.tableHeader}><span>Tipo</span><span>Decisión</span><span>Competencia</span><span>Autoridad</span><span>Acción</span></div>
       {filtered.length === 0 ? <div className={styles.empty}><strong>{items.length === 0 ? 'No hay confirmaciones pendientes.' : 'No encontramos decisiones.'}</strong><p>{items.length === 0 ? 'La bandeja está al día.' : 'Ajusta la búsqueda o el filtro.'}</p></div> : filtered.map((decision) => {
         const ownDecision = decision.originatorId === actor.id;
+        const blockedOwnDecision = ownDecision && !canConfirmOwn;
         const key = `${decision.kind}:${decision.resourceId}`;
         return <article className={styles.row} key={key}>
           <span className={styles.logo}>{kindLabels[decision.kind].slice(0, 2).toUpperCase()}</span>
           <div className={styles.identity}><strong>{decision.title}</strong><small>{decision.detail}</small></div>
           <span className={styles.eventName}>{competitionLabel(decision.competition)}</span>
-          <span className={[styles.status, ownDecision ? styles.inactive : styles.active].filter(Boolean).join(' ')}>{ownDecision ? 'Originada por ti' : `Por ${decision.originatorName}`}</span>
-          {ownDecision
+          <span className={[styles.status, blockedOwnDecision ? styles.inactive : styles.active].filter(Boolean).join(' ')}>{ownDecision ? canConfirmOwn ? 'Originada por ti · confirmable' : 'Originada por ti' : `Por ${decision.originatorName}`}</span>
+          {blockedOwnDecision
             ? <span className={styles.eventName}>Otra autoridad debe confirmar</span>
             : <button className={styles.editButton} disabled={submitting !== null} onClick={() => void confirm(decision)} type="button">{submitting === key ? 'Confirmando…' : `Confirmar ${kindLabels[decision.kind].toLocaleLowerCase('es-PY')}`}</button>}
         </article>;
