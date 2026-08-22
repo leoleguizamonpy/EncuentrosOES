@@ -6,7 +6,7 @@ import {
   type DrawFormatCode,
 } from '@oes/domain';
 
-import type { PrismaClient } from './generated/prisma/client.js';
+import type { Prisma, PrismaClient } from './generated/prisma/client.js';
 
 const formats = new Set<DrawFormatCode>(['GROUP_STAGE', 'KNOCKOUT']);
 const statuses = new Set<DrawConfigurationStatus>(['DRAFT', 'FROZEN', 'DISCARDED']);
@@ -27,46 +27,60 @@ export class PrismaDrawConfigurationRepository {
   }
 
   public async insert(configuration: DrawConfiguration): Promise<void> {
+    await this.#client.$transaction((transaction) =>
+      this.insertInTransaction(transaction, configuration),
+    );
+  }
+
+  public async insertInTransaction(
+    transaction: Prisma.TransactionClient,
+    configuration: DrawConfiguration,
+  ): Promise<void> {
     const snapshot = configuration.toSnapshot();
-    await this.#client.$transaction(async (transaction) => {
-      await transaction.drawConfiguration.create({
-        data: {
-          algorithmVersion: snapshot.algorithmVersion,
-          canonicalHash: snapshot.canonicalHash,
-          competitionId: snapshot.competitionId,
-          createdAt: snapshot.createdAt,
-          createdById: snapshot.createdBy,
-          formatCode: snapshot.formatCode,
-          frozenAt: snapshot.frozenAt,
-          frozenById: snapshot.frozenBy,
-          groupCount: snapshot.groupCount,
-          id: snapshot.id,
-          participantCount: snapshot.participantCount,
-          revision: snapshot.revision,
-          roundNumber: snapshot.roundNumber,
-          ruleSetId: snapshot.ruleSetId,
-          status: snapshot.status,
-          updatedAt: snapshot.updatedAt,
-          updatedById: snapshot.updatedBy,
-        },
-      });
-      if (snapshot.participants.length > 0) {
-        await transaction.drawConfigurationParticipant.createMany({
-          data: snapshot.participants.map((participant, index) => ({
-            byeCountSnapshot: participant.byeCount,
-            canonicalOrder: index + 1,
-            competitionId: snapshot.competitionId,
-            competitionParticipantId: participant.id,
-            displayNameSnapshot: participant.displayName,
-            drawConfigurationId: snapshot.id,
-          })),
-        });
-      }
+    await transaction.drawConfiguration.create({
+      data: {
+        algorithmVersion: snapshot.algorithmVersion,
+        canonicalHash: snapshot.canonicalHash,
+        competitionId: snapshot.competitionId,
+        createdAt: snapshot.createdAt,
+        createdById: snapshot.createdBy,
+        formatCode: snapshot.formatCode,
+        frozenAt: snapshot.frozenAt,
+        frozenById: snapshot.frozenBy,
+        groupCount: snapshot.groupCount,
+        id: snapshot.id,
+        participantCount: snapshot.participantCount,
+        revision: snapshot.revision,
+        roundNumber: snapshot.roundNumber,
+        ruleSetId: snapshot.ruleSetId,
+        status: snapshot.status,
+        updatedAt: snapshot.updatedAt,
+        updatedById: snapshot.updatedBy,
+      },
     });
+    if (snapshot.participants.length > 0) {
+      await transaction.drawConfigurationParticipant.createMany({
+        data: snapshot.participants.map((participant, index) => ({
+          byeCountSnapshot: participant.byeCount,
+          canonicalOrder: index + 1,
+          competitionId: snapshot.competitionId,
+          competitionParticipantId: participant.id,
+          displayNameSnapshot: participant.displayName,
+          drawConfigurationId: snapshot.id,
+        })),
+      });
+    }
   }
 
   public async findById(id: string): Promise<DrawConfiguration | null> {
-    const record = await this.#client.drawConfiguration.findUnique({
+    return this.findByIdInTransaction(this.#client, id);
+  }
+
+  public async findByIdInTransaction(
+    transaction: Prisma.TransactionClient | PrismaClient,
+    id: string,
+  ): Promise<DrawConfiguration | null> {
+    const record = await transaction.drawConfiguration.findUnique({
       include: { participants: { orderBy: { canonicalOrder: 'asc' } } },
       where: { id },
     });
@@ -108,21 +122,31 @@ export class PrismaDrawConfigurationRepository {
     configuration: DrawConfiguration,
     expectedRevision: number,
   ): Promise<void> {
+    await this.#client.$transaction((transaction) =>
+      this.saveInTransaction(transaction, configuration, expectedRevision),
+    );
+  }
+
+  public async saveInTransaction(
+    transaction: Prisma.TransactionClient,
+    configuration: DrawConfiguration,
+    expectedRevision: number,
+  ): Promise<void> {
     const snapshot = configuration.toSnapshot();
-    await this.#client.$transaction(async (transaction) => {
-      const current = await transaction.drawConfiguration.findFirst({
-        select: { id: true },
-        where: { id: snapshot.id, revision: expectedRevision },
-      });
-      if (current === null) {
-        throw new DomainError(
-          'CONCURRENCY_CONFLICT',
-          'The persisted draw revision no longer matches.',
-        );
-      }
-      await transaction.drawConfigurationParticipant.deleteMany({
-        where: { drawConfigurationId: snapshot.id },
-      });
+    const current = await transaction.drawConfiguration.findFirst({
+      select: { id: true },
+      where: { id: snapshot.id, revision: expectedRevision },
+    });
+    if (current === null) {
+      throw new DomainError(
+        'CONCURRENCY_CONFLICT',
+        'The persisted draw revision no longer matches.',
+      );
+    }
+    await transaction.drawConfigurationParticipant.deleteMany({
+      where: { drawConfigurationId: snapshot.id },
+    });
+    if (snapshot.participants.length > 0) {
       await transaction.drawConfigurationParticipant.createMany({
         data: snapshot.participants.map((participant, index) => ({
           byeCountSnapshot: participant.byeCount,
@@ -133,28 +157,28 @@ export class PrismaDrawConfigurationRepository {
           drawConfigurationId: snapshot.id,
         })),
       });
-      const update = await transaction.drawConfiguration.updateMany({
-        data: {
-          canonicalHash: snapshot.canonicalHash,
-          formatCode: snapshot.formatCode,
-          frozenAt: snapshot.frozenAt,
-          frozenById: snapshot.frozenBy,
-          groupCount: snapshot.groupCount,
-          participantCount: snapshot.participantCount,
-          revision: snapshot.revision,
-          roundNumber: snapshot.roundNumber,
-          status: snapshot.status,
-          updatedAt: snapshot.updatedAt,
-          updatedById: snapshot.updatedBy,
-        },
-        where: { id: snapshot.id, revision: expectedRevision },
-      });
-      if (update.count !== 1) {
-        throw new DomainError(
-          'CONCURRENCY_CONFLICT',
-          'The persisted draw revision no longer matches.',
-        );
-      }
+    }
+    const update = await transaction.drawConfiguration.updateMany({
+      data: {
+        canonicalHash: snapshot.canonicalHash,
+        formatCode: snapshot.formatCode,
+        frozenAt: snapshot.frozenAt,
+        frozenById: snapshot.frozenBy,
+        groupCount: snapshot.groupCount,
+        participantCount: snapshot.participantCount,
+        revision: snapshot.revision,
+        roundNumber: snapshot.roundNumber,
+        status: snapshot.status,
+        updatedAt: snapshot.updatedAt,
+        updatedById: snapshot.updatedBy,
+      },
+      where: { id: snapshot.id, revision: expectedRevision },
     });
+    if (update.count !== 1) {
+      throw new DomainError(
+        'CONCURRENCY_CONFLICT',
+        'The persisted draw revision no longer matches.',
+      );
+    }
   }
 }

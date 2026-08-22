@@ -114,9 +114,11 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] `PrismaCompetitionRepository` transaction-aware validado y consolidado mediante PR #56: `insertInTransaction`, `findByIdInTransaction` y `saveInTransaction`, rollback externo y read/save transaccional; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
 - [x] Primera delegación productiva consolidada mediante PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable permanecen en API; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
 - [x] Baseline específico de `create` validado y consolidado mediante PR #58: agregado inicial, proyección `DRAFT/revision 1`, auditoría `COMPETITION_CREATED`, replay idempotente y conflicto de key equivalentes; merge `6b60cc49d437898de3238237994a3bcac196a469`.
-- [~] Segunda delegación productiva activa en PR #59: `create` persiste el agregado mediante `insertInTransaction`, mantiene construcción del agregado, auditoría, idempotencia, proyección y transacción Serializable en API; `quality + visual-e2e` verdes en `08d6381c59491d4ad3af72c5a880ae6abd46c744`; pendiente gate del head documental final y merge.
-- [ ] Auditar la equivalencia de Sorteos como siguiente frontera de consolidación, sin retirar persistencia API hasta contar con baseline PostgreSQL verde.
-- [ ] Ampliar equivalencia a Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
+- [x] Segunda delegación productiva de `Competition` consolidada mediante PR #59: `create` persiste el agregado mediante `insertInTransaction`, mantiene construcción del agregado, auditoría, idempotencia, proyección y transacción Serializable en API; head final verde `ffe222dbcee3140f76fb4da4f493d3b90d4e7652`; merge `a53925e85f3ab09eaa660a975124841e04ffaa2d`.
+- [x] Auditoría específica de persistencia de Sorteos completada en `docs/DRAW-PERSISTENCE-EQUIVALENCE-2026-08-21.md`: primera frontera segura identificada en `DrawConfiguration`; `OfficialDraw` queda separado por materialización, autoridad, auditoría, idempotencia e invalidación.
+- [~] `PrismaDrawConfigurationRepository` transaction-aware activo en PR #60: variantes `insert/find/save` dentro de transacción externa y pruebas PostgreSQL de rollback + read/freeze/save; `PrismaDrawStore.prepare` todavía no delega persistencia.
+- [ ] Fijar baseline Store → Repository para `prepare` y solo después delegar la persistencia de `DrawConfiguration` manteniendo lock de Competition, BYE, auditoría, idempotencia y `Serializable` en API.
+- [ ] Ampliar equivalencia a ejecución/confirmación/anulación de Sorteos y luego a Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
 - [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
 - [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
 
@@ -199,7 +201,9 @@ EncuentrosOES
 │   ├── [x] Repositorio Competition transaction-aware — PR #56
 │   ├── [x] Primera delegación Store → Repository — PR #57
 │   ├── [x] Baseline de create — PR #58
-│   └── [~] Delegación de create → Repository — PR #59
+│   ├── [x] Delegación de create → Repository — PR #59
+│   ├── [x] Auditoría de persistencia de Sorteos
+│   └── [~] DrawConfiguration transaction-aware — PR #60
 └── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary
@@ -217,10 +221,10 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Cerrar PR #59 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
-2. Tras consolidar PR #59, iniciar la equivalencia de Sorteos: identificar el agregado/estado compartible y fijar baseline PostgreSQL antes de delegar persistencia.
-3. Repetir el patrón para Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
-4. Retirar duplicaciones únicamente cuando cada frontera tenga equivalencia y atomicidad demostradas.
+1. Cerrar PR #60 solo cuando el head documental final quede verde en `quality + visual-e2e`.
+2. Crear baseline Store → Repository para `PrismaDrawStore.prepare` y demostrar equivalencia de configuración, participantes, orden canónico, lock de Competition, histórico de BYE, auditoría e idempotencia.
+3. Solo después delegar `DrawConfiguration` desde `prepare`; `OfficialDraw` seguirá separado hasta una equivalencia propia de ejecución/confirmación/anulación/materialización.
+4. Repetir el patrón para Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
