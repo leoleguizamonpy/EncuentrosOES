@@ -85,7 +85,7 @@ integration('SUPERADMIN database self-confirmation guard', () => {
   });
 
   it('installs the guard on every persisted critical confirmation surface', async () => {
-    const triggers = await client.$queryRawUnsafe<Array<{ tgname: string }>>(
+    const triggers = await client.$queryRawUnsafe<{ tgname: string }[]>(
       `SELECT tgname
        FROM pg_trigger
        WHERE NOT tgisinternal
@@ -102,7 +102,7 @@ integration('SUPERADMIN database self-confirmation guard', () => {
       'official_draws_self_confirmation_guard',
     ]);
 
-    const legacyConstraints = await client.$queryRawUnsafe<Array<{ conname: string }>>(
+    const legacyConstraints = await client.$queryRawUnsafe<{ conname: string }[]>(
       `SELECT conname
        FROM pg_constraint
        WHERE conname IN (
