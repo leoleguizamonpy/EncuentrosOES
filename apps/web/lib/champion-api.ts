@@ -44,7 +44,9 @@ export async function champion(competitionId: string): Promise<ChampionView | nu
     credentials: 'include',
   });
   if (!response.ok) throw await problem(response);
-  return response.json() as Promise<ChampionView | null>;
+  const body = await response.text();
+  if (body.trim().length === 0) return null;
+  return JSON.parse(body) as ChampionView | null;
 }
 
 async function mutate(path: string, expectedRevision: number): Promise<ChampionView> {
