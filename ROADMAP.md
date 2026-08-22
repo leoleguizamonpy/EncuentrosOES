@@ -112,8 +112,9 @@ Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
 - [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
 - [x] Baseline de equivalencia de `Competition` validado y consolidado mediante PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
 - [x] `PrismaCompetitionRepository` transaction-aware validado y consolidado mediante PR #56: `insertInTransaction`, `findByIdInTransaction` y `saveInTransaction`, rollback externo y read/save transaccional; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
-- [~] Primera delegación productiva activa en PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable siguen en API. `quality + visual-e2e` verdes en `af9a6435985e3b30af0535683cd89c294aa4ea14`; pendiente gate del head documental final y merge.
-- [ ] Delegar el siguiente corte del agregado `Competition` solo después de consolidar PR #57 y conservar equivalencia/atomicidad.
+- [x] Primera delegación productiva consolidada mediante PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable permanecen en API; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
+- [~] Baseline específico de `create` activo en PR #58: agregado inicial, proyección `DRAFT/revision 1`, auditoría `COMPETITION_CREATED`, replay idempotente y conflicto de key equivalentes; `quality + visual-e2e` verdes en `4cb3c976c5e785ddb85eebb161174dcc682c467d`; pendiente gate del head documental final y merge.
+- [ ] Delegar únicamente la inserción de `create` a `insertInTransaction` después de consolidar PR #58; idempotencia, auditoría y `CompetitionSummary` permanecen en API.
 - [ ] Ampliar equivalencia a Sorteos, Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
 - [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
 - [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
@@ -195,7 +196,8 @@ EncuentrosOES
 │   ├── [x] Inventario de persistencia competitiva
 │   ├── [x] Baseline de equivalencia Competition — PR #55
 │   ├── [x] Repositorio Competition transaction-aware — PR #56
-│   └── [~] Primera delegación Store → Repository — PR #57
+│   ├── [x] Primera delegación Store → Repository — PR #57
+│   └── [~] Baseline de create — PR #58
 └── [x] Experiencia administrativa 2.0 (Gate 10)
     ├── [x] Arquitectura UX 2.0
     ├── [x] AppShell + SessionBoundary
@@ -213,9 +215,9 @@ EncuentrosOES
 
 ## Prioridad inmediata
 
-1. Cerrar PR #57 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
-2. Tras consolidar PR #57, identificar el siguiente corte seguro del agregado `Competition`; no mover `create`, reglas o proyecciones sin equivalencia específica.
-3. Demostrar equivalencia y atomicidad después de cada sustitución antes de retirar más código duplicado.
+1. Cerrar PR #58 solo cuando el head que contiene este ROADMAP vuelva a quedar verde en `quality + visual-e2e`.
+2. Tras consolidar PR #58, delegar únicamente la inserción del agregado en `create` mediante `insertInTransaction`; mantener idempotencia, auditoría y proyección en API.
+3. Demostrar equivalencia y atomicidad después de esa sustitución antes de retirar más código duplicado.
 4. Repetir el patrón para Sorteos, Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
 5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
 
