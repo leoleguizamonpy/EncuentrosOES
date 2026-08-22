@@ -50,14 +50,23 @@ describe('OfficialDrawPanel', () => {
     await waitFor(() => expect(api.prepareOfficialDraw).toHaveBeenCalledWith('competition-1', 7));
   });
 
-  it('executes on the server and prevents the executor from self-confirming', async () => {
+  it('executes on the server and prevents an administrator from self-confirming', async () => {
     api.executeOfficialDraw.mockResolvedValue(pending);
     const { rerender } = render(<OfficialDrawPanel actorId="actor-1" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={prepared} />);
     fireEvent.click(screen.getByRole('button', { name: 'Ejecutar sorteo' }));
     await waitFor(() => expect(api.executeOfficialDraw).toHaveBeenCalledWith('configuration-1', 2));
     rerender(<OfficialDrawPanel actorId="actor-1" canAnnul={false} canOperate detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
-    expect(screen.getByText(/no puede confirmarlo/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Confirmar sorteo y generar encuentros' })).not.toBeInTheDocument();
+    expect(screen.getByText(/no puede confirmar el mismo sorteo/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Confirmar mi sorteo/ })).not.toBeInTheDocument();
+  });
+
+  it('lets a superadministrator explicitly confirm their own draw', async () => {
+    if (pending.execution === null) throw new Error('Expected pending execution');
+    const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Uno', id: 'actor-1' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
+    api.confirmOfficialDraw.mockResolvedValue(confirmed);
+    render(<OfficialDrawPanel actorId="actor-1" canAnnul canOperate canSelfConfirm detail={detail} onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar mi sorteo y generar encuentros' }));
+    await waitFor(() => expect(api.confirmOfficialDraw).toHaveBeenCalledWith('execution-1', 1));
   });
 
   it('lets another authority confirm and materialize the matches', async () => {
