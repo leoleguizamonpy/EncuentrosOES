@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { type Prisma, type PrismaClient } from '@oes/database';
+import { PrismaCompetitionRepository, type Prisma, type PrismaClient } from '@oes/database';
 import {
   Competition,
   CompetitionRuleSet,
@@ -166,7 +166,11 @@ function createRuleSet(input: SaveStoredRuleSetInput, id: string, occurredAt: Da
 
 @Injectable()
 export class PrismaCompetitionStore implements CompetitionStore {
-  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
+  readonly #competitionRepository: PrismaCompetitionRepository;
+
+  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
+    this.#competitionRepository = new PrismaCompetitionRepository(client);
+  }
 
   public async catalog(): Promise<CompetitionCatalog> {
     const [editions, combinations] = await Promise.all([
@@ -241,39 +245,16 @@ export class PrismaCompetitionStore implements CompetitionStore {
             institutionId: institution.id,
             occurredAt,
           });
+          await this.#competitionRepository.saveInTransaction(
+            transaction,
+            aggregate,
+            input.expectedRevision,
+          );
         } catch (error: unknown) {
           if (error instanceof DomainError) throw storeError(error);
           throw error;
         }
         const snapshot = aggregate.toSnapshot();
-        const updated = await transaction.competition.updateMany({
-          data: {
-            formatCode: snapshot.formatCode,
-            groupCount: snapshot.groupCount,
-            revision: snapshot.revision,
-            updatedAt: snapshot.updatedAt,
-            updatedById: snapshot.updatedBy,
-          },
-          where: { id: snapshot.id, revision: input.expectedRevision },
-        });
-        if (updated.count !== 1) {
-          throw new CompetitionStoreError('CONCURRENCY_CONFLICT', 'The competition was modified by another operation.');
-        }
-        const participant = snapshot.participants.find(({ id }) => id === participantId);
-        if (participant === undefined) throw new Error('Participant mutation did not produce a snapshot.');
-        await transaction.competitionParticipant.create({
-          data: {
-            competitionId: snapshot.id,
-            displayName: participant.displayName,
-            enabledAt: participant.enabledAt,
-            enabledById: participant.enabledBy,
-            eventId: participant.eventId,
-            id: participant.id,
-            institutionId: participant.institutionId,
-            revision: participant.revision,
-            status: participant.status,
-          },
-        });
         await transaction.auditEntry.create({
           data: {
             actionCode: 'COMPETITION_PARTICIPANT_ADDED',
@@ -315,24 +296,16 @@ export class PrismaCompetitionStore implements CompetitionStore {
             groupCount: input.groupCount,
             occurredAt: new Date(),
           } as Parameters<Competition['configureFormat']>[0]);
+          await this.#competitionRepository.saveInTransaction(
+            transaction,
+            aggregate,
+            input.expectedRevision,
+          );
         } catch (error: unknown) {
           if (error instanceof DomainError) throw storeError(error);
           throw error;
         }
         const snapshot = aggregate.toSnapshot();
-        const updated = await transaction.competition.updateMany({
-          data: {
-            formatCode: snapshot.formatCode,
-            groupCount: snapshot.groupCount,
-            revision: snapshot.revision,
-            updatedAt: snapshot.updatedAt,
-            updatedById: snapshot.updatedBy,
-          },
-          where: { id: snapshot.id, revision: input.expectedRevision },
-        });
-        if (updated.count !== 1) {
-          throw new CompetitionStoreError('CONCURRENCY_CONFLICT', 'The competition was modified by another operation.');
-        }
         await transaction.auditEntry.create({
           data: {
             actionCode: 'COMPETITION_FORMAT_CONFIGURED',
@@ -711,37 +684,11 @@ export class PrismaCompetitionStore implements CompetitionStore {
   }
 
   async #aggregate(transaction: Prisma.TransactionClient, id: string): Promise<Competition> {
-    const record = await transaction.competition.findUnique({
-      include: { participants: { orderBy: { id: 'asc' } } },
-      where: { id },
-    });
-    if (record === null) throw new CompetitionStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
-    return Competition.rehydrate({
-      createdAt: record.createdAt,
-      createdBy: record.createdById,
-      finalizedAt: record.finalizedAt,
-      finalizedBy: record.finalizedById,
-      formatCode: record.formatCode as CompetitionSummary['formatCode'],
-      groupCount: record.groupCount,
-      id: record.id,
-      key: { editionId: record.editionId, eventId: record.eventId, modalityId: record.modalityId, sportId: record.sportId },
-      lockedAt: record.lockedAt,
-      lockedBy: record.lockedById,
-      participants: record.participants.map((participant) => ({
-        displayName: participant.displayName,
-        enabledAt: participant.enabledAt,
-        enabledBy: participant.enabledById,
-        eventId: participant.eventId,
-        id: participant.id,
-        institutionId: participant.institutionId,
-        revision: participant.revision,
-        status: participant.status as 'ENABLED' | 'WITHDRAWN',
-      })),
-      revision: record.revision,
-      status: record.status as CompetitionSummary['status'],
-      updatedAt: record.updatedAt,
-      updatedBy: record.updatedById,
-    });
+    const aggregate = await this.#competitionRepository.findByIdInTransaction(transaction, id);
+    if (aggregate === null) {
+      throw new CompetitionStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
+    }
+    return aggregate;
   }
 
   async #detail(transaction: Prisma.TransactionClient, id: string): Promise<CompetitionDetail> {
