@@ -63,12 +63,10 @@ case "$BACKUP_REMOTE_PREFIX" in
     ;;
 esac
 
-case "$BACKUP_PROVIDER_LABEL" in
-  *$'\n'*|*$'\r'*)
-    echo "BACKUP_PROVIDER_LABEL must be a single line." >&2
-    exit 1
-    ;;
-esac
+if printf '%s' "$BACKUP_PROVIDER_LABEL" | grep -q '[[:cntrl:]]'; then
+  echo "BACKUP_PROVIDER_LABEL must not contain control characters." >&2
+  exit 1
+fi
 
 if [ -z "${BACKUP_ID:-}" ]; then
   BACKUP_ID="$(date -u +%Y%m%dT%H%M%SZ)-real-storage"
