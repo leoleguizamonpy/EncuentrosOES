@@ -4,16 +4,35 @@
 > Fuente de verdad funcional: `FOUNDATION.md`  
 > Rama funcional consolidada: `main`
 
-Este roadmap separa el avance del **motor competitivo** del avance del **producto utilizable**. El porcentaje histórico del 99% se retiró porque mezclaba robustez lógica, infraestructura y experiencia de usuario en un único número que ya no representaba el estado real.
+Este roadmap distingue el **software definido por Foundation** de las validaciones que requieren infraestructura externa real. No se declara completada una prueba operativa externa mediante simulaciones o almacenamiento local.
 
-## Gate 0 — Fundación y arquitectura
+## Estado ejecutivo
+
+```text
+EncuentrosOES
+├── [x] Software definido por Foundation — COMPLETO
+│   ├── [x] Núcleo competitivo (Gates 0–6)
+│   ├── [x] Experiencia pública (Gate 8)
+│   ├── [x] Saneamiento técnico (Gate 9)
+│   └── [x] Experiencia administrativa 2.0 (Gate 10)
+└── [~] Preparación operativa externa (Gate 7)
+    ├── [x] Seguridad, recuperación, backup y contratos de transporte
+    └── [ ] REAL-STORAGE-DRILL contra proveedor externo real
+```
+
+**Estado del producto software:** 100% del alcance actualmente autorizado por `FOUNDATION.md`.  
+**Único pendiente para declarar 100% de readiness de producción:** ejecutar `REAL-STORAGE-DRILL` contra almacenamiento externo real, privado/cifrado y con credenciales de mínimo privilegio.
+
+---
+
+## Gate 0 — Fundación y arquitectura — CERRADO
 
 - [x] Foundation 2.0 estable.
 - [x] Modelo de dominio, reglas de sorteo, resultados, desempates y clasificación documentados.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
 - [x] CI con lint, tipos, pruebas, build y PostgreSQL real.
 
-## Gate 1 — Persistencia competitiva
+## Gate 1 — Persistencia competitiva — CERRADO
 
 - [x] Competencia y participantes persistentes.
 - [x] Configuración de grupos o eliminación directa.
@@ -21,7 +40,7 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Bloqueo de competencia con revisión optimista.
 - [x] Separación por edición, evento, deporte y modalidad.
 
-## Gate 2 — Sorteo oficial verificable
+## Gate 2 — Sorteo oficial verificable — CERRADO
 
 - [x] Motor determinista `oes-draw-v1`.
 - [x] Semilla criptográfica y compromiso previo.
@@ -32,7 +51,7 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Anulación trazable por superadministrador.
 - [x] Publicación pública con acta, semilla revelada y SHA-256.
 
-## Gate 3 — Resultados y tablas
+## Gate 3 — Resultados y tablas — CERRADO
 
 - [x] Encuentros restaurables desde PostgreSQL.
 - [x] Resultados por marcador o sets.
@@ -41,8 +60,9 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Desempates ordenados y mini-tabla de enfrentamiento directo.
 - [x] Empates no resueltos explícitos.
 - [x] Anulación y recálculo/invalidation de derivados.
+- [x] `PrismaResultsStore` delega mutaciones a `PrismaMatchResultService` y `PrismaGroupQualificationService`; API conserva proyección y traducción de errores.
 
-## Gate 4 — Clasificación desde grupos
+## Gate 4 — Clasificación desde grupos — CERRADO
 
 - [x] Dos clasificados propuestos automáticamente por grupo.
 - [x] Corte bloqueado ante empate no resuelto.
@@ -50,7 +70,7 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Confirmación independiente desde workspace.
 - [x] Idempotencia, concurrencia y auditoría.
 
-## Gate 5 — Continuidad eliminatoria
+## Gate 5 — Continuidad eliminatoria — CERRADO
 
 - [x] Elegibles derivados solo desde avances confirmados.
 - [x] Grupos → eliminación con primer y segundo clasificados confirmados.
@@ -58,9 +78,9 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Preparación automática de cada nueva ronda.
 - [x] `DrawConfiguration` KNOCKOUT congelada y roundNumber incremental.
 - [x] Re-sorteo obligatorio entre rondas con `oes-draw-v1`.
-- [x] Idempotencia HTTP, control optimista y auditoría PostgreSQL.
+- [x] `PrismaNextRoundStore` delega preparación a `PrismaNextRoundService.prepareInTransaction` dentro de la transacción exterior.
 
-## Gate 6 — Finalización competitiva
+## Gate 6 — Finalización competitiva — CERRADO
 
 - [x] Final real detectada correctamente.
 - [x] Propuesta de campeón con fuentes persistidas.
@@ -69,8 +89,9 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] `finalizedAt/finalizedBy` persistidos.
 - [x] Mutaciones incompatibles bloqueadas tras finalizar.
 - [x] Campeón y recorrido competitivo expuestos públicamente.
+- [x] `PrismaChampionStore` delega propuesta/confirmación a `PrismaChampionFinalizationService`.
 
-## Gate 7 — Robustez operativa previa a producción
+## Gate 7 — Robustez operativa previa a producción — BLOQUEO EXTERNO
 
 - [x] E2E grupos → eliminación → campeón con PostgreSQL real.
 - [x] E2E eliminación directa → re-sorteo → campeón.
@@ -81,150 +102,87 @@ Este roadmap separa el avance del **motor competitivo** del avance del **product
 - [x] Configuración/secrets de producción endurecidos.
 - [x] Seguridad HTTP y observabilidad sanitizada.
 - [x] Contrato provider-neutral `upload`, `download`, `retain`.
-- [x] Comando único `pnpm db:backup:roundtrip-drill`.
-- [~] **REAL-STORAGE-DRILL** pendiente contra almacenamiento externo real, privado/cifrado y con credenciales de mínimo privilegio.
+- [x] `pnpm db:backup:roundtrip-drill`.
+- [x] Publicación externa y restore remoto implementados mediante `BACKUP_TRANSPORT_EXECUTABLE` + `BACKUP_REMOTE_PREFIX`.
+- [ ] **REAL-STORAGE-DRILL**: ejecutar contra un proveedor externo real, privado/cifrado, con credenciales de mínimo privilegio y comprobar publicación + descarga + SHA-256 + restore.
 
-## Gate 8 — Experiencia pública
+El punto anterior **no puede cerrarse con CI local/provider-neutral**. Requiere infraestructura externa y credenciales reales.
+
+## Gate 8 — Experiencia pública — CERRADO
 
 - [x] Vista pública unificada de grupos, tablas, rondas y cruces publicados.
 - [x] Presentación oficial determinista de sorteos, recuperable por `?step=N`.
 - [x] Accesibilidad y responsive público.
 - [x] Historial público de publicaciones/verificaciones, incluidas `REVOKED` como evidencia histórica.
 
-## Gate 9 — Saneamiento técnico posterior a auditoría
+## Gate 9 — Saneamiento técnico posterior a auditoría — CERRADO
 
-Referencia: `docs/AUDIT-CLEANUP-2026-08-20.md`.
+Referencias:
+- `docs/AUDIT-CLEANUP-2026-08-20.md`
+- `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`
+- `docs/DRAW-PERSISTENCE-EQUIVALENCE-2026-08-21.md`
 
-- [x] Auditoría del árbol completo de `main`.
-- [x] Confirmado que no existen `dist`, `.next`, `node_modules`, dumps o residuos equivalentes versionados.
-- [x] Eliminada la segunda implementación completa de gestión administrativa y sustituida por un gestor reutilizable sin shell/sesión duplicados.
-- [x] Las altas y el mantenimiento siguen disponibles durante la transición a UX 2.0.
-- [x] `catalog_assets` incorporado al esquema Prisma mediante schema multifile.
-- [x] La administración redirige a login ante expiración de sesión en vez de dejar un error de credenciales como pantalla final.
-- [x] Validación de assets cubierta con pruebas web específicas.
-- [x] Contrato `icon` opcional cubierto con prueba de regresión para `exactOptionalPropertyTypes`.
-- [x] Mapeo de `CatalogAsset` cubierto con prueba PostgreSQL/Prisma de integración.
-- [x] README y ROADMAP corregidos para no declarar 99% global.
-- [x] Superficie UI heredada `/admin/catalog` y `/admin/catalog/manage` retirada, gate completo verde y consolidada en `main` mediante PR #41.
-- [x] Los contratos `catalog-admin-api.ts` y endpoints de catálogo se conservan como infraestructura compartida.
-- [x] Política de autorización cerrada: ADMIN gestiona organización/competencia/control operativo; SUPERADMIN conserva administración de cuentas, roles y configuración sensible.
-- [~] Consolidación de persistencia competitiva activa: equivalencia → transaction-aware → delegación incremental; sin limpieza destructiva.
-- [x] Inventario inicial completado para Competición, Sorteos, Resultados/Clasificación, Continuidad y Finalización; responsabilidades de API y `packages/database` diferenciadas en `docs/PERSISTENCE-EQUIVALENCE-2026-08-21.md`.
-- [x] Baseline de equivalencia de `Competition` validado y consolidado mediante PR #55: Store → Repository, Repository → Store y conflicto de revisión compartido; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
-- [x] `PrismaCompetitionRepository` transaction-aware validado y consolidado mediante PR #56: `insertInTransaction`, `findByIdInTransaction` y `saveInTransaction`, rollback externo y read/save transaccional; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
-- [x] Primera delegación productiva consolidada mediante PR #57: `addParticipant` y `configureFormat` escriben mediante `saveInTransaction`; `#aggregate` rehidrata mediante `findByIdInTransaction`; auditoría, idempotencia, validación, proyección y transacción Serializable permanecen en API; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
-- [x] Baseline específico de `create` validado y consolidado mediante PR #58: agregado inicial, proyección `DRAFT/revision 1`, auditoría `COMPETITION_CREATED`, replay idempotente y conflicto de key equivalentes; merge `6b60cc49d437898de3238237994a3bcac196a469`.
-- [x] Segunda delegación productiva de `Competition` consolidada mediante PR #59: `create` persiste el agregado mediante `insertInTransaction`, mantiene construcción del agregado, auditoría, idempotencia, proyección y transacción Serializable en API; head final verde `ffe222dbcee3140f76fb4da4f493d3b90d4e7652`; merge `a53925e85f3ab09eaa660a975124841e04ffaa2d`.
-- [x] Auditoría específica de persistencia de Sorteos completada en `docs/DRAW-PERSISTENCE-EQUIVALENCE-2026-08-21.md`: primera frontera segura identificada en `DrawConfiguration`; `OfficialDraw` queda separado por materialización, autoridad, auditoría, idempotencia e invalidación.
-- [~] `PrismaDrawConfigurationRepository` transaction-aware activo en PR #60: variantes `insert/find/save` dentro de transacción externa y pruebas PostgreSQL de rollback + read/freeze/save; `PrismaDrawStore.prepare` todavía no delega persistencia.
-- [ ] Fijar baseline Store → Repository para `prepare` y solo después delegar la persistencia de `DrawConfiguration` manteniendo lock de Competition, BYE, auditoría, idempotencia y `Serializable` en API.
-- [ ] Ampliar equivalencia a ejecución/confirmación/anulación de Sorteos y luego a Resultados/Clasificación, Continuidad y Finalización antes de retirar implementaciones duplicadas.
-- [ ] Retirar duplicaciones solo después de equivalencia verde, lifecycle/restart/annulment verdes y gate completo.
-- [~] Reducir componentes frontend grandes únicamente cuando exista beneficio claro y sin reabrir Gate 10.
+### Limpieza estructural
 
-## Gate 10 — Arquitectura de producto y experiencia administrativa
+- [x] Árbol de `main` auditado; sin `dist`, `.next`, `node_modules`, dumps o residuos equivalentes versionados.
+- [x] UI heredada de Catálogos retirada mediante PR #41; contratos/endpoints reutilizables conservados.
+- [x] Política ADMIN/SUPERADMIN cerrada.
+- [x] No se realizó eliminación destructiva de persistencia sin equivalencia previa.
+- [x] Componentes frontend grandes evaluados; no queda un refactor cosmético obligatorio que bloquee el gate.
 
-Referencia activa: `docs/08-ui-flows.md` UX 2.0.
+### Consolidación de Competition
 
-- [x] `docs/08-ui-flows.md` actualizado a UX 2.0.
-- [x] Arquitectura de información definida: Inicio / Organización / Competencia / Control.
-- [x] AppShell base compartido creado.
-- [x] Sidebar base con iconografía SVG y estados de módulo disponible/próximo.
-- [x] Topbar y cuenta centralizados en AppShell.
-- [x] `SessionBoundary` compartido creado.
-- [x] Dashboard migrado al AppShell común.
-- [x] Patrones globales de colección, filtros, drawer, feedback y estados consolidados en UX 2.0.
-- [x] Módulo Instituciones implementado en `/admin/institutions`: listado, búsqueda, filtros, alta, edición, estado, escudo y reintento de carga.
-- [x] Actualizaciones de escudo omiten correctamente `icon` cuando no existe cambio, respetando `exactOptionalPropertyTypes`.
-- [x] Prueba de creación de Institución añadida a web.
-- [x] Competencias migrado al AppShell común y consolidado en `main` mediante PR #36.
-- [x] Competencias deja de duplicar sesión, logout, sidebar y topbar; usa `SessionBoundary + AppShell`.
-- [x] Gate de Competencias verde: lint, typecheck, Prisma, integración PostgreSQL, cobertura y build.
-- [x] Deportes implementado en `/admin/sports`, gate completo verde y consolidado en `main` mediante PR #37.
-- [x] Modalidades implementado en `/admin/modalities`, gate completo verde y consolidado en `main` mediante PR #38.
-- [x] Deportes y Modalidades comparten `VisualCatalogClient`, evitando duplicar el CRUD visual.
-- [x] Ediciones implementado en `/admin/editions`, gate completo verde y consolidado en `main` mediante PR #39.
-- [x] Eventos implementado en `/admin/events`, gate completo verde y consolidado en `main` mediante PR #40.
-- [x] La relación Evento/Deporte/Modalidad se administra contextualmente dentro de Eventos mediante `createCombination/updateCombination`.
-- [x] Organización UX 2.0 cubierta por Ediciones, Eventos, Instituciones, Deportes y Modalidades.
-- [x] Sorteos implementado como bandeja operativa en `/draws`, gate completo verde y consolidado en `main` mediante PR #42.
-- [x] Sorteos reutiliza el flujo oficial existente dentro de `/competitions/[id]` y mantiene publicaciones en `/draws/[id]`.
-- [x] Encuentros implementado como bandeja operativa en `/matches`, gate completo verde y consolidado en `main` mediante PR #43.
-- [x] Encuentros agrega partidos materializados y expone pendientes de resultado/confirmación reutilizando `ResultsWorkspacePanel`.
-- [x] Clasificación implementada como vista transversal en `/standings`, gate completo verde y consolidada en `main` mediante PR #44.
-- [x] Clasificación reutiliza `resultsWorkspace()` como única fuente de tablas, posiciones, métricas y clasificados; no recalcula standings en frontend.
-- [x] Clasificación contempla SCORE_BASED y SET_BASED, tablas parciales/completas y clasificación propuesta/confirmada.
-- [x] Bloque Competencia UX 2.0 cubierto por Competencias, Sorteos, Encuentros y Clasificación.
-- [x] Confirmaciones implementada como bandeja única en `/admin/confirmations`, gate completo verde y consolidada en `main` mediante PR #45.
-- [x] Confirmaciones agrega sorteos, resultados, clasificados y campeón pendientes usando contratos existentes, sin entidad paralela de workflow.
-- [x] Confirmaciones bloquea en UI la autoconfirmación cuando el actor actual originó la decisión y delega la validación definitiva al backend.
-- [x] Auditoría implementada en `/admin/audit`, gate completo verde y consolidada en `main` mediante PR #46.
-- [x] Auditoría consume directamente `AuditEntry` persistido y expone fecha, actor/rol, acción, recurso, competencia, revisiones, correlación y motivo.
-- [x] Endpoint `GET /admin/audit` protegido para ADMIN/SUPERADMIN y limitado a las 200 trazas más recientes.
-- [x] Usuarios implementado en `/admin/users`, gate completo verde y consolidado en `main` mediante PR #47.
-- [x] Usuarios queda reservado a SUPERADMIN: listado, alta, edición, rol, activación/desactivación y cambio de contraseña.
-- [x] Cambios sensibles de usuario incrementan `credentialVersion` para invalidar sesiones existentes y generan `AuditEntry`.
-- [x] El SUPERADMIN no puede degradar ni desactivar su propia cuenta desde el módulo.
-- [x] Política ADMIN vs SUPERADMIN cerrada y reflejada en navegación: Usuarios/Configuración sensible solo aparecen al SUPERADMIN.
-- [x] Configuración implementada en `/admin/settings`, gate completo verde y consolidada en `main` mediante PR #48.
-- [x] Configuración queda reservada a SUPERADMIN y expone únicamente política operativa no secreta derivada del entorno.
-- [x] `DATABASE_URL`, credenciales y secretos quedan fuera del contrato y de la interfaz; no se crea una segunda fuente de configuración global.
-- [x] Configuración es de solo lectura porque Foundation no autoriza parámetros globales mutables; reglas de puntuación/desempate/formato permanecen dentro de cada competencia.
-- [x] Pruebas API/web verifican política segura, navegación y ausencia de secretos.
-- [x] Bloque Control UX 2.0 cubierto por Confirmaciones, Auditoría, Usuarios y Configuración.
-- [x] Estados vacíos, carga, error, sesión y permisos homogeneizados transversalmente.
-- [x] Primer lote de hardening consolidado mediante PR #49: `WorkspaceState`, Auditoría, Configuración y recuperación de `SessionBoundary`, con gate completo verde.
-- [x] Segundo lote consolidado mediante PR #50: Usuarios y Confirmaciones migrados a `WorkspaceState`, con recuperación de carga probada y gate completo verde.
-- [x] Tercer lote consolidado mediante PR #51: Sorteos, Encuentros y Clasificación migrados al estado compartido para fallos globales y con degradación parcial explícita por competencia; gate completo verde.
-- [x] Sorteos diferencia un fallo de `drawWorkspace` de una ausencia real de sorteo mediante `Estado no disponible`; regresión cubierta por prueba web.
-- [x] Encuentros y Clasificación conservan datos cargados de otras competencias y advierten cuántas competencias no pudieron recuperarse.
-- [x] Cuarto lote consolidado mediante PR #52: Ediciones, Eventos, Instituciones y `VisualCatalogClient` comparten carga/error/reintento; Deportes y Modalidades quedan cubiertos sin duplicación; gate completo verde.
-- [x] Responsive administrativo consolidado mediante PR #53: AppShell adaptable, navegación móvil por drawer, topbar apilable y hardening de tablas/toolbars/drawers compartidos; gate completo verde.
-- [x] Prueba web cubre apertura/cierre de navegación móvil y preservación de permisos de navegación.
-- [x] Responsive estructural escritorio/tablet/móvil consolidado en `main`.
-- [x] E2E visual real consolidado mediante PR #54: login real con SUPERADMIN bootstrap, PostgreSQL real, API + Next construidos y navegador Chromium.
-- [x] Drill visual verifica dashboard, navegación móvil y Usuarios en 390px, 820px, 1024px y 1440px, bloqueando overflow horizontal y generando capturas como evidencia de CI.
-- [x] Gate 10 cerrado sobre `quality + visual-e2e` verdes en el mismo head `d897db145a3ec6f0fe027eacd5f50e186ef99634`; PR #54 consolidado en `main` mediante merge `d031a15f4c48e95a1d5b44e4f09e15963caedd75`.
+- [x] PR #55 — baseline de equivalencia; merge `8029d7803a4cf8fd37d5455b8a065ae42c2691f4`.
+- [x] PR #56 — `PrismaCompetitionRepository` transaction-aware; merge `d51d376b9cf397a5843b3ace80b74fe626515a35`.
+- [x] PR #57 — `addParticipant`, `configureFormat` y rehidratación delegados; merge `9500cf517644a81d0b18c685ce51a87e6b900176`.
+- [x] PR #58 — baseline específico de `create`; merge `6b60cc49d437898de3238237994a3bcac196a469`.
+- [x] PR #59 — inserción de `create` delegada a `insertInTransaction`; merge `a53925e85f3ab09eaa660a975124841e04ffaa2d`.
 
-## Estado resumido
+### Consolidación de Sorteos
+
+- [x] Auditoría específica de responsabilidades API/Database completada.
+- [x] PR #60 — `PrismaDrawConfigurationRepository` transaction-aware, rollback externo y read/freeze/save PostgreSQL; merge `73cf492ebc9e16a5aae4de291b117fac47bb1a41`.
+- [x] PR #61 — `PrismaDrawStore.prepare` delega inserción y rehidratación de `DrawConfiguration`; merge `ae3f1e438e828f6addfc609c6adb97004c0245a1`.
+- [x] PR #62 — `PrismaOfficialDrawService` transaction-aware con execute/find/confirm/annul y materialización dentro de transacción externa; merge `ce1e3c2b91bd3c8fddd9d3ef273c6f2d47dd03aa`.
+- [~] PR #63 — `PrismaDrawStore` delega OfficialDraw y materialización al servicio compartido; head productivo `78e91a74f85483617f0d1191f7ee7a289c615a06` con `quality + visual-e2e` verdes antes de este commit documental. Pendiente gate del head final y merge.
+
+### Fronteras ya consolidadas
+
+- [x] Resultados/Clasificación: API delega a `PrismaMatchResultService` + `PrismaGroupQualificationService`.
+- [x] Continuidad: API delega a `PrismaNextRoundService.prepareInTransaction`.
+- [x] Finalización: API delega a `PrismaChampionFinalizationService`.
+- [x] Lifecycle, restart, annulment, PostgreSQL integration, coverage y build permanecen en el gate obligatorio.
+
+**Criterio de cierre:** Gate 9 se considera cerrado funcionalmente con el cambio de PR #63; su consolidación en `main` queda condicionada únicamente a `quality + visual-e2e` verdes sobre el head que contiene este ROADMAP.
+
+## Gate 10 — Arquitectura de producto y experiencia administrativa — CERRADO
+
+- [x] UX 2.0 definida en `docs/08-ui-flows.md`.
+- [x] Arquitectura Inicio / Organización / Competencia / Control.
+- [x] AppShell + SessionBoundary compartidos.
+- [x] Organización: Ediciones, Eventos, Instituciones, Deportes y Modalidades.
+- [x] Competencia: Competencias, Sorteos, Encuentros y Clasificación.
+- [x] Control: Confirmaciones, Auditoría, Usuarios y Configuración.
+- [x] Política SUPERADMIN para Usuarios/Configuración sensible.
+- [x] `WorkspaceState` y recuperación/degradación transversal consolidados en PRs #49–#52.
+- [x] Responsive administrativo consolidado mediante PR #53.
+- [x] E2E visual real Chromium consolidado mediante PR #54, merge `d031a15f4c48e95a1d5b44e4f09e15963caedd75`.
+
+## Ruta final de consolidación
 
 ```text
-EncuentrosOES
-├── [x] Núcleo competitivo (Gates 0–6)
-├── [~] Producción (Gate 7)
-│   └── [ ] REAL-STORAGE-DRILL
-├── [x] Experiencia pública (Gate 8)
-├── [~] Saneamiento técnico (Gate 9)
-│   ├── [x] UI heredada de Catálogos retirada
-│   ├── [x] Inventario de persistencia competitiva
-│   ├── [x] Baseline de equivalencia Competition — PR #55
-│   ├── [x] Repositorio Competition transaction-aware — PR #56
-│   ├── [x] Primera delegación Store → Repository — PR #57
-│   ├── [x] Baseline de create — PR #58
-│   ├── [x] Delegación de create → Repository — PR #59
-│   ├── [x] Auditoría de persistencia de Sorteos
-│   └── [~] DrawConfiguration transaction-aware — PR #60
-└── [x] Experiencia administrativa 2.0 (Gate 10)
-    ├── [x] Arquitectura UX 2.0
-    ├── [x] AppShell + SessionBoundary
-    ├── [x] Organización
-    ├── [x] Competencia
-    ├── [x] Control
-    └── [x] Hardening transversal
-        ├── [x] Estados base + recuperación de sesión — PR #49
-        ├── [x] Usuarios + Confirmaciones — PR #50
-        ├── [x] Sorteos + Encuentros + Clasificación — PR #51
-        ├── [x] Organización — PR #52
-        ├── [x] Responsive administrativo — PR #53
-        └── [x] E2E visual Chromium — PR #54
+Cierre de software
+├── [x] Gates 0–6
+├── [~] Gate 7 — solo infraestructura externa pendiente
+├── [x] Gate 8
+├── [x] Gate 9 — código cerrado; PR #63 en gate final
+└── [x] Gate 10
+
+Después de PR #63
+├── [ ] Fusionar head final exacto en `main`
+├── [ ] Verificar CI de la rama consolidada
+├── [ ] Eliminar ramas feature/refactor ya fusionadas cuando la API de GitHub lo permita
+└── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
 ```
 
-## Prioridad inmediata
-
-1. Cerrar PR #60 solo cuando el head documental final quede verde en `quality + visual-e2e`.
-2. Crear baseline Store → Repository para `PrismaDrawStore.prepare` y demostrar equivalencia de configuración, participantes, orden canónico, lock de Competition, histórico de BYE, auditoría e idempotencia.
-3. Solo después delegar `DrawConfiguration` desde `prepare`; `OfficialDraw` seguirá separado hasta una equivalencia propia de ejecución/confirmación/anulación/materialización.
-4. Repetir el patrón para Resultados/Clasificación, Continuidad y Finalización; mantener lifecycle/restart/annulment verdes.
-5. Ejecutar `REAL-STORAGE-DRILL` cuando exista infraestructura externa real, privada/cifrada y credenciales de mínimo privilegio.
-
-No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de Foundation.
+No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin una modificación explícita de `FOUNDATION.md`.
