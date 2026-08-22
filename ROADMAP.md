@@ -19,6 +19,7 @@ EncuentrosOES
 └── [~] Preparación operativa externa (Gate 7)
     ├── [x] Seguridad, recuperación, backup y contratos de transporte
     ├── [x] Wrapper protegido + evidencia sanitizada para el drill real
+    ├── [x] Guardas negativas del drill real integradas al CI
     └── [ ] REAL-STORAGE-DRILL contra proveedor externo real
 ```
 
@@ -110,6 +111,8 @@ EncuentrosOES
 - [x] Auditoría `docs/AUDIT-2026-08-22-GATE7-READINESS.md` completada.
 - [x] `pnpm db:backup:real-storage-drill` protege el cierre real contra transporte falso/local evidente y exige atestaciones de privacidad, cifrado y mínimo privilegio.
 - [x] Evidencia JSON sanitizada automática tras un round-trip real exitoso.
+- [x] `pnpm db:backup:real-storage-guards` cubre fallos por variables faltantes, atestaciones inválidas, transporte falso, `BACKUP_FAKE_REMOTE_DIR`, prefijos locales y ausencia de evidencia ante fallo.
+- [x] La suite de guardas negativas forma parte del job `quality` de CI.
 - [ ] **REAL-STORAGE-DRILL**: ejecutar contra un proveedor externo real, privado/cifrado, con credenciales de mínimo privilegio y comprobar publicación + descarga + SHA-256 + restore.
 
 El punto anterior **no puede cerrarse con CI local/provider-neutral**. Requiere infraestructura externa y credenciales reales.
@@ -190,6 +193,7 @@ Consolidación del repositorio
 ├── [x] Incorporar `AGENTS.md` y cierre documental final
 ├── [x] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
 ├── [x] Preparar comando protegido + evidencia para REAL-STORAGE-DRILL
+├── [x] Integrar suite local negativa del REAL-STORAGE-DRILL al CI
 └── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
 ```
 
