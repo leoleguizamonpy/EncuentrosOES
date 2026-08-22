@@ -22,7 +22,7 @@ function finalReady(draw: DrawWorkspace, results: ResultsWorkspace): boolean {
 export function ChampionPanel({
   actorId,
   canOperate,
-  canSelfConfirm,
+  canSelfConfirm = false,
   champion,
   competitionId,
   draw,
@@ -32,7 +32,7 @@ export function ChampionPanel({
 }: {
   readonly actorId: string;
   readonly canOperate: boolean;
-  readonly canSelfConfirm: boolean;
+  readonly canSelfConfirm?: boolean;
   readonly champion: ChampionView | null;
   readonly competitionId: string;
   readonly draw: DrawWorkspace;
