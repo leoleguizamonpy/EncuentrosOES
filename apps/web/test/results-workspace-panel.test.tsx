@@ -45,7 +45,7 @@ describe('ResultsWorkspacePanel', () => {
 
   it('explains why there are no matches before draw confirmation', () => {
     render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={{ competitionId: 'competition-1', competitionStatus: 'LOCKED', groups: [], matches: [], resultProfile: null }} />);
-    expect(screen.getByText(/otra autoridad confirme el sorteo oficial/i)).toBeInTheDocument();
+    expect(screen.getByText(/cuando se confirme el sorteo oficial/i)).toBeInTheDocument();
   });
 
   it('records a score and requires a different authority to confirm it', async () => {
