@@ -11,10 +11,11 @@ function ResultScore({ result }: { readonly result: MatchResultView }): React.JS
   return <strong>{result.resolved.setsWonA} — {result.resolved.setsWonB} <small>sets</small></strong>;
 }
 
-function MatchCard({ actorId, canAnnul, canOperate, match, onChange, onError, profile }: {
+function MatchCard({ actorId, canAnnul, canOperate, canSelfConfirm, match, onChange, onError, profile }: {
   readonly actorId: string;
   readonly canAnnul: boolean;
   readonly canOperate: boolean;
+  readonly canSelfConfirm: boolean;
   readonly match: ResultMatchView;
   readonly onChange: (workspace: ResultsWorkspace) => void;
   readonly onError: (message: string | null) => void;
@@ -53,6 +54,8 @@ function MatchCard({ actorId, canAnnul, canOperate, match, onChange, onError, pr
     finally { setSubmitting(null); }
   }
 
+  const ownPendingResult = match.result?.status === 'PENDING_CONFIRMATION' && match.result.recordedBy.id === actorId;
+
   return <article className="result-match">
     <header><span>{match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`} · Encuentro {match.ordinal}</span><small className={`match-state match-state--${match.status.toLowerCase()}`}>{statusLabels[match.status]}</small></header>
     <div><b>{match.participantA.displayName}</b>{match.result === null ? <i>VS</i> : <ResultScore result={match.result} />}<b>{match.participantB.displayName}</b></div>
@@ -60,14 +63,15 @@ function MatchCard({ actorId, canAnnul, canOperate, match, onChange, onError, pr
       {profile === 'SET_BASED' ? <>{sets.map((set, index) => <div className="result-set-row" key={index}><label>Set {index + 1}<input aria-label={`Set ${String(index + 1)} · ${match.participantA.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsA: Number(event.target.value) } : item))} type="number" value={set.pointsA} /></label><span>—</span><label><span className="sr-only">{match.participantB.displayName}</span><input aria-label={`Set ${String(index + 1)} · ${match.participantB.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsB: Number(event.target.value) } : item))} type="number" value={set.pointsB} /></label></div>)}<button disabled={sets.length >= 9 || submitting !== null} onClick={() => setSets((current) => [...current, { pointsA: 0, pointsB: 0 }])} type="button">Agregar set</button></> : <div className="result-score-row"><label>{match.participantA.displayName}<input aria-label={`Marcador de ${match.participantA.displayName}`} min="0" onChange={(event) => setScoreA(Number(event.target.value))} type="number" value={scoreA} /></label><span>—</span><label>{match.participantB.displayName}<input aria-label={`Marcador de ${match.participantB.displayName}`} min="0" onChange={(event) => setScoreB(Number(event.target.value))} type="number" value={scoreB} /></label></div>}
       <div><button className="primary-button" disabled={submitting !== null} type="submit">{submitting === 'record' ? 'Registrando…' : 'Enviar a confirmación'}</button><button disabled={submitting !== null} onClick={() => setOpen(false)} type="button">Cancelar</button></div>
     </form>}</> : null : <footer>Registrado por {match.result.recordedBy.displayName}{match.result.confirmedBy === null ? '' : ` · confirmado por ${match.result.confirmedBy.displayName}`}</footer>}
-    {match.result?.status === 'PENDING_CONFIRMATION' ? match.result.recordedBy.id === actorId ? <p className="readonly-note">Otra autoridad debe confirmar este resultado.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : 'Confirmar resultado'}</button> : null : null}
+    {match.result?.status === 'PENDING_CONFIRMATION' ? ownPendingResult && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar este resultado.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : ownPendingResult ? 'Confirmar mi resultado' : 'Confirmar resultado'}</button> : null : null}
     {match.result?.status === 'CONFIRMED' && canAnnul ? <div className="result-annulment">{!annulmentOpen ? <button className="danger-button" disabled={submitting !== null} onClick={() => setAnnulmentOpen(true)} type="button">Anular resultado</button> : <div className="draw-annulment__form"><strong>Anulación oficial del resultado</strong><label htmlFor={`result-annulment-${match.result.id}`}>Motivo formal de anulación</label><textarea id={`result-annulment-${match.result.id}`} maxLength={500} minLength={10} onChange={(event) => setAnnulmentReason(event.target.value)} placeholder="Explica el error que obliga a cargar nuevamente este resultado…" value={annulmentReason} /><small>{annulmentReason.trim().length}/500 · mínimo 10 caracteres</small><div><button className="danger-button" disabled={submitting !== null || annulmentReason.trim().length < 10} onClick={() => void annul()} type="button">{submitting === 'annul' ? 'Anulando…' : 'Confirmar anulación'}</button><button disabled={submitting !== null} onClick={() => { setAnnulmentOpen(false); setAnnulmentReason(''); }} type="button">Cancelar</button></div></div>}</div> : null}
   </article>;
 }
 
-function QualificationPanel({ actorId, canOperate, onChange, onError, qualification }: {
+function QualificationPanel({ actorId, canOperate, canSelfConfirm, onChange, onError, qualification }: {
   readonly actorId: string;
   readonly canOperate: boolean;
+  readonly canSelfConfirm: boolean;
   readonly onChange: (workspace: ResultsWorkspace) => void;
   readonly onError: (message: string | null) => void;
   readonly qualification: GroupQualificationView;
@@ -82,21 +86,22 @@ function QualificationPanel({ actorId, canOperate, onChange, onError, qualificat
   }
 
   const pending = qualification.status === 'PENDING_CONFIRMATION';
+  const ownPendingQualification = pending && qualification.proposedBy.id === actorId;
   return <section className={`qualification-panel qualification-panel--${pending ? 'pending' : 'confirmed'}`} aria-label="Clasificación del grupo">
-    <header><div><span>{pending ? 'Clasificación propuesta' : 'Clasificación confirmada'}</span><strong>Avance a la siguiente fase</strong></div><small>{pending ? 'Requiere otra autoridad' : 'Oficial'}</small></header>
+    <header><div><span>{pending ? 'Clasificación propuesta' : 'Clasificación confirmada'}</span><strong>Avance a la siguiente fase</strong></div><small>{pending ? 'Pendiente de confirmación' : 'Oficial'}</small></header>
     <ol>
       <li><span>1.º</span><strong>{qualification.firstParticipant.displayName}</strong></li>
       <li><span>2.º</span><strong>{qualification.secondParticipant.displayName}</strong></li>
     </ol>
     <footer>Propuesto por {qualification.proposedBy.displayName}{qualification.confirmedBy === null ? '' : ` · confirmado por ${qualification.confirmedBy.displayName}`}</footer>
-    {pending ? qualification.proposedBy.id === actorId ? <p className="readonly-note">Otra autoridad debe confirmar estos clasificados.</p> : canOperate ? <button className="primary-button" disabled={submitting} onClick={() => void confirm()} type="button">{submitting ? 'Confirmando…' : 'Confirmar clasificados'}</button> : <p className="readonly-note">Un administrador debe confirmar estos clasificados.</p> : null}
+    {pending ? ownPendingQualification && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar estos clasificados.</p> : canOperate ? <button className="primary-button" disabled={submitting} onClick={() => void confirm()} type="button">{submitting ? 'Confirmando…' : ownPendingQualification ? 'Confirmar mis clasificados' : 'Confirmar clasificados'}</button> : <p className="readonly-note">Una autoridad habilitada debe confirmar estos clasificados.</p> : null}
   </section>;
 }
 
-export function ResultsWorkspacePanel({ actorId, canAnnul, canOperate, onChange, onError, workspace }: { readonly actorId: string; readonly canAnnul: boolean; readonly canOperate: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
+export function ResultsWorkspacePanel({ actorId, canAnnul, canOperate, canSelfConfirm, onChange, onError, workspace }: { readonly actorId: string; readonly canAnnul: boolean; readonly canOperate: boolean; readonly canSelfConfirm: boolean; readonly onChange: (workspace: ResultsWorkspace) => void; readonly onError: (message: string | null) => void; readonly workspace: ResultsWorkspace }): React.JSX.Element {
   const setBased = workspace.resultProfile === 'SET_BASED';
   return <section className="setup-card results-workspace" id="results-workspace" aria-labelledby="results-workspace-title">
     <div className="section-title"><div><span className="eyebrow eyebrow--dark">Paso 5</span><h3 id="results-workspace-title">Encuentros y tabla</h3></div><span>{workspace.matches.length}</span></div>
-    {workspace.matches.length === 0 ? <div className="setup-empty">Los encuentros aparecerán cuando otra autoridad confirme el sorteo oficial.</div> : <><div className="result-match-list">{workspace.matches.map((match) => <MatchCard actorId={actorId} canAnnul={canAnnul} canOperate={canOperate} key={match.id} match={match} onChange={onChange} onError={onError} profile={workspace.resultProfile} />)}</div>{workspace.groups.map((group) => <article className="standing-card" key={group.id}><header><div><span>Tabla automática</span><strong>Grupo {group.label}</strong></div><small>{group.complete ? 'Completa' : 'Parcial'}</small></header><div className="standing-scroll"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead><tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setsWon}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody></table></div>{group.standings.length === 0 ? <p>La tabla se calculará al confirmar el primer resultado.</p> : null}{group.qualification === null ? group.complete ? <p>La tabla tiene un empate sin resolver en el corte de clasificación.</p> : null : <QualificationPanel actorId={actorId} canOperate={canOperate} onChange={onChange} onError={onError} qualification={group.qualification} />}</article>)}</>}
+    {workspace.matches.length === 0 ? <div className="setup-empty">Los encuentros aparecerán cuando se confirme el sorteo oficial.</div> : <><div className="result-match-list">{workspace.matches.map((match) => <MatchCard actorId={actorId} canAnnul={canAnnul} canOperate={canOperate} canSelfConfirm={canSelfConfirm} key={match.id} match={match} onChange={onChange} onError={onError} profile={workspace.resultProfile} />)}</div>{workspace.groups.map((group) => <article className="standing-card" key={group.id}><header><div><span>Tabla automática</span><strong>Grupo {group.label}</strong></div><small>{group.complete ? 'Completa' : 'Parcial'}</small></header><div className="standing-scroll"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead><tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setsWon}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody></table></div>{group.standings.length === 0 ? <p>La tabla se calculará al confirmar el primer resultado.</p> : null}{group.qualification === null ? group.complete ? <p>La tabla tiene un empate sin resolver en el corte de clasificación.</p> : null : <QualificationPanel actorId={actorId} canOperate={canOperate} canSelfConfirm={canSelfConfirm} onChange={onChange} onError={onError} qualification={group.qualification} />}</article>)}</>}
   </section>;
 }
