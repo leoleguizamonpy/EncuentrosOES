@@ -183,8 +183,8 @@ Cierre de software
 Consolidación del repositorio
 ├── [x] Fusionar head final de Gate 9 en `main`
 ├── [x] Head exacto de PR #63 validado con `quality + visual-e2e` antes del merge
-├── [~] Incorporar `AGENTS.md` y cierre documental final
-├── [ ] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
+├── [x] Incorporar `AGENTS.md` y cierre documental final
+├── [x] Eliminar ramas feature/refactor ya fusionadas mediante mantenimiento one-shot
 └── [ ] Ejecutar REAL-STORAGE-DRILL cuando exista proveedor + credenciales reales
 ```
 
