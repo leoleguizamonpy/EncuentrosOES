@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createPrismaClient } from '../src/index.js';
+import type { Prisma } from '../src/generated/prisma/client.js';
 
 const databaseUrl = process.env.DATABASE_URL ?? 'postgresql://oes:oes@localhost:5432/oes?schema=public';
 const integration = process.env.DATABASE_URL === undefined ? describe.skip : describe;
@@ -38,7 +39,7 @@ async function seedAuthorities(): Promise<void> {
   });
 }
 
-async function createProbe(transaction: Parameters<Parameters<typeof client.$transaction>[0]>[0]): Promise<void> {
+async function createProbe(transaction: Prisma.TransactionClient): Promise<void> {
   await transaction.$executeRawUnsafe(
     'CREATE TEMP TABLE authority_probe (origin_id UUID, confirm_id UUID) ON COMMIT DROP',
   );
