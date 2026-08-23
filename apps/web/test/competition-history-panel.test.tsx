@@ -20,8 +20,8 @@ const history: CompetitionHistoryView = {
         ordinal: 1,
         qualified: [{ displayName: 'Colegio A', id: 'a' }, { displayName: 'Colegio B', id: 'b' }],
         standings: [
-          { draws: 0, losses: 0, participant: { displayName: 'Colegio A', id: 'a' }, played: 2, position: 1, scoreAgainst: 1, scoreDifference: 4, scoreFor: 5, setsLost: 0, setsWon: 0, sportPointDifference: 4, sportPointsAgainst: 1, sportPointsFor: 5, tablePoints: 6, tied: false, wins: 2 },
-          { draws: 0, losses: 1, participant: { displayName: 'Colegio B', id: 'b' }, played: 2, position: 2, scoreAgainst: 3, scoreDifference: 0, scoreFor: 3, setsLost: 0, setsWon: 0, sportPointDifference: 0, sportPointsAgainst: 3, sportPointsFor: 3, tablePoints: 3, tied: false, wins: 1 },
+          { draws: 0, losses: 0, participant: { displayName: 'Colegio A', id: 'a' }, played: 2, position: 1, scoreAgainst: 1, scoreDifference: 4, scoreFor: 5, setDifference: 0, setsLost: 0, setsWon: 0, sportPointDifference: 4, sportPointsAgainst: 1, sportPointsFor: 5, tablePoints: 6, tied: false, wins: 2 },
+          { draws: 0, losses: 1, participant: { displayName: 'Colegio B', id: 'b' }, played: 2, position: 2, scoreAgainst: 3, scoreDifference: 0, scoreFor: 3, setDifference: 0, setsLost: 0, setsWon: 0, sportPointDifference: 0, sportPointsAgainst: 3, sportPointsFor: 3, tablePoints: 3, tied: false, wins: 1 },
         ],
       }],
       id: 'draw-groups',
