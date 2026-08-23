@@ -70,6 +70,8 @@ describe('CompetitionHistoryPanel', () => {
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('2 — 0')).toBeInTheDocument();
     const tables = screen.getAllByRole('table');
-    expect(within(tables[0]!).getByText('6')).toBeInTheDocument();
+    const firstTable = tables[0];
+    if (firstTable === undefined) throw new Error('Expected group history table.');
+    expect(within(firstTable).getByText('6')).toBeInTheDocument();
   });
 });
