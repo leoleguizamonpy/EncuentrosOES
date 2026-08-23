@@ -150,7 +150,7 @@ integration('direct knockout lifecycle', () => {
   beforeEach(async () => { await clean(); await seed(); });
   afterAll(async () => { await clean(); await client.$disconnect(); });
 
-  it('re-draws confirmed semifinal winners and finalizes the final winner', async () => {
+  it('persists penalty and administrative semifinal resolutions before re-drawing finalists', async () => {
     await drawService.execute({
       actorId: ids.actor,
       configurationId: ids.roundOneConfiguration,
@@ -167,7 +167,9 @@ integration('direct knockout lifecycle', () => {
       if (resultId === undefined) throw new Error('Unexpected semifinal count.');
       await resultService.record({
         actorId: ids.actor,
-        detail: { profile: 'SCORE_BASED', scoreA: 2, scoreB: 0 },
+        detail: index === 0
+          ? { profile: 'SCORE_BASED', scoreA: 2, scoreB: 2, tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 } }
+          : { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_B' },
         matchId: match.id,
         occurredAt: new Date(occurredAt.getTime() + (index + 1) * 60_000),
         resultId,
@@ -179,6 +181,17 @@ integration('direct knockout lifecycle', () => {
         resultId,
       });
     }
+
+    const persistedSemifinalResults = await client.matchResult.findMany({ orderBy: { recordedAt: 'asc' }, where: { id: { in: [...ids.semifinalResults] } } });
+    expect(persistedSemifinalResults[0]?.detailJson).toMatchObject({
+      profile: 'SCORE_BASED', scoreA: 2, scoreB: 2, tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 },
+    });
+    expect(persistedSemifinalResults[0]?.resolvedJson).toMatchObject({ scoreA: 2, scoreB: 2, winnerParticipantId: semifinals[0]?.participantAId });
+    expect(persistedSemifinalResults[1]?.detailJson).toMatchObject({ profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_B' });
+    expect(persistedSemifinalResults[1]?.resolvedJson).toMatchObject({
+      administrativeOutcome: 'NO_SHOW_B', sportingMetricsCounted: false, tablePointsA: 3, tablePointsB: 0,
+      winnerParticipantId: semifinals[1]?.participantAId,
+    });
 
     const preparedFinal = await nextRoundService.prepare({
       actorId: ids.actor,
