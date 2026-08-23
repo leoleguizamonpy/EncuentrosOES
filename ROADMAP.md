@@ -100,6 +100,8 @@ EncuentrosOES — PERFIL LOCAL
 - [x] Árbol limpio de artefactos generados.
 - [x] Persistencia y servicios transaccionales consolidados.
 
+> Este gate describe el saneamiento funcional previo. No implica que la deuda de mantenibilidad, cohesión, tipado o fronteras arquitectónicas esté completamente cerrada. Esa deuda se controla ahora mediante el bloque `Engineering Refactor / Architecture Hardening`.
+
 ### Gate 10 — UX administrativa 2.0
 
 ```text
@@ -170,6 +172,53 @@ MATCH-RESOLUTION-001
 - Un resultado administrativo confirmado conserva el mismo workflow de autoridad, idempotencia y anulación que cualquier otro resultado.
 - En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
 - Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
+
+## Engineering Refactor / Architecture Hardening
+
+Referencia: `docs/14-engineering-audit-baseline.md`.
+
+Este bloque no reabre comportamiento funcional ya aceptado; controla la evolución de mantenibilidad y escalabilidad antes de que el crecimiento del producto convierta adaptadores actuales en puntos de fricción.
+
+```text
+ENGINEERING-HARDENING
+├── [x] Baseline arquitectónico inicial
+├── [x] Contraste Foundation / Roadmap / implementación
+├── [x] Primeros god candidates identificados
+├── [x] CI actual auditado
+├── [ ] Inventario de archivos >300 / >500 / >1000 líneas
+├── [ ] Inventario any / casts / TODO / FIXME / console
+├── [ ] Dependency graph y ciclos
+├── [ ] Auditoría completa de controllers y autorización
+├── [ ] Auditoría Prisma: índices, constraints, cascades e invariantes
+├── [ ] Auditoría frontend por feature y tamaño
+├── [ ] Auditoría de duplicación exacta/estructural/semántica
+├── [ ] Contratos de catálogo sin `unknown`
+├── [ ] CatalogAdminService dividido por responsabilidad
+├── [ ] PrismaCompetitionStore dividido con tests de caracterización
+├── [ ] Shared utilities auditado
+├── [ ] Naming unificado
+├── [ ] Architecture Gate automatizado
+├── [ ] CI ejecuta Architecture Gate
+├── [ ] Score final de ingeniería recalculado
+└── [ ] Re-auditoría de cierre
+```
+
+### Prioridad inicial
+
+```text
+P1
+├── TYPE-001 — contratos explícitos para catálogo
+├── ARCH-001 — split protegido de PrismaCompetitionStore
+├── ARCH-002 — split protegido de CatalogAdminService
+└── GATE-001 — diseño de Architecture Gate
+
+P2
+├── DATA-001 — revisión integral de schema/invariantes
+├── WEB-001 — auditoría frontend por feature
+└── DRY-001 — duplicación semántica
+```
+
+No se ejecutará ningún split de alto riesgo sin tests de caracterización que preserven comportamiento, idempotencia, auditoría y atomicidad transaccional.
 
 ## Perfil EXTERNAL — OPCIONAL / NO SELECCIONADO
 
