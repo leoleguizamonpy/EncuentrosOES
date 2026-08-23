@@ -37,6 +37,12 @@ function outcomePoints(ruleSet: CompetitionRuleSetSnapshot, code: string): numbe
   return outcome.tablePoints;
 }
 
+function resultPoints(result: MatchResultSnapshot, side: 'A' | 'B', ruleSet: CompetitionRuleSetSnapshot): number {
+  const explicit = side === 'A' ? result.resolved.tablePointsA : result.resolved.tablePointsB;
+  if (explicit !== undefined) return explicit;
+  return outcomePoints(ruleSet, side === 'A' ? result.resolved.outcomeA : result.resolved.outcomeB);
+}
+
 function value(row: MutableRow, criterion: Exclude<TieBreakCriterion, 'HEAD_TO_HEAD_TABLE_POINTS'>): number {
   switch (criterion) {
     case 'TABLE_POINTS': return row.tablePoints;
@@ -63,14 +69,8 @@ function headToHeadPoints(
       !participants.has(result.participantAId) ||
       !participants.has(result.participantBId)
     ) continue;
-    points.set(
-      result.participantAId,
-      (points.get(result.participantAId) ?? 0) + outcomePoints(ruleSet, result.resolved.outcomeA),
-    );
-    points.set(
-      result.participantBId,
-      (points.get(result.participantBId) ?? 0) + outcomePoints(ruleSet, result.resolved.outcomeB),
-    );
+    points.set(result.participantAId, (points.get(result.participantAId) ?? 0) + resultPoints(result, 'A', ruleSet));
+    points.set(result.participantBId, (points.get(result.participantBId) ?? 0) + resultPoints(result, 'B', ruleSet));
   }
   return points;
 }
@@ -116,18 +116,24 @@ export function calculateGroupTable(
       throw new DomainError('TABLE_CALCULATION_INVALID', 'Confirmed result is outside this group or rule set.');
     }
     rowA.played += 1; rowB.played += 1;
-    rowA.scoreFor += result.resolved.scoreA; rowA.scoreAgainst += result.resolved.scoreB;
-    rowB.scoreFor += result.resolved.scoreB; rowB.scoreAgainst += result.resolved.scoreA;
-    rowA.setsWon += result.resolved.setsWonA; rowA.setsLost += result.resolved.setsWonB;
-    rowB.setsWon += result.resolved.setsWonB; rowB.setsLost += result.resolved.setsWonA;
-    rowA.sportPointsFor += result.resolved.sportPointsA; rowA.sportPointsAgainst += result.resolved.sportPointsB;
-    rowB.sportPointsFor += result.resolved.sportPointsB; rowB.sportPointsAgainst += result.resolved.sportPointsA;
-    rowA.tablePoints += outcomePoints(ruleSet, result.resolved.outcomeA);
-    rowB.tablePoints += outcomePoints(ruleSet, result.resolved.outcomeB);
+    const sportingMetricsCounted = result.resolved.sportingMetricsCounted !== false;
+    if (sportingMetricsCounted) {
+      rowA.scoreFor += result.resolved.scoreA; rowA.scoreAgainst += result.resolved.scoreB;
+      rowB.scoreFor += result.resolved.scoreB; rowB.scoreAgainst += result.resolved.scoreA;
+      rowA.setsWon += result.resolved.setsWonA; rowA.setsLost += result.resolved.setsWonB;
+      rowB.setsWon += result.resolved.setsWonB; rowB.setsLost += result.resolved.setsWonA;
+      rowA.sportPointsFor += result.resolved.sportPointsA; rowA.sportPointsAgainst += result.resolved.sportPointsB;
+      rowB.sportPointsFor += result.resolved.sportPointsB; rowB.sportPointsAgainst += result.resolved.sportPointsA;
+    }
+    rowA.tablePoints += resultPoints(result, 'A', ruleSet);
+    rowB.tablePoints += resultPoints(result, 'B', ruleSet);
     if (result.resolved.draws) { rowA.draws += 1; rowB.draws += 1; }
-    else if (result.resolved.winnerParticipantId === result.participantAId) {
-      rowA.wins += 1; rowB.losses += 1;
-    } else { rowB.wins += 1; rowA.losses += 1; }
+    else {
+      if (result.resolved.outcomeA === 'WIN') rowA.wins += 1;
+      else rowA.losses += 1;
+      if (result.resolved.outcomeB === 'WIN') rowB.wins += 1;
+      else rowB.losses += 1;
+    }
   }
   for (const row of rows.values()) {
     row.scoreDifference = row.scoreFor - row.scoreAgainst;
