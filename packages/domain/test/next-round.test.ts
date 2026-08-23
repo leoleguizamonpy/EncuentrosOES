@@ -34,7 +34,18 @@ describe('deriveNextRoundParticipantIds', () => {
     })).toEqual(['p1', 'p3', 'p5']);
   });
 
-  it('rejects knockout continuity before every winner is confirmed', () => {
+  it('excludes both teams when a confirmed knockout resolution has no winner', () => {
+    expect(deriveNextRoundParticipantIds({
+      byeParticipantIds: ['p5'],
+      kind: 'KNOCKOUT',
+      matches: [
+        { status: 'RESULT_CONFIRMED', winnerParticipantId: null },
+        { status: 'RESULT_CONFIRMED', winnerParticipantId: 'p3' },
+      ],
+    })).toEqual(['p3', 'p5']);
+  });
+
+  it('rejects knockout continuity before every match is confirmed', () => {
     expect(() => deriveNextRoundParticipantIds({
       byeParticipantIds: [],
       kind: 'KNOCKOUT',
@@ -55,11 +66,14 @@ describe('deriveNextRoundParticipantIds', () => {
     })).toThrowError(DomainError);
   });
 
-  it('does not open a new round when only a champion remains', () => {
+  it('does not open a new round when fewer than two participants remain', () => {
     expect(() => deriveNextRoundParticipantIds({
       byeParticipantIds: [],
       kind: 'KNOCKOUT',
-      matches: [{ status: 'RESULT_CONFIRMED', winnerParticipantId: 'p1' }],
+      matches: [
+        { status: 'RESULT_CONFIRMED', winnerParticipantId: 'p1' },
+        { status: 'RESULT_CONFIRMED', winnerParticipantId: null },
+      ],
     })).toThrowError(DomainError);
   });
 });
