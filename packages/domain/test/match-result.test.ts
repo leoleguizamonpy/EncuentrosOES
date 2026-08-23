@@ -75,6 +75,10 @@ describe('MatchResult and group table', () => {
       profile: 'SCORE_BASED', scoreA: 1, scoreB: 1,
       tieBreak: { method: 'PENALTIES', scoreA: 4, scoreB: 4 },
     }), 'RESULT_DETAIL_INVALID');
+    expectCode(() => record('unneeded-penalties', 'A', 'B', {
+      profile: 'SCORE_BASED', scoreA: 2, scoreB: 1,
+      tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 },
+    }), 'RESULT_DETAIL_INVALID');
   });
 
   it('awards administrative 0/3 points without inventing sporting scores', () => {
@@ -89,6 +93,11 @@ describe('MatchResult and group table', () => {
       { participantId: 'B', played: 1, wins: 1, tablePoints: 3, scoreFor: 0, scoreAgainst: 0 },
       { participantId: 'A', played: 1, losses: 1, tablePoints: 0, scoreFor: 0, scoreAgainst: 0 },
     ]);
+
+    const reverse = record('no-show-b', 'A', 'B', { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_B' });
+    expect(reverse.toSnapshot().resolved).toMatchObject({
+      administrativeOutcome: 'NO_SHOW_B', tablePointsA: 3, tablePointsB: 0, winnerParticipantId: 'A',
+    });
   });
 
   it('eliminates both absent participants without creating a winner', () => {
