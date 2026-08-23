@@ -35,6 +35,7 @@ export interface HistoryStandingView {
   readonly scoreAgainst: number;
   readonly scoreDifference: number;
   readonly scoreFor: number;
+  readonly setDifference: number;
   readonly setsLost: number;
   readonly setsWon: number;
   readonly sportPointDifference: number;
