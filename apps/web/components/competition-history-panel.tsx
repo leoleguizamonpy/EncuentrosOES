@@ -13,13 +13,42 @@ function numberField(value: unknown, field: string): number | null {
   return typeof candidate === 'number' ? candidate : null;
 }
 
+function stringField(value: unknown, field: string): string | null {
+  if (typeof value !== 'object' || value === null || !(field in value)) return null;
+  const candidate = (value as Record<string, unknown>)[field];
+  return typeof candidate === 'string' ? candidate : null;
+}
+
+function objectField(value: unknown, field: string): unknown {
+  if (typeof value !== 'object' || value === null || !(field in value)) return null;
+  return (value as Record<string, unknown>)[field];
+}
+
 function latestVisibleResult(match: HistoryMatchView): HistoryResultView | null {
   const active = [...match.results].reverse().find((result) => result.status !== 'ANNULLED');
   return active ?? match.results.at(-1) ?? null;
 }
 
+function administrativeLabel(outcome: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    ABANDONED_A: 'Abandono del participante A',
+    ABANDONED_B: 'Abandono del participante B',
+    NO_SHOW_A: 'Incomparecencia del participante A',
+    NO_SHOW_B: 'Incomparecencia del participante B',
+    NO_SHOW_BOTH: 'Incomparecencia de ambos participantes',
+    WITHDRAWN_A: 'Retirada del participante A',
+    WITHDRAWN_B: 'Retirada del participante B',
+  };
+  return labels[outcome] ?? 'Resolución administrativa';
+}
+
 function scoreLabel(execution: HistoryExecutionView, result: HistoryResultView): string {
   if (result.status === 'ANNULLED') return 'Resultado anulado';
+  const profile = stringField(result.detail, 'profile');
+  if (profile === 'ADMINISTRATIVE') {
+    const outcome = stringField(result.detail, 'outcome');
+    return outcome === null ? 'Resolución administrativa' : administrativeLabel(outcome);
+  }
   if (execution.resultProfile === 'SET_BASED') {
     const a = numberField(result.resolved, 'setsWonA');
     const b = numberField(result.resolved, 'setsWonB');
@@ -27,7 +56,13 @@ function scoreLabel(execution: HistoryExecutionView, result: HistoryResultView):
   }
   const a = numberField(result.detail, 'scoreA');
   const b = numberField(result.detail, 'scoreB');
-  return a === null || b === null ? 'Resultado registrado' : `${String(a)} — ${String(b)}`;
+  if (a === null || b === null) return 'Resultado registrado';
+  const tieBreak = objectField(result.detail, 'tieBreak');
+  const penaltyA = numberField(tieBreak, 'scoreA');
+  const penaltyB = numberField(tieBreak, 'scoreB');
+  return penaltyA === null || penaltyB === null
+    ? `${String(a)} — ${String(b)}`
+    : `${String(a)} — ${String(b)} · penales ${String(penaltyA)} — ${String(penaltyB)}`;
 }
 
 function HistoricalMatch({ execution, match }: { readonly execution: HistoryExecutionView; readonly match: HistoryMatchView }): React.JSX.Element {
