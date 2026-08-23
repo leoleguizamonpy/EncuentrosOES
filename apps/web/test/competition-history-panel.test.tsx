@@ -70,6 +70,6 @@ describe('CompetitionHistoryPanel', () => {
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('2 — 0')).toBeInTheDocument();
     const tables = screen.getAllByRole('table');
-    expect(within(tables[0] as HTMLElement).getByText('6')).toBeInTheDocument();
+    expect(within(tables[0]!).getByText('6')).toBeInTheDocument();
   });
 });
