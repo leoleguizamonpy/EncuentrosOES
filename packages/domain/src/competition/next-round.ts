@@ -68,22 +68,14 @@ export function deriveNextRoundParticipantIds(source: NextRoundSource): readonly
         'A knockout round can contain at most one bye advance.',
       );
     }
-    if (source.matches.some((match) => match.status !== 'RESULT_CONFIRMED' || match.winnerParticipantId === null)) {
+    if (source.matches.some((match) => match.status !== 'RESULT_CONFIRMED')) {
       throw new DomainError(
         'DRAW_CONFIGURATION_INCOMPATIBLE',
-        'Every knockout match must have a confirmed winner before opening the next round.',
+        'Every knockout match must have a confirmed resolution before opening the next round.',
       );
     }
     participantIds = [
-      ...source.matches.map((match) => {
-        if (match.winnerParticipantId === null) {
-          throw new DomainError(
-            'DRAW_CONFIGURATION_INCOMPATIBLE',
-            'Every knockout match must expose its confirmed winner.',
-          );
-        }
-        return match.winnerParticipantId;
-      }),
+      ...source.matches.flatMap((match) => match.winnerParticipantId === null ? [] : [match.winnerParticipantId]),
       ...source.byeParticipantIds,
     ];
   }
