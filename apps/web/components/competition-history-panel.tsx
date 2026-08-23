@@ -44,6 +44,18 @@ function HistoricalMatch({ execution, match }: { readonly execution: HistoryExec
   );
 }
 
+function GroupStandingTable({ execution, group }: { readonly execution: HistoryExecutionView; readonly group: HistoryExecutionView['groups'][number] }): React.JSX.Element {
+  const setBased = execution.resultProfile === 'SET_BASED';
+  return (
+    <div className="standing-scroll">
+      <table>
+        <thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead>
+        <tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setDifference}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
 function ExecutionHistory({ execution }: { readonly execution: HistoryExecutionView }): React.JSX.Element {
   const title = execution.formatCode === 'GROUP_STAGE' ? 'Fase de grupos' : `Eliminación directa · Ronda ${String(execution.roundNumber)}`;
   return (
@@ -57,12 +69,7 @@ function ExecutionHistory({ execution }: { readonly execution: HistoryExecutionV
       {execution.groups.map((group) => (
         <section key={group.id} className="competition-history__group" aria-label={`Historial del grupo ${group.label}`}>
           <div className="section-title"><div><span className="eyebrow eyebrow--dark">Tabla final</span><h3>Grupo {group.label}</h3></div><span>{group.standings.length}</span></div>
-          <div className="standing-scroll">
-            <table>
-              <thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th><th>E</th><th>P</th><th>Pts.</th><th>GF</th><th>GC</th><th>DG</th></tr></thead>
-              <tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td><td>{row.draws}</td><td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></tr>)}</tbody>
-            </table>
-          </div>
+          <GroupStandingTable execution={execution} group={group} />
           {group.qualified.length === 0 ? null : <p className="format-proof format-proof--ready">Clasificados: {group.qualified.map(({ displayName }) => displayName).join(' · ')}</p>}
         </section>
       ))}
