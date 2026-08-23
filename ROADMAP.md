@@ -15,21 +15,19 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Foundation 2.1
 ├── [x] Núcleo competitivo
 ├── [x] Persistencia PostgreSQL
-├── [x] Sorteos verificables
-├── [x] Resultados y tablas
-├── [x] Clasificación
+├── [~] Sorteos verificables — regresión DB de autoridad 2.1 en corrección
+├── [~] Resultados y tablas — guard DB preventivo en corrección
+├── [~] Clasificación — guard DB preventivo en corrección
 ├── [x] Continuidad eliminatoria
 ├── [x] Campeón y finalización
-├── [x] SUPERADMIN independiente
+├── [~] SUPERADMIN independiente — capa PostgreSQL en corrección
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
 ├── [x] Auditoría y seguridad
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
-├── [x] CI quality
-├── [x] CI visual-e2e Chromium
-└── [x] PERFIL LOCAL COMPLETO — 100%
+└── [~] ACEPTACIÓN LOCAL EN CURSO
 
 Perfil EXTERNAL opcional
 ├── [x] Contrato de transporte preparado
@@ -38,8 +36,7 @@ Perfil EXTERNAL opcional
 └── [ ] REAL-STORAGE-DRILL contra proveedor externo real
 ```
 
-**Estado del software:** 100% del alcance definido por `FOUNDATION.md` 2.1.0.  
-**Estado operativo LOCAL:** 100% preparado para la prueba manual final.  
+**Estado del software:** Foundation 2.1 está implementada; la prueba manual final detectó una restricción PostgreSQL heredada que contradice la excepción SUPERADMIN y reabre temporalmente los Gates 2–4/Authority hasta completar migración, CI y retest local.  
 **Perfil EXTERNAL:** no seleccionado. Su drill real permanece pendiente condicional y no reduce el porcentaje del perfil LOCAL.
 
 ---
@@ -61,7 +58,7 @@ Perfil EXTERNAL opcional
 - [x] Revisión optimista para mutaciones críticas.
 - [x] Restauración exacta desde PostgreSQL.
 
-## Gate 2 — Sorteo oficial verificable — CERRADO
+## Gate 2 — Sorteo oficial verificable — REABIERTO POR REGRESIÓN DB 2.1
 
 - [x] Motor determinista `oes-draw-v1`.
 - [x] Semilla criptográfica y compromiso previo.
@@ -69,30 +66,37 @@ Perfil EXTERNAL opcional
 - [x] Eliminación directa con re-sorteo por ronda.
 - [x] BYE con historial y no repetición evitable.
 - [x] Sin bombos ni cabezas de serie.
-- [x] ADMIN requiere confirmante distinto.
-- [x] SUPERADMIN puede confirmar explícitamente su propio sorteo.
+- [x] ADMIN requiere confirmante distinto en dominio/API.
+- [x] SUPERADMIN puede confirmar explícitamente su propio sorteo en dominio/API.
+- [!] La aceptación local detectó que `official_draws_separation_check` todavía prohibía `confirmed_by = executed_by` en PostgreSQL y provocaba HTTP 500.
+- [~] Migración 015 sustituye el CHECK heredado por un trigger que solo permite mismo actor cuando es SUPERADMIN activo.
+- [~] Regresión PostgreSQL real + CI pendientes antes de volver a cerrar el gate.
 - [x] Confirmación materializa encuentros exactamente una vez.
 - [x] Anulación trazable exclusiva de SUPERADMIN.
 - [x] Publicación con acta, algoritmo, semilla revelada y SHA-256.
 
-## Gate 3 — Resultados y tablas — CERRADO
+## Gate 3 — Resultados y tablas — REABIERTO PREVENTIVAMENTE
 
 - [x] Encuentros restaurables.
 - [x] Resultados por marcador o sets según plantilla.
-- [x] ADMIN no confirma un resultado propio.
-- [x] SUPERADMIN puede registrar y confirmar su propio resultado mediante dos transiciones.
+- [x] ADMIN no confirma un resultado propio en dominio/API.
+- [x] SUPERADMIN puede registrar y confirmar su propio resultado mediante dos transiciones en dominio/API.
+- [!] `match_results_separation_check` conserva la política anterior y habría bloqueado la auto-confirmación SUPERADMIN en PostgreSQL.
+- [~] Migración 015 alinea el guard persistente con Foundation 2.1 sin permitir self-confirm a ADMIN.
 - [x] Solo resultados confirmados afectan tablas.
 - [x] Tablas recalculadas desde evidencia persistida.
 - [x] Desempates ordenados y enfrentamiento directo.
 - [x] Anulación y recálculo de derivados.
 
-## Gate 4 — Clasificación desde grupos — CERRADO
+## Gate 4 — Clasificación desde grupos — REABIERTO PREVENTIVAMENTE
 
 - [x] Dos clasificados propuestos automáticamente.
 - [x] Corte bloqueado ante empate no resuelto.
 - [x] Fuentes de la propuesta persistidas.
-- [x] ADMIN requiere confirmación independiente.
-- [x] SUPERADMIN puede confirmar su propia propuesta.
+- [x] ADMIN requiere confirmación independiente en dominio/API.
+- [x] SUPERADMIN puede confirmar su propia propuesta en dominio/API.
+- [!] `group_qualifications_separation_check` conserva la política anterior y habría bloqueado la auto-confirmación SUPERADMIN en PostgreSQL.
+- [~] Migración 015 alinea el guard persistente con Foundation 2.1.
 - [x] Idempotencia, concurrencia y auditoría.
 
 ## Gate 5 — Continuidad eliminatoria — CERRADO
@@ -110,24 +114,25 @@ Perfil EXTERNAL opcional
 - [x] Propuesta de campeón con fuentes persistidas.
 - [x] ADMIN requiere confirmante distinto.
 - [x] SUPERADMIN puede proponer y confirmar su propio campeón.
+- [x] El campeón usa evidencia/auditoría y no conserva un CHECK SQL heredado equivalente.
 - [x] `LOCKED → FINALIZED` transaccional.
 - [x] Evidencia final inmutable.
 - [x] Campeón y recorrido expuestos públicamente.
 
-## Gate 7L — Robustez operativa LOCAL — CERRADO
+## Gate 7L — Robustez operativa LOCAL — EN ACEPTACIÓN
 
 Referencia: `docs/11-local-operation-profile.md`.
 
 - [x] PostgreSQL real en integración.
-- [x] Ciclo grupos → eliminación → campeón.
-- [x] Ciclo eliminación directa → re-sorteo → campeón.
+- [x] Ciclo grupos → eliminación → campeón automatizado.
+- [x] Ciclo eliminación directa → re-sorteo → campeón automatizado.
 - [x] Recuperación después de reiniciar procesos.
 - [x] Backup PostgreSQL custom.
 - [x] Checksum SHA-256.
 - [x] Restore aislado verificable.
 - [x] Seguridad HTTP y observabilidad.
 - [x] Guardas de almacenamiento externo no pueden falsearse con almacenamiento local.
-- [x] Una cuenta SUPERADMIN puede completar el ciclo sin segunda autoridad.
+- [~] Prueba manual con una única cuenta SUPERADMIN en curso; regresión DB 2.1 descubierta y en corrección.
 - [x] Perfil LOCAL formalizado como objetivo operativo actual.
 
 ### Gate 7E — Infraestructura EXTERNAL — OPCIONAL / NO SELECCIONADO
@@ -139,7 +144,7 @@ Referencia: `docs/11-local-operation-profile.md`.
 - [x] Guardas de privacidad, cifrado, mínimo privilegio y transporte no local.
 - [ ] Ejecutar `REAL-STORAGE-DRILL` contra proveedor externo real **solo si se selecciona el perfil EXTERNAL**.
 
-Este pendiente condicional no se contabiliza contra el 100% del perfil LOCAL y tampoco se declara falsamente completado.
+Este pendiente condicional no se contabiliza contra el perfil LOCAL y tampoco se declara falsamente completado.
 
 ## Gate 8 — Experiencia pública — CERRADO
 
@@ -186,51 +191,75 @@ OES WORKSPACE
 - [x] Regresión de respuesta JSON vacía corregida en PR #68.
 - [x] Revisión obsoleta al preparar sorteo corregida en PR #69.
 
-## Autoridad operativa 2.1 — CERRADA
+## Autoridad operativa 2.1 — REABIERTA EN CAPA POSTGRESQL
 
-PR #70 consolidado en `main` después de CI completo verde.
+PR #70 consolidó dominio, API y UI de SUPERADMIN. La aceptación manual posterior detectó que tres CHECK constraints históricos de PostgreSQL todavía imponían la separación absoluta anterior a Foundation 2.1.
 
 ```text
 SUPERADMIN independiente
-├── [x] Sorteo propio confirmable
-├── [x] Resultado propio confirmable
-├── [x] Clasificación propia confirmable
+├── [x] Dominio: sorteo propio confirmable
+├── [x] Dominio: resultado propio confirmable
+├── [x] Dominio: clasificación propia confirmable
 ├── [x] Campeón propio confirmable
 ├── [x] UI de competencia adaptada
 ├── [x] Bandeja Confirmaciones adaptada
 ├── [x] ADMIN conserva separación obligatoria
 ├── [x] Anulación exclusiva de SUPERADMIN
-└── [x] Auditoría conserva ambas transiciones
+├── [~] PostgreSQL sorteo — migración 015
+├── [~] PostgreSQL resultado — migración 015
+├── [~] PostgreSQL clasificación — migración 015
+├── [~] Tests de guard persistente
+└── [ ] CI completo + merge + retest local
 ```
+
+## Regresión de aceptación LOCAL — DB-AUTHORITY-2.1
+
+La prueba manual sobre la competencia local detectó este orden:
+
+```text
+rules/freeze             → 200
+prepare draw             → 200
+execute official draw    → 200
+confirm official draw    → 500
+```
+
+Causa confirmada: el dominio autorizó correctamente al SUPERADMIN, pero PostgreSQL rechazó la escritura por `official_draws_separation_check`.
+
+Corrección en curso:
+
+- migración `202608220015_superadmin_self_confirmation`;
+- eliminar los tres CHECK de separación absoluta heredados;
+- instalar guardas trigger sensibles al rol real del usuario;
+- permitir mismo actor únicamente a un usuario `SUPERADMIN` + `ACTIVE`;
+- mantener rechazo persistente de self-confirm para ADMIN;
+- cubrir el caso real `execute → confirm` con el mismo SUPERADMIN contra PostgreSQL.
 
 ## Cierre técnico actual
 
 ```text
 EncuentrosOES LOCAL
-├── [x] Gates 0–6
-├── [x] Gate 7L
+├── [x] Gates 0–1
+├── [~] Gates 2–4 — DB Authority 2.1
+├── [x] Gates 5–6
+├── [~] Gate 7L — prueba manual en curso
 ├── [x] Gate 8
 ├── [x] Gate 9
 ├── [x] Gate 10
-├── [x] Authority 2.1
-└── [x] 100% TÉCNICO PARA PERFIL LOCAL
+└── [~] 100% pendiente de corregir + retestar DB-AUTHORITY-2.1
 ```
 
-## Siguiente actividad: prueba manual final
-
-La siguiente actividad **no es desarrollo adicional**. Es la prueba de aceptación en la Mac del operador con una única cuenta SUPERADMIN, manteniendo los datos reales de prueba ya creados cuando sea posible.
-
-Ruta mínima:
+## Siguiente actividad: cerrar regresión y continuar prueba manual
 
 ```text
 Prueba final LOCAL
-├── [ ] Sincronizar main
-├── [ ] Levantar PostgreSQL
-├── [ ] Levantar API
-├── [ ] Levantar Web
-├── [ ] Login SUPERADMIN
-├── [ ] Preparar competencia
-├── [ ] Ejecutar y confirmar sorteo propio
+├── [x] Sincronizar main
+├── [x] Levantar PostgreSQL
+├── [x] Levantar API
+├── [x] Levantar Web
+├── [x] Login SUPERADMIN
+├── [x] Preparar competencia
+├── [x] Ejecutar sorteo propio
+├── [!] Confirmar sorteo propio — DB-AUTHORITY-2.1
 ├── [ ] Verificar encuentros
 ├── [ ] Registrar y confirmar resultados propios
 ├── [ ] Verificar tablas/clasificados
@@ -241,6 +270,6 @@ Prueba final LOCAL
 └── [ ] Backup + restore drill local
 ```
 
-Si esta prueba descubre una regresión, el gate afectado vuelve temporalmente a `[~]`, se corrige mediante PR y solo vuelve a `[x]` después del CI completo.
+Cuando la regresión quede corregida, CI completo y mergeada, se debe aplicar `pnpm db:migrate:deploy` en la instalación local y reintentar **el mismo sorteo pendiente**, sin borrar la base ni recrear la competencia.
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin modificar explícitamente `FOUNDATION.md`.

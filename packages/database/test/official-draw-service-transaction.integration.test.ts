@@ -23,6 +23,7 @@ const occurredAt = new Date('2026-08-21T21:00:00.000Z');
 const ids = {
   actor: '17000000-0000-4000-8000-000000000001',
   confirmer: '17000000-0000-4000-8000-000000000002',
+  superadmin: '17000000-0000-4000-8000-000000000003',
   competition: '27000000-0000-4000-8000-000000000001',
   edition: '37000000-0000-4000-8000-000000000001',
   event: '47000000-0000-4000-8000-000000000001',
@@ -44,6 +45,7 @@ const ids = {
   configuration: 'a7000000-0000-4000-8000-000000000001',
   rollbackExecution: 'b7000000-0000-4000-8000-000000000001',
   committedExecution: 'b7000000-0000-4000-8000-000000000002',
+  selfConfirmedExecution: 'b7000000-0000-4000-8000-000000000003',
 } as const;
 
 async function clean(): Promise<void> {
@@ -67,6 +69,14 @@ async function seed(): Promise<void> {
         id: ids.confirmer,
         passwordHash: 'hash',
         role: 'ADMIN',
+        status: 'ACTIVE',
+      },
+      {
+        displayName: 'Superadministrador Sorteo',
+        emailNormalized: 'official-draw-superadmin@example.test',
+        id: ids.superadmin,
+        passwordHash: 'hash',
+        role: 'SUPERADMIN',
         status: 'ACTIVE',
       },
     ],
@@ -234,5 +244,31 @@ integration('PrismaOfficialDrawService transaction-aware', () => {
       status: 'CONFIRMED',
     });
     expect(await client.logicalMatch.count({ where: { executionId: ids.committedExecution } })).toBe(2);
+  });
+
+  it('lets an active SUPERADMIN execute and explicitly confirm the same official draw', async () => {
+    await service.execute({
+      actorId: ids.superadmin,
+      configurationId: ids.configuration,
+      executionId: ids.selfConfirmedExecution,
+      occurredAt,
+      seed: Uint8Array.from({ length: 32 }, (_, index) => index + 65),
+    });
+
+    const confirmed = await service.confirm({
+      actorId: ids.superadmin,
+      executionId: ids.selfConfirmedExecution,
+      expectedRevision: 1,
+      occurredAt,
+    });
+
+    expect(confirmed.toSnapshot()).toMatchObject({
+      confirmedBy: ids.superadmin,
+      executedBy: ids.superadmin,
+      id: ids.selfConfirmedExecution,
+      revision: 2,
+      status: 'CONFIRMED',
+    });
+    expect(await client.logicalMatch.count({ where: { executionId: ids.selfConfirmedExecution } })).toBe(2);
   });
 });
