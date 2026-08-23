@@ -21,7 +21,7 @@ describe('CompetitionHistoryService', () => {
           groups: [{
             id: 'group-a', label: 'A', ordinal: 1,
             qualifications: [{ firstParticipant: participant('a', 'Colegio A'), secondParticipant: participant('b', 'Colegio B'), status: 'CONFIRMED' }],
-            standings: [{ draws: 0, losses: 0, participant: participant('a', 'Colegio A'), played: 2, position: 1, scoreAgainst: 1, scoreDifference: 4, scoreFor: 5, setsLost: 0, setsWon: 0, sportPointDifference: 4, sportPointsAgainst: 1, sportPointsFor: 5, tablePoints: 6, tied: false, wins: 2 }],
+            standings: [{ draws: 0, losses: 0, participant: participant('a', 'Colegio A'), played: 2, position: 1, scoreAgainst: 1, scoreDifference: 4, scoreFor: 5, setDifference: 0, setsLost: 0, setsWon: 0, sportPointDifference: 4, sportPointsAgainst: 1, sportPointsFor: 5, tablePoints: 6, tied: false, wins: 2 }],
           }],
           id: 'draw-groups',
           matches: [{ group: { label: 'A' }, id: 'match-g', ordinal: 1, participantA: participant('a', 'Colegio A'), participantB: participant('b', 'Colegio B'), results: [{ annulledAt: null, annulmentReason: null, confirmedAt: new Date('2026-08-20T12:10:00.000Z'), detailJson: { scoreA: 3, scoreB: 1 }, id: 'result-g', recordedAt: new Date('2026-08-20T12:05:00.000Z'), resolvedJson: { scoreA: 3, scoreB: 1 }, status: 'CONFIRMED' }], roundNumber: 0, status: 'RESULT_CONFIRMED', winnerParticipantId: 'a' }],
