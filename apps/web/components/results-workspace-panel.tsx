@@ -2,12 +2,28 @@
 
 import { type SyntheticEvent, useState } from 'react';
 
-import { annulMatchResult, confirmGroupQualification, confirmMatchResult, recordMatchResult, type GroupQualificationView, type MatchResultView, type ResultMatchView, type ResultsWorkspace } from '../lib/competition-api';
+import { annulMatchResult, confirmGroupQualification, confirmMatchResult, recordMatchResult, type AdministrativeOutcome, type GroupQualificationView, type MatchResultView, type ResultMatchView, type ResultsWorkspace } from '../lib/competition-api';
 
 const statusLabels = { PENDING_RESULT: 'Pendiente de resultado', RESULT_CONFIRMED: 'Resultado confirmado', RESULT_PENDING_CONFIRMATION: 'Pendiente de confirmación' } as const;
+const administrativeLabels: Readonly<Record<AdministrativeOutcome, string>> = {
+  ABANDONED_A: 'Abandono del participante A',
+  ABANDONED_B: 'Abandono del participante B',
+  NO_SHOW_A: 'Incomparecencia del participante A',
+  NO_SHOW_B: 'Incomparecencia del participante B',
+  NO_SHOW_BOTH: 'Incomparecencia de ambos participantes',
+  WITHDRAWN_A: 'Retirada del participante A',
+  WITHDRAWN_B: 'Retirada del participante B',
+};
+
+type EntryMode = 'PLAYED' | AdministrativeOutcome;
 
 function ResultScore({ result }: { readonly result: MatchResultView }): React.JSX.Element {
-  if (result.detail.profile === 'SCORE_BASED') return <strong>{result.detail.scoreA} — {result.detail.scoreB}</strong>;
+  if (result.detail.profile === 'ADMINISTRATIVE') {
+    return <strong>{administrativeLabels[result.detail.outcome]}</strong>;
+  }
+  if (result.detail.profile === 'SCORE_BASED') {
+    return <strong>{result.detail.scoreA} — {result.detail.scoreB}{result.detail.tieBreak === undefined ? null : <small> · penales {result.detail.tieBreak.scoreA} — {result.detail.tieBreak.scoreB}</small>}</strong>;
+  }
   return <strong>{result.resolved.setsWonA} — {result.resolved.setsWonB} <small>sets</small></strong>;
 }
 
@@ -22,18 +38,27 @@ function MatchCard({ actorId, canAnnul, canOperate, canSelfConfirm, match, onCha
   readonly profile: ResultsWorkspace['resultProfile'];
 }): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const [entryMode, setEntryMode] = useState<EntryMode>('PLAYED');
   const [annulmentOpen, setAnnulmentOpen] = useState(false);
   const [annulmentReason, setAnnulmentReason] = useState('');
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
+  const [penaltiesA, setPenaltiesA] = useState(0);
+  const [penaltiesB, setPenaltiesB] = useState(0);
   const [sets, setSets] = useState([{ pointsA: 0, pointsB: 0 }]);
   const [submitting, setSubmitting] = useState<'annul' | 'confirm' | 'record' | null>(null);
+  const knockout = match.group === null;
+  const tiedScore = profile === 'SCORE_BASED' && scoreA === scoreB;
 
   async function record(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault(); onError(null); setSubmitting('record');
     try {
-      const detail = profile === 'SET_BASED' ? { profile, sets } as const : { profile: 'SCORE_BASED' as const, scoreA, scoreB };
-      onChange(await recordMatchResult(match.id, detail)); setOpen(false);
+      const detail = entryMode !== 'PLAYED'
+        ? { outcome: entryMode, profile: 'ADMINISTRATIVE' as const }
+        : profile === 'SET_BASED'
+          ? { profile, sets } as const
+          : { profile: 'SCORE_BASED' as const, scoreA, scoreB, ...(knockout && tiedScore ? { tieBreak: { method: 'PENALTIES' as const, scoreA: penaltiesA, scoreB: penaltiesB } } : {}) };
+      onChange(await recordMatchResult(match.id, detail)); setOpen(false); setEntryMode('PLAYED');
     } catch (caught: unknown) { onError(caught instanceof Error ? caught.message : 'No fue posible registrar el resultado.'); }
     finally { setSubmitting(null); }
   }
@@ -55,13 +80,16 @@ function MatchCard({ actorId, canAnnul, canOperate, canSelfConfirm, match, onCha
   }
 
   const ownPendingResult = match.result?.status === 'PENDING_CONFIRMATION' && match.result.recordedBy.id === actorId;
+  const invalidPenaltyTie = entryMode === 'PLAYED' && knockout && tiedScore && penaltiesA === penaltiesB;
 
   return <article className="result-match">
     <header><span>{match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`} · Encuentro {match.ordinal}</span><small className={`match-state match-state--${match.status.toLowerCase()}`}>{statusLabels[match.status]}</small></header>
     <div><b>{match.participantA.displayName}</b>{match.result === null ? <i>VS</i> : <ResultScore result={match.result} />}<b>{match.participantB.displayName}</b></div>
     {match.result === null ? canOperate ? <>{!open ? <button className="secondary-button" onClick={() => setOpen(true)} type="button">Cargar resultado</button> : <form className="result-entry-form" onSubmit={(event) => void record(event)}>
-      {profile === 'SET_BASED' ? <>{sets.map((set, index) => <div className="result-set-row" key={index}><label>Set {index + 1}<input aria-label={`Set ${String(index + 1)} · ${match.participantA.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsA: Number(event.target.value) } : item))} type="number" value={set.pointsA} /></label><span>—</span><label><span className="sr-only">{match.participantB.displayName}</span><input aria-label={`Set ${String(index + 1)} · ${match.participantB.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsB: Number(event.target.value) } : item))} type="number" value={set.pointsB} /></label></div>)}<button disabled={sets.length >= 9 || submitting !== null} onClick={() => setSets((current) => [...current, { pointsA: 0, pointsB: 0 }])} type="button">Agregar set</button></> : <div className="result-score-row"><label>{match.participantA.displayName}<input aria-label={`Marcador de ${match.participantA.displayName}`} min="0" onChange={(event) => setScoreA(Number(event.target.value))} type="number" value={scoreA} /></label><span>—</span><label>{match.participantB.displayName}<input aria-label={`Marcador de ${match.participantB.displayName}`} min="0" onChange={(event) => setScoreB(Number(event.target.value))} type="number" value={scoreB} /></label></div>}
-      <div><button className="primary-button" disabled={submitting !== null} type="submit">{submitting === 'record' ? 'Registrando…' : 'Enviar a confirmación'}</button><button disabled={submitting !== null} onClick={() => setOpen(false)} type="button">Cancelar</button></div>
+      <label>Cómo terminó el encuentro<select aria-label="Cómo terminó el encuentro" onChange={(event) => setEntryMode(event.target.value as EntryMode)} value={entryMode}><option value="PLAYED">Se disputó normalmente</option><option value="NO_SHOW_A">{match.participantA.displayName} no se presentó</option><option value="NO_SHOW_B">{match.participantB.displayName} no se presentó</option><option value="NO_SHOW_BOTH">Ninguno se presentó</option><option value="WITHDRAWN_A">{match.participantA.displayName} se retiró</option><option value="WITHDRAWN_B">{match.participantB.displayName} se retiró</option><option value="ABANDONED_A">{match.participantA.displayName} abandonó el encuentro</option><option value="ABANDONED_B">{match.participantB.displayName} abandonó el encuentro</option></select></label>
+      {entryMode === 'PLAYED' ? profile === 'SET_BASED' ? <>{sets.map((set, index) => <div className="result-set-row" key={index}><label>Set {index + 1}<input aria-label={`Set ${String(index + 1)} · ${match.participantA.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsA: Number(event.target.value) } : item))} type="number" value={set.pointsA} /></label><span>—</span><label><span className="sr-only">{match.participantB.displayName}</span><input aria-label={`Set ${String(index + 1)} · ${match.participantB.displayName}`} min="0" onChange={(event) => setSets((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pointsB: Number(event.target.value) } : item))} type="number" value={set.pointsB} /></label></div>)}<button disabled={sets.length >= 9 || submitting !== null} onClick={() => setSets((current) => [...current, { pointsA: 0, pointsB: 0 }])} type="button">Agregar set</button></> : <><div className="result-score-row"><label>{match.participantA.displayName}<input aria-label={`Marcador de ${match.participantA.displayName}`} min="0" onChange={(event) => setScoreA(Number(event.target.value))} type="number" value={scoreA} /></label><span>—</span><label>{match.participantB.displayName}<input aria-label={`Marcador de ${match.participantB.displayName}`} min="0" onChange={(event) => setScoreB(Number(event.target.value))} type="number" value={scoreB} /></label></div>{knockout && tiedScore ? <div className="result-score-row"><label>Penales · {match.participantA.displayName}<input aria-label={`Penales de ${match.participantA.displayName}`} min="0" onChange={(event) => setPenaltiesA(Number(event.target.value))} type="number" value={penaltiesA} /></label><span>—</span><label>Penales · {match.participantB.displayName}<input aria-label={`Penales de ${match.participantB.displayName}`} min="0" onChange={(event) => setPenaltiesB(Number(event.target.value))} type="number" value={penaltiesB} /></label></div> : null}</> : <p className="format-proof format-proof--ready">Resolución administrativa: {administrativeLabels[entryMode]}. En fase de grupos se asignan 0 puntos al ausente y 3 al presente; si ambos faltan, ambos reciben 0. No se inventan goles ni sets.</p>}
+      <div><button className="primary-button" disabled={submitting !== null || invalidPenaltyTie} type="submit">{submitting === 'record' ? 'Registrando…' : 'Enviar a confirmación'}</button><button disabled={submitting !== null} onClick={() => { setOpen(false); setEntryMode('PLAYED'); }} type="button">Cancelar</button></div>
+      {invalidPenaltyTie ? <p className="readonly-note">Los penales deben determinar un ganador.</p> : null}
     </form>}</> : null : <footer>Registrado por {match.result.recordedBy.displayName}{match.result.confirmedBy === null ? '' : ` · confirmado por ${match.result.confirmedBy.displayName}`}</footer>}
     {match.result?.status === 'PENDING_CONFIRMATION' ? ownPendingResult && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar este resultado.</p> : canOperate ? <button className="primary-button" disabled={submitting !== null} onClick={() => void confirm()} type="button">{submitting === 'confirm' ? 'Confirmando…' : ownPendingResult ? 'Confirmar mi resultado' : 'Confirmar resultado'}</button> : null : null}
     {match.result?.status === 'CONFIRMED' && canAnnul ? <div className="result-annulment">{!annulmentOpen ? <button className="danger-button" disabled={submitting !== null} onClick={() => setAnnulmentOpen(true)} type="button">Anular resultado</button> : <div className="draw-annulment__form"><strong>Anulación oficial del resultado</strong><label htmlFor={`result-annulment-${match.result.id}`}>Motivo formal de anulación</label><textarea id={`result-annulment-${match.result.id}`} maxLength={500} minLength={10} onChange={(event) => setAnnulmentReason(event.target.value)} placeholder="Explica el error que obliga a cargar nuevamente este resultado…" value={annulmentReason} /><small>{annulmentReason.trim().length}/500 · mínimo 10 caracteres</small><div><button className="danger-button" disabled={submitting !== null || annulmentReason.trim().length < 10} onClick={() => void annul()} type="button">{submitting === 'annul' ? 'Anulando…' : 'Confirmar anulación'}</button><button disabled={submitting !== null} onClick={() => { setAnnulmentOpen(false); setAnnulmentReason(''); }} type="button">Cancelar</button></div></div>}</div> : null}
@@ -89,10 +117,7 @@ function QualificationPanel({ actorId, canOperate, canSelfConfirm, onChange, onE
   const ownPendingQualification = pending && qualification.proposedBy.id === actorId;
   return <section className={`qualification-panel qualification-panel--${pending ? 'pending' : 'confirmed'}`} aria-label="Clasificación del grupo">
     <header><div><span>{pending ? 'Clasificación propuesta' : 'Clasificación confirmada'}</span><strong>Avance a la siguiente fase</strong></div><small>{pending ? 'Pendiente de confirmación' : 'Oficial'}</small></header>
-    <ol>
-      <li><span>1.º</span><strong>{qualification.firstParticipant.displayName}</strong></li>
-      <li><span>2.º</span><strong>{qualification.secondParticipant.displayName}</strong></li>
-    </ol>
+    <ol><li><span>1.º</span><strong>{qualification.firstParticipant.displayName}</strong></li><li><span>2.º</span><strong>{qualification.secondParticipant.displayName}</strong></li></ol>
     <footer>Propuesto por {qualification.proposedBy.displayName}{qualification.confirmedBy === null ? '' : ` · confirmado por ${qualification.confirmedBy.displayName}`}</footer>
     {pending ? ownPendingQualification && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar estos clasificados.</p> : canOperate ? <button className="primary-button" disabled={submitting} onClick={() => void confirm()} type="button">{submitting ? 'Confirmando…' : ownPendingQualification ? 'Confirmar mis clasificados' : 'Confirmar clasificados'}</button> : <p className="readonly-note">Una autoridad habilitada debe confirmar estos clasificados.</p> : null}
   </section>;
