@@ -5,6 +5,7 @@ import { type SyntheticEvent, useEffect, useMemo, useState } from 'react';
 
 import { currentActor, logout, type Actor } from '../lib/auth-api';
 import { champion as championApi, type ChampionView } from '../lib/champion-api';
+import { competitionHistory, type CompetitionHistoryView } from '../lib/competition-history-api';
 import {
   addCompetitionParticipant,
   competitionDetail,
@@ -16,6 +17,7 @@ import {
   type ResultsWorkspace,
 } from '../lib/competition-api';
 import { ChampionPanel } from './champion-panel';
+import { CompetitionHistoryPanel } from './competition-history-panel';
 import { CompetitionRulesPanel } from './competition-rules-panel';
 import { NextRoundPanel } from './next-round-panel';
 import { OesMark } from './oes-mark';
@@ -37,6 +39,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   const [detail, setDetail] = useState<CompetitionDetail | null>(null);
   const [draw, setDraw] = useState<DrawWorkspace | null>(null);
   const [results, setResults] = useState<ResultsWorkspace | null>(null);
+  const [history, setHistory] = useState<CompetitionHistoryView | null>(null);
   const [champion, setChampion] = useState<ChampionView | null>(null);
   const [institutionId, setInstitutionId] = useState('');
   const [formatCode, setFormatCode] = useState<'GROUP_STAGE' | 'KNOCKOUT'>('GROUP_STAGE');
@@ -47,8 +50,8 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
 
   useEffect(() => {
     let active = true;
-    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId), resultsWorkspace(competitionId), championApi(competitionId)])
-      .then(([current, loaded, loadedDraw, loadedResults, loadedChampion]) => {
+    void Promise.all([currentActor(), competitionDetail(competitionId), drawWorkspace(competitionId), resultsWorkspace(competitionId), competitionHistory(competitionId), championApi(competitionId)])
+      .then(([current, loaded, loadedDraw, loadedResults, loadedHistory, loadedChampion]) => {
         if (!active) return;
         if (current === null) {
           router.replace('/login');
@@ -58,6 +61,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
         setDetail(loaded);
         setDraw(loadedDraw);
         setResults(loadedResults);
+        setHistory(loadedHistory);
         setChampion(loadedChampion);
         setFormatCode(loaded.formatCode ?? 'GROUP_STAGE');
         setGroupCount(loaded.groupCount ?? loaded.validGroupCounts[0] ?? 0);
@@ -121,17 +125,27 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
   }
 
   if (loading) return <main className="session-state" aria-live="polite">Recuperando configuración…</main>;
-  if (actor === null || detail === null || draw === null || results === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
+  if (actor === null || detail === null || draw === null || results === null || history === null) return <main className="session-state">{error ?? 'Redirigiendo…'}</main>;
 
   const canEdit = actor.role !== 'OPERATOR' && (detail.status === 'DRAFT' || detail.status === 'OPEN');
   const canSelfConfirm = actor.role === 'SUPERADMIN';
   const groupsAvailable = detail.validGroupCounts.length > 0;
   const knockoutAvailable = detail.participantCount >= 2;
 
+  function refreshHistory(): void {
+    void competitionHistory(competitionId).then(setHistory).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No fue posible actualizar el historial competitivo.'));
+  }
+
   function updateDraw(workspace: DrawWorkspace): void {
     setDraw(workspace);
     setDetail((current) => current === null ? current : { ...current, revision: workspace.competitionRevision, status: workspace.competitionStatus });
     void resultsWorkspace(competitionId).then(setResults).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No fue posible recuperar los encuentros.'));
+    refreshHistory();
+  }
+
+  function updateResults(workspace: ResultsWorkspace): void {
+    setResults(workspace);
+    refreshHistory();
   }
 
   function updateChampion(next: ChampionView): void {
@@ -146,6 +160,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
       competitionRevision: next.competitionRevision,
       competitionStatus: next.status === 'CONFIRMED' ? 'FINALIZED' : current.competitionStatus,
     });
+    refreshHistory();
   }
 
   return (
@@ -158,6 +173,7 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
           <a className="nav-item nav-item--active" href="/competitions">Competencias</a>
           <a className="nav-item" href="#official-draw-workspace">Sorteos</a>
           <a className="nav-item" href="#results-workspace">Resultados</a>
+          <a className="nav-item" href="#competition-history">Historial</a>
         </nav>
         <div className="sidebar__footer">Sistema oficial · OES 2026</div>
       </aside>
@@ -206,9 +222,10 @@ export function CompetitionSetupClient({ competitionId }: { readonly competition
           </section>
           <CompetitionRulesPanel canEdit={canEdit} detail={detail} onChange={setDetail} onError={setError} />
           <OfficialDrawPanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} detail={detail} onChange={updateDraw} onError={setError} workspace={draw} />
-          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN' && detail.status !== 'FINALIZED'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} onChange={setResults} onError={setError} workspace={results} />
+          <ResultsWorkspacePanel actorId={actor.id} canAnnul={actor.role === 'SUPERADMIN' && detail.status !== 'FINALIZED'} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} onChange={updateResults} onError={setError} workspace={results} />
           <NextRoundPanel canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} competitionId={competitionId} draw={draw} onChange={updateDraw} onError={setError} results={results} />
           <ChampionPanel actorId={actor.id} canOperate={actor.role !== 'OPERATOR' && detail.status !== 'FINALIZED'} canSelfConfirm={canSelfConfirm} champion={champion} competitionId={competitionId} draw={draw} onChange={updateChampion} onError={setError} results={results} />
+          <CompetitionHistoryPanel history={history} />
         </div>
       </main>
     </div>
