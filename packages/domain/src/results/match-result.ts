@@ -103,7 +103,7 @@ function outcomePoints(ruleSet: CompetitionRuleSetSnapshot, code: 'DRAW' | 'LOSS
 
 function sameTieBreak(left: PenaltyTieBreak | undefined, right: PenaltyTieBreak | undefined): boolean {
   if (left === undefined || right === undefined) return left === right;
-  return left.method === right.method && left.scoreA === right.scoreA && left.scoreB === right.scoreB;
+  return left.scoreA === right.scoreA && left.scoreB === right.scoreB;
 }
 
 function sameResolvedResult(left: ResolvedResult, right: ResolvedResult, detail: ResultDetail): boolean {
@@ -187,7 +187,7 @@ export function resolveResult(
     sportPointsA = scoreA;
     sportPointsB = scoreB;
     if (detail.tieBreak !== undefined) {
-      if (scoreA !== scoreB || detail.tieBreak.method !== 'PENALTIES') {
+      if (scoreA !== scoreB) {
         throw new DomainError('RESULT_DETAIL_INVALID', 'A penalty shootout can only resolve a tied score.');
       }
       nonNegative(detail.tieBreak.scoreA, 'tieBreak.scoreA');
