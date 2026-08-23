@@ -82,10 +82,20 @@ interface ResultMutationInput {
   readonly idempotencyKey: string;
 }
 
+export type AdministrativeOutcome =
+  | 'ABANDONED_A'
+  | 'ABANDONED_B'
+  | 'NO_SHOW_A'
+  | 'NO_SHOW_B'
+  | 'NO_SHOW_BOTH'
+  | 'WITHDRAWN_A'
+  | 'WITHDRAWN_B';
+
 export interface RecordResultInput extends ResultMutationInput {
   readonly detail:
-    | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number }>
-    | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>;
+    | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number; tieBreak?: Readonly<{ method: 'PENALTIES'; scoreA: number; scoreB: number }> }>
+    | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>
+    | Readonly<{ profile: 'ADMINISTRATIVE'; outcome: AdministrativeOutcome }>;
   readonly matchId: string;
 }
 
