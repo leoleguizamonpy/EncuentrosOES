@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import type { ResultDetail } from '@oes/domain';
 import { z } from 'zod';
 
 import { RequireRoles } from '../security/metadata.js';
@@ -38,7 +39,10 @@ export class ResultsController {
       z.object({ profile: z.literal('ADMINISTRATIVE'), outcome: administrativeOutcome }).strict(),
     ]).safeParse(body);
     if (!detail.success) throw new BadRequestException('The result detail is invalid.');
-    return this.service.record({ ...this.#mutation(matchId, idempotencyKey, correlationId, request), detail: detail.data, matchId });
+    const normalizedDetail: ResultDetail = detail.data.profile === 'SCORE_BASED' && detail.data.tieBreak === undefined
+      ? { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB }
+      : detail.data;
+    return this.service.record({ ...this.#mutation(matchId, idempotencyKey, correlationId, request), detail: normalizedDetail, matchId });
   }
 
   @HttpCode(200)
