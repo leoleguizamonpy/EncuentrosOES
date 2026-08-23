@@ -39,9 +39,16 @@ export class ResultsController {
       z.object({ profile: z.literal('ADMINISTRATIVE'), outcome: administrativeOutcome }).strict(),
     ]).safeParse(body);
     if (!detail.success) throw new BadRequestException('The result detail is invalid.');
-    const normalizedDetail: ResultDetail = detail.data.profile === 'SCORE_BASED' && detail.data.tieBreak === undefined
-      ? { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB }
-      : detail.data;
+    let normalizedDetail: ResultDetail;
+    if (detail.data.profile === 'SCORE_BASED') {
+      normalizedDetail = detail.data.tieBreak === undefined
+        ? { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB }
+        : { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB, tieBreak: detail.data.tieBreak };
+    } else if (detail.data.profile === 'SET_BASED') {
+      normalizedDetail = { profile: 'SET_BASED', sets: detail.data.sets };
+    } else {
+      normalizedDetail = { profile: 'ADMINISTRATIVE', outcome: detail.data.outcome };
+    }
     return this.service.record({ ...this.#mutation(matchId, idempotencyKey, correlationId, request), detail: normalizedDetail, matchId });
   }
 
