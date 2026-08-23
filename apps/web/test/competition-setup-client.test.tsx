@@ -8,6 +8,7 @@ const replace = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
 const authApi = vi.hoisted(() => ({ currentActor: vi.fn(), logout: vi.fn() }));
 const championApi = vi.hoisted(() => ({ champion: vi.fn(), confirmChampion: vi.fn(), proposeChampion: vi.fn() }));
+const competitionHistoryApi = vi.hoisted(() => ({ competitionHistory: vi.fn() }));
 const competitionApi = vi.hoisted(() => ({
   addCompetitionParticipant: vi.fn(),
   annulOfficialDraw: vi.fn(),
@@ -27,6 +28,7 @@ const competitionApi = vi.hoisted(() => ({
 }));
 vi.mock('../lib/auth-api', () => authApi);
 vi.mock('../lib/champion-api', () => championApi);
+vi.mock('../lib/competition-history-api', () => competitionHistoryApi);
 vi.mock('../lib/competition-api', () => competitionApi);
 
 const base = {
@@ -60,6 +62,7 @@ describe('CompetitionSetupClient', () => {
     authApi.currentActor.mockResolvedValue({ displayName: 'Autoridad OES', id: 'actor-1', role: 'ADMIN' });
     authApi.logout.mockResolvedValue(undefined);
     championApi.champion.mockResolvedValue(null);
+    competitionHistoryApi.competitionHistory.mockResolvedValue({ competitionId: 'competition-1', executions: [] });
     competitionApi.competitionDetail.mockResolvedValue(base);
     competitionApi.drawWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionRevision: 4, competitionStatus: 'DRAFT', configuration: null, execution: null, publication: null });
     competitionApi.resultsWorkspace.mockResolvedValue({ competitionId: 'competition-1', competitionStatus: 'DRAFT', groups: [], matches: [], resultProfile: null });
