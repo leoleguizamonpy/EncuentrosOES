@@ -89,9 +89,11 @@ export interface PublicDrawPublication {
   readonly verified: boolean;
 }
 
+export type AdministrativeOutcome = 'ABANDONED_A' | 'ABANDONED_B' | 'NO_SHOW_A' | 'NO_SHOW_B' | 'NO_SHOW_BOTH' | 'WITHDRAWN_A' | 'WITHDRAWN_B';
 export type ResultDetail =
-  | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number }>
-  | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>;
+  | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number; tieBreak?: Readonly<{ method: 'PENALTIES'; scoreA: number; scoreB: number }> }>
+  | Readonly<{ profile: 'SET_BASED'; sets: readonly Readonly<{ pointsA: number; pointsB: number }>[] }>
+  | Readonly<{ profile: 'ADMINISTRATIVE'; outcome: AdministrativeOutcome }>;
 export interface MatchResultView {
   readonly confirmedAt: string | null;
   readonly confirmedBy: DrawParticipantView | null;
@@ -99,7 +101,17 @@ export interface MatchResultView {
   readonly id: string;
   readonly recordedAt: string;
   readonly recordedBy: DrawParticipantView;
-  readonly resolved: Readonly<{ scoreA: number; scoreB: number; setsWonA: number; setsWonB: number; winnerParticipantId: string | null }>;
+  readonly resolved: Readonly<{
+    administrativeOutcome?: AdministrativeOutcome;
+    scoreA: number;
+    scoreB: number;
+    setsWonA: number;
+    setsWonB: number;
+    tablePointsA?: number;
+    tablePointsB?: number;
+    tieBreak?: Readonly<{ method: 'PENALTIES'; scoreA: number; scoreB: number }>;
+    winnerParticipantId: string | null;
+  }>;
   readonly revision: number;
   readonly status: 'CONFIRMED' | 'PENDING_CONFIRMATION';
 }
@@ -206,92 +218,24 @@ async function mutate<T>(path: string, method: 'PATCH' | 'POST', body: unknown):
   return response.json() as Promise<T>;
 }
 
-export function competitionCatalog(): Promise<CompetitionCatalog> {
-  return get('/competitions/catalog');
-}
-
-export function competitions(): Promise<readonly CompetitionSummary[]> {
-  return get('/competitions');
-}
-
-export function competitionDetail(id: string): Promise<CompetitionDetail> {
-  return get(`/competitions/${id}`);
-}
-
-export function addCompetitionParticipant(id: string, institutionId: string, expectedRevision: number): Promise<CompetitionDetail> {
-  return mutate(`/competitions/${id}/participants`, 'POST', { expectedRevision, institutionId });
-}
-
-export function configureCompetitionFormat(
-  id: string,
-  input: Readonly<{ expectedRevision: number; formatCode: 'GROUP_STAGE'; groupCount: number }> | Readonly<{ expectedRevision: number; formatCode: 'KNOCKOUT'; groupCount: null }>,
-): Promise<CompetitionDetail> {
-  return mutate(`/competitions/${id}/format`, 'PATCH', input);
-}
-
-export function saveCompetitionRuleSet(
-  id: string,
-  input: RuleSetConfiguration & Readonly<{ expectedRevision: number | null }>,
-): Promise<CompetitionDetail> {
-  return mutate(`/competitions/${id}/rules`, 'PATCH', input);
-}
-
-export function freezeCompetitionRuleSet(id: string, expectedRevision: number): Promise<CompetitionDetail> {
-  return mutate(`/competitions/${id}/rules/freeze`, 'POST', { expectedRevision });
-}
-
-export function drawWorkspace(competitionId: string): Promise<DrawWorkspace> {
-  return get(`/competitions/${competitionId}/draw-workspace`);
-}
-
-export function resultsWorkspace(competitionId: string): Promise<ResultsWorkspace> {
-  return get(`/competitions/${competitionId}/results-workspace`);
-}
-
-export function recordMatchResult(matchId: string, detail: ResultDetail): Promise<ResultsWorkspace> {
-  return mutate(`/matches/${matchId}/results`, 'POST', detail);
-}
-
-export function confirmMatchResult(resultId: string, expectedRevision: number): Promise<ResultsWorkspace> {
-  return mutate(`/results/${resultId}/confirm`, 'POST', { expectedRevision });
-}
-
-export function annulMatchResult(resultId: string, expectedRevision: number, reason: string): Promise<ResultsWorkspace> {
-  return mutate(`/results/${resultId}/annul`, 'POST', { expectedRevision, reason });
-}
-
-export function confirmGroupQualification(qualificationId: string, expectedRevision: number): Promise<ResultsWorkspace> {
-  return mutate(`/group-qualifications/${qualificationId}/confirm`, 'POST', { expectedRevision });
-}
-
-export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> {
-  return mutate(`/competitions/${competitionId}/draw-workspace/prepare`, 'POST', { expectedRevision });
-}
-
-export function executeOfficialDraw(configurationId: string, expectedRevision: number): Promise<DrawWorkspace> {
-  return mutate(`/draw-configurations/${configurationId}/execute`, 'POST', { expectedRevision });
-}
-
-export function confirmOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
-  return mutate(`/official-draws/${executionId}/confirm`, 'POST', { expectedRevision });
-}
-
-export function annulOfficialDraw(executionId: string, expectedRevision: number, reason: string): Promise<DrawWorkspace> {
-  return mutate(`/official-draws/${executionId}/annul`, 'POST', { expectedRevision, reason });
-}
-
-export function publishOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> {
-  return mutate(`/official-draws/${executionId}/publish`, 'POST', { expectedRevision });
-}
-
-export function publicDraw(publicationId: string): Promise<PublicDrawPublication> {
-  return get(`/public/draws/${publicationId}`);
-}
-
-export function publicDrawActUrl(publicationId: string): string {
-  return `${apiUrl}/public/draws/${publicationId}/act`;
-}
-
-export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> {
-  return mutate('/competitions', 'POST', input);
-}
+export function competitionCatalog(): Promise<CompetitionCatalog> { return get('/competitions/catalog'); }
+export function competitions(): Promise<readonly CompetitionSummary[]> { return get('/competitions'); }
+export function competitionDetail(id: string): Promise<CompetitionDetail> { return get(`/competitions/${id}`); }
+export function addCompetitionParticipant(id: string, institutionId: string, expectedRevision: number): Promise<CompetitionDetail> { return mutate(`/competitions/${id}/participants`, 'POST', { expectedRevision, institutionId }); }
+export function configureCompetitionFormat(id: string, input: Readonly<{ expectedRevision: number; formatCode: 'GROUP_STAGE'; groupCount: number }> | Readonly<{ expectedRevision: number; formatCode: 'KNOCKOUT'; groupCount: null }>): Promise<CompetitionDetail> { return mutate(`/competitions/${id}/format`, 'PATCH', input); }
+export function saveCompetitionRuleSet(id: string, input: RuleSetConfiguration & Readonly<{ expectedRevision: number | null }>): Promise<CompetitionDetail> { return mutate(`/competitions/${id}/rules`, 'PATCH', input); }
+export function freezeCompetitionRuleSet(id: string, expectedRevision: number): Promise<CompetitionDetail> { return mutate(`/competitions/${id}/rules/freeze`, 'POST', { expectedRevision }); }
+export function drawWorkspace(competitionId: string): Promise<DrawWorkspace> { return get(`/competitions/${competitionId}/draw-workspace`); }
+export function resultsWorkspace(competitionId: string): Promise<ResultsWorkspace> { return get(`/competitions/${competitionId}/results-workspace`); }
+export function recordMatchResult(matchId: string, detail: ResultDetail): Promise<ResultsWorkspace> { return mutate(`/matches/${matchId}/results`, 'POST', detail); }
+export function confirmMatchResult(resultId: string, expectedRevision: number): Promise<ResultsWorkspace> { return mutate(`/results/${resultId}/confirm`, 'POST', { expectedRevision }); }
+export function annulMatchResult(resultId: string, expectedRevision: number, reason: string): Promise<ResultsWorkspace> { return mutate(`/results/${resultId}/annul`, 'POST', { expectedRevision, reason }); }
+export function confirmGroupQualification(qualificationId: string, expectedRevision: number): Promise<ResultsWorkspace> { return mutate(`/group-qualifications/${qualificationId}/confirm`, 'POST', { expectedRevision }); }
+export function prepareOfficialDraw(competitionId: string, expectedRevision: number): Promise<DrawWorkspace> { return mutate(`/competitions/${competitionId}/draw-workspace/prepare`, 'POST', { expectedRevision }); }
+export function executeOfficialDraw(configurationId: string, expectedRevision: number): Promise<DrawWorkspace> { return mutate(`/draw-configurations/${configurationId}/execute`, 'POST', { expectedRevision }); }
+export function confirmOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> { return mutate(`/official-draws/${executionId}/confirm`, 'POST', { expectedRevision }); }
+export function annulOfficialDraw(executionId: string, expectedRevision: number, reason: string): Promise<DrawWorkspace> { return mutate(`/official-draws/${executionId}/annul`, 'POST', { expectedRevision, reason }); }
+export function publishOfficialDraw(executionId: string, expectedRevision: number): Promise<DrawWorkspace> { return mutate(`/official-draws/${executionId}/publish`, 'POST', { expectedRevision }); }
+export function publicDraw(publicationId: string): Promise<PublicDrawPublication> { return get(`/public/draws/${publicationId}`); }
+export function publicDrawActUrl(publicationId: string): string { return `${apiUrl}/public/draws/${publicationId}/act`; }
+export async function createCompetition(input: CreateCompetitionInput): Promise<CompetitionSummary> { return mutate('/competitions', 'POST', input); }
