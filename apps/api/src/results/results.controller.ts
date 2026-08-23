@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
 import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import type { ResultDetail } from '@oes/domain';
 import { z } from 'zod';
 
 import { RequireRoles } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
 import { ResultsService } from './results.service.js';
+
+const penalties = z.object({ method: z.literal('PENALTIES'), scoreA: z.int().nonnegative().max(1_000_000), scoreB: z.int().nonnegative().max(1_000_000) }).strict();
+const administrativeOutcome = z.enum(['ABANDONED_A', 'ABANDONED_B', 'NO_SHOW_A', 'NO_SHOW_B', 'NO_SHOW_BOTH', 'WITHDRAWN_A', 'WITHDRAWN_B']);
 
 @Controller()
 @RequireRoles('ADMIN', 'OPERATOR', 'SUPERADMIN')
@@ -30,11 +34,22 @@ export class ResultsController {
     @Req() request: AuthenticatedRequest,
   ): ReturnType<ResultsService['record']> {
     const detail = z.discriminatedUnion('profile', [
-      z.object({ profile: z.literal('SCORE_BASED'), scoreA: z.int().nonnegative().max(1_000_000), scoreB: z.int().nonnegative().max(1_000_000) }).strict(),
+      z.object({ profile: z.literal('SCORE_BASED'), scoreA: z.int().nonnegative().max(1_000_000), scoreB: z.int().nonnegative().max(1_000_000), tieBreak: penalties.optional() }).strict(),
       z.object({ profile: z.literal('SET_BASED'), sets: z.array(z.object({ pointsA: z.int().nonnegative().max(1_000_000), pointsB: z.int().nonnegative().max(1_000_000) }).strict()).min(1).max(9) }).strict(),
+      z.object({ profile: z.literal('ADMINISTRATIVE'), outcome: administrativeOutcome }).strict(),
     ]).safeParse(body);
     if (!detail.success) throw new BadRequestException('The result detail is invalid.');
-    return this.service.record({ ...this.#mutation(matchId, idempotencyKey, correlationId, request), detail: detail.data, matchId });
+    let normalizedDetail: ResultDetail;
+    if (detail.data.profile === 'SCORE_BASED') {
+      normalizedDetail = detail.data.tieBreak === undefined
+        ? { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB }
+        : { profile: 'SCORE_BASED', scoreA: detail.data.scoreA, scoreB: detail.data.scoreB, tieBreak: detail.data.tieBreak };
+    } else if (detail.data.profile === 'SET_BASED') {
+      normalizedDetail = { profile: 'SET_BASED', sets: detail.data.sets };
+    } else {
+      normalizedDetail = { profile: 'ADMINISTRATIVE', outcome: detail.data.outcome };
+    }
+    return this.service.record({ ...this.#mutation(matchId, idempotencyKey, correlationId, request), detail: normalizedDetail, matchId });
   }
 
   @HttpCode(200)

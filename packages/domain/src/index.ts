@@ -88,10 +88,12 @@ export {
 export {
   MatchResult,
   resolveResult,
+  type AdministrativeOutcome,
   type AnnulMatchResultInput,
   type ConfirmMatchResultInput,
   type MatchResultSnapshot,
   type MatchResultStatus,
+  type PenaltyTieBreak,
   type RecordMatchResultInput,
   type ResolvedResult,
   type ResultDetail,

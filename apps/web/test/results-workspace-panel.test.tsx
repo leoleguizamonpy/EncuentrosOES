@@ -72,6 +72,41 @@ describe('ResultsWorkspacePanel', () => {
     await waitFor(() => expect(api.confirmMatchResult).toHaveBeenCalledWith('result-1', 1));
   });
 
+  it('records a tied knockout score with penalties kept separate', async () => {
+    const sourceMatch = workspace.matches[0];
+    if (sourceMatch === undefined) throw new Error('Expected match fixture');
+    const knockout: ResultsWorkspace = {
+      ...workspace,
+      groups: [],
+      matches: [{ ...sourceMatch, group: null, result: null, roundNumber: 1, status: 'PENDING_RESULT', winnerParticipantId: null }],
+    };
+    api.recordMatchResult.mockResolvedValue(knockout);
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={knockout} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar resultado' }));
+    fireEvent.change(screen.getByLabelText('Marcador de Colegio A'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Marcador de Colegio B'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Penales de Colegio A'), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText('Penales de Colegio B'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar a confirmación' }));
+    await waitFor(() => expect(api.recordMatchResult).toHaveBeenCalledWith('match-1', {
+      profile: 'SCORE_BASED', scoreA: 2, scoreB: 2,
+      tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 },
+    }));
+  });
+
+  it('records a no-show as an administrative resolution instead of a fake score', async () => {
+    const sourceMatch = workspace.matches[0];
+    if (sourceMatch === undefined) throw new Error('Expected match fixture');
+    const empty: ResultsWorkspace = { ...workspace, matches: [{ ...sourceMatch, result: null, status: 'PENDING_RESULT', winnerParticipantId: null }] };
+    api.recordMatchResult.mockResolvedValue(empty);
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={empty} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar resultado' }));
+    fireEvent.change(screen.getByLabelText('Cómo terminó el encuentro'), { target: { value: 'NO_SHOW_A' } });
+    expect(screen.getByText(/0 puntos al ausente y 3 al presente/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar a confirmación' }));
+    await waitFor(() => expect(api.recordMatchResult).toHaveBeenCalledWith('match-1', { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_A' }));
+  });
+
   it('shows the proposed qualifiers and lets another authority confirm them', async () => {
     const sourceGroup = workspace.groups[0];
     if (sourceGroup === undefined) throw new Error('Expected group fixture');

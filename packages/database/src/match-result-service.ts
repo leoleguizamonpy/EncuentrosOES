@@ -91,6 +91,9 @@ export class PrismaMatchResultService {
     if (match === null || actor === null || match.execution.status !== 'CONFIRMED') {
       throw new DomainError('RESULT_DETAIL_INVALID', 'Confirmed match dependencies are missing.');
     }
+    if (match.groupId !== null && input.detail.profile === 'SCORE_BASED' && input.detail.tieBreak !== undefined) {
+      throw new DomainError('RESULT_DETAIL_INVALID', 'Penalty shootouts are only available in knockout matches.');
+    }
     const ruleSet = await this.#ruleSetRepository.findById(match.execution.configuration.ruleSetId);
     if (ruleSet === null) throw new DomainError('RESULT_DETAIL_INVALID', 'Frozen match rules are missing.');
     const result = MatchResult.record({
@@ -104,45 +107,46 @@ export class PrismaMatchResultService {
       participantBId: match.participantBId,
       ruleSet: ruleSet.toSnapshot(),
     });
-    if (match.pairingId !== null && result.toSnapshot().resolved.winnerParticipantId === null) {
-      throw new DomainError('RESULT_DETAIL_INVALID', 'Knockout matches require a winner.');
-    }
     const snapshot = result.toSnapshot();
+    const noWinnerAllowed = input.detail.profile === 'ADMINISTRATIVE' && input.detail.outcome === 'NO_SHOW_BOTH';
+    if (match.pairingId !== null && snapshot.resolved.winnerParticipantId === null && !noWinnerAllowed) {
+      throw new DomainError('RESULT_DETAIL_INVALID', 'Knockout matches require a winner unless both participants are absent.');
+    }
     const actorRole = parseRole(actor.role, actor.status);
     try {
       await this.#client.$transaction(async (transaction) => {
-      await this.#beginMutation(transaction, input, 'result:record');
-      const changed = await transaction.logicalMatch.updateMany({
-        data: { status: 'RESULT_PENDING_CONFIRMATION' },
-        where: { id: match.id, status: 'PENDING_RESULT' },
-      });
-      if (changed.count !== 1) {
-        throw new DomainError('CONCURRENCY_CONFLICT', 'The match already has an active result.');
-      }
-      await transaction.matchResult.create({
-        data: {
-          competitionId: match.competitionId,
-          detailJson: json(snapshot.detail),
-          id: snapshot.id,
-          matchId: snapshot.matchId,
-          participantAId: snapshot.participantAId,
-          participantBId: snapshot.participantBId,
-          recordedAt: snapshot.recordedAt,
-          recordedById: snapshot.recordedBy,
-          resolvedJson: json(snapshot.resolved),
-          revision: snapshot.revision,
-          ruleSetId: snapshot.ruleSetId,
-          status: snapshot.status,
-          winnerParticipantId: snapshot.resolved.winnerParticipantId,
-        },
-      });
-      await transaction.auditEntry.create({ data: {
-        actionCode: 'MATCH_RESULT_RECORDED', actorId: input.actorId, actorRole,
-        competitionId: match.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
-        metadata: { matchId: input.matchId, profile: snapshot.detail.profile }, resourceId: snapshot.id,
-        resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
-      } });
-      await this.#completeMutation(transaction, input, 'result:record', snapshot.id);
+        await this.#beginMutation(transaction, input, 'result:record');
+        const changed = await transaction.logicalMatch.updateMany({
+          data: { status: 'RESULT_PENDING_CONFIRMATION' },
+          where: { id: match.id, status: 'PENDING_RESULT' },
+        });
+        if (changed.count !== 1) {
+          throw new DomainError('CONCURRENCY_CONFLICT', 'The match already has an active result.');
+        }
+        await transaction.matchResult.create({
+          data: {
+            competitionId: match.competitionId,
+            detailJson: json(snapshot.detail),
+            id: snapshot.id,
+            matchId: snapshot.matchId,
+            participantAId: snapshot.participantAId,
+            participantBId: snapshot.participantBId,
+            recordedAt: snapshot.recordedAt,
+            recordedById: snapshot.recordedBy,
+            resolvedJson: json(snapshot.resolved),
+            revision: snapshot.revision,
+            ruleSetId: snapshot.ruleSetId,
+            status: snapshot.status,
+            winnerParticipantId: snapshot.resolved.winnerParticipantId,
+          },
+        });
+        await transaction.auditEntry.create({ data: {
+          actionCode: 'MATCH_RESULT_RECORDED', actorId: input.actorId, actorRole,
+          competitionId: match.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
+          metadata: { matchId: input.matchId, profile: snapshot.detail.profile }, resourceId: snapshot.id,
+          resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
+        } });
+        await this.#completeMutation(transaction, input, 'result:record', snapshot.id);
       });
     } catch (error: unknown) {
       const recovered = await this.#recover(error, input, 'result:record');
@@ -176,33 +180,33 @@ export class PrismaMatchResultService {
     const snapshot = result.toSnapshot();
     try {
       await this.#client.$transaction(async (transaction) => {
-      await this.#beginMutation(transaction, input, 'result:confirm');
-      const changed = await transaction.matchResult.updateMany({
-        data: { confirmedAt: snapshot.confirmedAt, confirmedById: snapshot.confirmedBy, revision: snapshot.revision, status: snapshot.status },
-        where: { id: snapshot.id, revision: input.expectedRevision, status: 'PENDING_CONFIRMATION' },
-      });
-      if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted result revision is stale.');
-      await transaction.logicalMatch.update({
-        data: { status: 'RESULT_CONFIRMED', winnerParticipantId: snapshot.resolved.winnerParticipantId },
-        where: { id: snapshot.matchId },
-      });
-      if (record.match.groupId !== null) {
-        await this.#recalculateGroup(
-          record.match.groupId,
-          input.occurredAt,
-          record.recordedById,
-          actorRole,
-          transaction,
-        );
-      }
-      await transaction.auditEntry.create({ data: {
-        actionCode: 'MATCH_RESULT_CONFIRMED', actorId: input.actorId, actorRole,
-        competitionId: record.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
-        metadata: { matchId: snapshot.matchId, winnerParticipantId: snapshot.resolved.winnerParticipantId },
-        resourceId: snapshot.id, resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
-        revisionBefore: input.expectedRevision,
-      } });
-      await this.#completeMutation(transaction, input, 'result:confirm', snapshot.id);
+        await this.#beginMutation(transaction, input, 'result:confirm');
+        const changed = await transaction.matchResult.updateMany({
+          data: { confirmedAt: snapshot.confirmedAt, confirmedById: snapshot.confirmedBy, revision: snapshot.revision, status: snapshot.status },
+          where: { id: snapshot.id, revision: input.expectedRevision, status: 'PENDING_CONFIRMATION' },
+        });
+        if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted result revision is stale.');
+        await transaction.logicalMatch.update({
+          data: { status: 'RESULT_CONFIRMED', winnerParticipantId: snapshot.resolved.winnerParticipantId },
+          where: { id: snapshot.matchId },
+        });
+        if (record.match.groupId !== null) {
+          await this.#recalculateGroup(
+            record.match.groupId,
+            input.occurredAt,
+            record.recordedById,
+            actorRole,
+            transaction,
+          );
+        }
+        await transaction.auditEntry.create({ data: {
+          actionCode: 'MATCH_RESULT_CONFIRMED', actorId: input.actorId, actorRole,
+          competitionId: record.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
+          metadata: { matchId: snapshot.matchId, winnerParticipantId: snapshot.resolved.winnerParticipantId },
+          resourceId: snapshot.id, resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
+          revisionBefore: input.expectedRevision,
+        } });
+        await this.#completeMutation(transaction, input, 'result:confirm', snapshot.id);
       });
     } catch (error: unknown) {
       const recovered = await this.#recover(error, input, 'result:confirm');
@@ -228,40 +232,40 @@ export class PrismaMatchResultService {
     const snapshot = result.toSnapshot();
     try {
       await this.#client.$transaction(async (transaction) => {
-      await this.#beginMutation(transaction, input, 'result:annul');
-      const changed = await transaction.matchResult.updateMany({
-        data: { annulledAt: snapshot.annulledAt, annulledById: snapshot.annulledBy, annulmentReason: snapshot.annulmentReason, revision: snapshot.revision, status: snapshot.status },
-        where: { id: snapshot.id, revision: input.expectedRevision, status: 'CONFIRMED' },
-      });
-      if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted result revision is stale.');
-      await transaction.logicalMatch.update({ data: { status: 'PENDING_RESULT', winnerParticipantId: null }, where: { id: snapshot.matchId } });
-      if (record.match.groupId !== null) {
-        await transaction.groupQualification.updateMany({
-          data: {
-            invalidatedAt: input.occurredAt,
-            invalidatedById: input.actorId,
-            invalidationReason: 'A source result was annulled.',
-            revision: { increment: 1 },
-            status: 'INVALIDATED',
-          },
-          where: { groupId: record.match.groupId, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+        await this.#beginMutation(transaction, input, 'result:annul');
+        const changed = await transaction.matchResult.updateMany({
+          data: { annulledAt: snapshot.annulledAt, annulledById: snapshot.annulledBy, annulmentReason: snapshot.annulmentReason, revision: snapshot.revision, status: snapshot.status },
+          where: { id: snapshot.id, revision: input.expectedRevision, status: 'CONFIRMED' },
         });
-        await this.#recalculateGroup(
-          record.match.groupId,
-          input.occurredAt,
-          input.actorId,
-          actorRole,
-          transaction,
-        );
-      }
-      await transaction.auditEntry.create({ data: {
-        actionCode: 'MATCH_RESULT_ANNULLED', actorId: input.actorId, actorRole,
-        competitionId: record.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
-        metadata: { matchId: snapshot.matchId }, reason: snapshot.annulmentReason,
-        resourceId: snapshot.id, resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
-        revisionBefore: input.expectedRevision,
-      } });
-      await this.#completeMutation(transaction, input, 'result:annul', snapshot.id);
+        if (changed.count !== 1) throw new DomainError('CONCURRENCY_CONFLICT', 'The persisted result revision is stale.');
+        await transaction.logicalMatch.update({ data: { status: 'PENDING_RESULT', winnerParticipantId: null }, where: { id: snapshot.matchId } });
+        if (record.match.groupId !== null) {
+          await transaction.groupQualification.updateMany({
+            data: {
+              invalidatedAt: input.occurredAt,
+              invalidatedById: input.actorId,
+              invalidationReason: 'A source result was annulled.',
+              revision: { increment: 1 },
+              status: 'INVALIDATED',
+            },
+            where: { groupId: record.match.groupId, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+          });
+          await this.#recalculateGroup(
+            record.match.groupId,
+            input.occurredAt,
+            input.actorId,
+            actorRole,
+            transaction,
+          );
+        }
+        await transaction.auditEntry.create({ data: {
+          actionCode: 'MATCH_RESULT_ANNULLED', actorId: input.actorId, actorRole,
+          competitionId: record.competitionId, correlationId: input.correlationId ?? randomUUID(), id: randomUUID(),
+          metadata: { matchId: snapshot.matchId }, reason: snapshot.annulmentReason,
+          resourceId: snapshot.id, resourceType: 'MATCH_RESULT', revisionAfter: snapshot.revision,
+          revisionBefore: input.expectedRevision,
+        } });
+        await this.#completeMutation(transaction, input, 'result:annul', snapshot.id);
       });
     } catch (error: unknown) {
       const recovered = await this.#recover(error, input, 'result:annul');

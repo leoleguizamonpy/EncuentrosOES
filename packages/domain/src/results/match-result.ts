@@ -3,15 +3,26 @@ import type { AuthorityRole } from '../draw/official-draw.js';
 import type { CompetitionRuleSetSnapshot } from '../rules/competition-rule-set.js';
 
 export type MatchResultStatus = 'ANNULLED' | 'CONFIRMED' | 'PENDING_CONFIRMATION';
+export type AdministrativeOutcome =
+  | 'ABANDONED_A'
+  | 'ABANDONED_B'
+  | 'NO_SHOW_A'
+  | 'NO_SHOW_B'
+  | 'NO_SHOW_BOTH'
+  | 'WITHDRAWN_A'
+  | 'WITHDRAWN_B';
+export type PenaltyTieBreak = Readonly<{ method: 'PENALTIES'; scoreA: number; scoreB: number }>;
 
 export type ResultDetail =
-  | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number }>
+  | Readonly<{ profile: 'SCORE_BASED'; scoreA: number; scoreB: number; tieBreak?: PenaltyTieBreak }>
   | Readonly<{
       profile: 'SET_BASED';
       sets: readonly Readonly<{ pointsA: number; pointsB: number }>[];
-    }>;
+    }>
+  | Readonly<{ profile: 'ADMINISTRATIVE'; outcome: AdministrativeOutcome }>;
 
 export interface ResolvedResult {
+  readonly administrativeOutcome?: AdministrativeOutcome;
   readonly draws: boolean;
   readonly outcomeA: 'DRAW' | 'LOSS' | 'WIN';
   readonly outcomeB: 'DRAW' | 'LOSS' | 'WIN';
@@ -19,8 +30,12 @@ export interface ResolvedResult {
   readonly scoreB: number;
   readonly setsWonA: number;
   readonly setsWonB: number;
+  readonly sportingMetricsCounted?: boolean;
   readonly sportPointsA: number;
   readonly sportPointsB: number;
+  readonly tablePointsA?: number;
+  readonly tablePointsB?: number;
+  readonly tieBreak?: PenaltyTieBreak;
   readonly winnerParticipantId: string | null;
 }
 
@@ -78,8 +93,21 @@ function nonNegative(value: number, field: string): void {
   }
 }
 
-function sameResolvedResult(left: ResolvedResult, right: ResolvedResult): boolean {
-  return (
+function outcomePoints(ruleSet: CompetitionRuleSetSnapshot, code: 'DRAW' | 'LOSS' | 'WIN'): number {
+  const outcome = ruleSet.outcomes.find((candidate) => candidate.code === code);
+  if (outcome === undefined) {
+    throw new DomainError('RESULT_DETAIL_INVALID', `Outcome ${code} has no point value.`);
+  }
+  return outcome.tablePoints;
+}
+
+function sameTieBreak(left: PenaltyTieBreak | undefined, right: PenaltyTieBreak | undefined): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.scoreA === right.scoreA && left.scoreB === right.scoreB;
+}
+
+function sameResolvedResult(left: ResolvedResult, right: ResolvedResult, detail: ResultDetail): boolean {
+  const base = (
     left.draws === right.draws &&
     left.outcomeA === right.outcomeA &&
     left.outcomeB === right.outcomeB &&
@@ -91,6 +119,41 @@ function sameResolvedResult(left: ResolvedResult, right: ResolvedResult): boolea
     left.sportPointsB === right.sportPointsB &&
     left.winnerParticipantId === right.winnerParticipantId
   );
+  if (!base) return false;
+  const extended = detail.profile === 'ADMINISTRATIVE' || (detail.profile === 'SCORE_BASED' && detail.tieBreak !== undefined);
+  if (!extended) return true;
+  return left.administrativeOutcome === right.administrativeOutcome &&
+    left.sportingMetricsCounted === right.sportingMetricsCounted &&
+    left.tablePointsA === right.tablePointsA &&
+    left.tablePointsB === right.tablePointsB &&
+    sameTieBreak(left.tieBreak, right.tieBreak);
+}
+
+function administrativeResolution(
+  participantAId: string,
+  participantBId: string,
+  outcome: AdministrativeOutcome,
+): ResolvedResult {
+  const aLoses = outcome === 'ABANDONED_A' || outcome === 'NO_SHOW_A' || outcome === 'WITHDRAWN_A';
+  const bLoses = outcome === 'ABANDONED_B' || outcome === 'NO_SHOW_B' || outcome === 'WITHDRAWN_B';
+  const bothLose = outcome === 'NO_SHOW_BOTH';
+  const winnerParticipantId = bothLose ? null : aLoses ? participantBId : participantAId;
+  return Object.freeze({
+    administrativeOutcome: outcome,
+    draws: false,
+    outcomeA: aLoses || bothLose ? 'LOSS' : 'WIN',
+    outcomeB: bLoses || bothLose ? 'LOSS' : 'WIN',
+    scoreA: 0,
+    scoreB: 0,
+    setsWonA: 0,
+    setsWonB: 0,
+    sportingMetricsCounted: false,
+    sportPointsA: 0,
+    sportPointsB: 0,
+    tablePointsA: aLoses || bothLose ? 0 : 3,
+    tablePointsB: bLoses || bothLose ? 0 : 3,
+    winnerParticipantId,
+  });
 }
 
 export function resolveResult(
@@ -99,7 +162,13 @@ export function resolveResult(
   detail: ResultDetail,
   ruleSet: CompetitionRuleSetSnapshot,
 ): ResolvedResult {
-  if (ruleSet.status !== 'FROZEN' || detail.profile !== ruleSet.resultProfile) {
+  if (ruleSet.status !== 'FROZEN') {
+    throw new DomainError('RESULT_DETAIL_INVALID', 'Results require frozen rules.');
+  }
+  if (detail.profile === 'ADMINISTRATIVE') {
+    return administrativeResolution(participantAId, participantBId, detail.outcome);
+  }
+  if (detail.profile !== ruleSet.resultProfile) {
     throw new DomainError('RESULT_DETAIL_INVALID', 'Result and frozen rule profile must match.');
   }
   let scoreA = 0;
@@ -108,6 +177,8 @@ export function resolveResult(
   let setsWonB = 0;
   let sportPointsA = 0;
   let sportPointsB = 0;
+  let tieBreak: PenaltyTieBreak | undefined;
+  let winnerParticipantId: string | null = null;
   if (detail.profile === 'SCORE_BASED') {
     nonNegative(detail.scoreA, 'scoreA');
     nonNegative(detail.scoreB, 'scoreB');
@@ -115,11 +186,21 @@ export function resolveResult(
     scoreB = detail.scoreB;
     sportPointsA = scoreA;
     sportPointsB = scoreB;
-    if (
-      (ruleSet.profileConfig.profile !== 'SCORE_BASED' || !ruleSet.profileConfig.allowDraws) &&
-      scoreA === scoreB
-    ) {
-      throw new DomainError('RESULT_DETAIL_INVALID', 'This competition does not allow draws.');
+    if (detail.tieBreak !== undefined) {
+      if (scoreA !== scoreB) {
+        throw new DomainError('RESULT_DETAIL_INVALID', 'A penalty shootout can only resolve a tied score.');
+      }
+      nonNegative(detail.tieBreak.scoreA, 'tieBreak.scoreA');
+      nonNegative(detail.tieBreak.scoreB, 'tieBreak.scoreB');
+      if (detail.tieBreak.scoreA === detail.tieBreak.scoreB) {
+        throw new DomainError('RESULT_DETAIL_INVALID', 'A penalty shootout must determine a winner.');
+      }
+      tieBreak = Object.freeze({ ...detail.tieBreak });
+      winnerParticipantId = detail.tieBreak.scoreA > detail.tieBreak.scoreB ? participantAId : participantBId;
+    } else if (scoreA !== scoreB) {
+      winnerParticipantId = scoreA > scoreB ? participantAId : participantBId;
+    } else if (ruleSet.profileConfig.profile !== 'SCORE_BASED' || !ruleSet.profileConfig.allowDraws) {
+      throw new DomainError('RESULT_DETAIL_INVALID', 'This competition does not allow unresolved draws.');
     }
   } else {
     if (ruleSet.profileConfig.profile !== 'SET_BASED' || detail.sets.length === 0) {
@@ -144,19 +225,26 @@ export function resolveResult(
     }
     scoreA = setsWonA;
     scoreB = setsWonB;
+    winnerParticipantId = scoreA > scoreB ? participantAId : participantBId;
   }
-  const draws = scoreA === scoreB;
+  const draws = winnerParticipantId === null;
+  const outcomeA = draws ? 'DRAW' : winnerParticipantId === participantAId ? 'WIN' : 'LOSS';
+  const outcomeB = draws ? 'DRAW' : winnerParticipantId === participantBId ? 'WIN' : 'LOSS';
   return Object.freeze({
     draws,
-    outcomeA: draws ? 'DRAW' : scoreA > scoreB ? 'WIN' : 'LOSS',
-    outcomeB: draws ? 'DRAW' : scoreB > scoreA ? 'WIN' : 'LOSS',
+    outcomeA,
+    outcomeB,
     scoreA,
     scoreB,
     setsWonA,
     setsWonB,
+    sportingMetricsCounted: true,
     sportPointsA,
     sportPointsB,
-    winnerParticipantId: draws ? null : scoreA > scoreB ? participantAId : participantBId,
+    tablePointsA: outcomePoints(ruleSet, outcomeA),
+    tablePointsB: outcomePoints(ruleSet, outcomeB),
+    ...(tieBreak === undefined ? {} : { tieBreak }),
+    winnerParticipantId,
   });
 }
 
@@ -214,7 +302,7 @@ export class MatchResult {
       snapshot.detail,
       ruleSet,
     );
-    if (!sameResolvedResult(reproduced, snapshot.resolved)) {
+    if (!sameResolvedResult(reproduced, snapshot.resolved, snapshot.detail)) {
       throw new DomainError('RESULT_DETAIL_INVALID', 'Persisted result resolution is invalid.');
     }
     const confirmed = snapshot.status === 'CONFIRMED' || snapshot.status === 'ANNULLED';
