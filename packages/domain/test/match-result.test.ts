@@ -38,7 +38,7 @@ function record(id: string, a: string, b: string, detail: ResultDetail) {
   return MatchResult.record({
     actorId: 'admin-1', actorRole: 'ADMIN', detail, id, matchId: `match-${id}`,
     occurredAt, participantAId: a, participantBId: b,
-    ruleSet: rules(detail.profile),
+    ruleSet: rules(detail.profile === 'SET_BASED' ? 'SET_BASED' : 'SCORE_BASED'),
   });
 }
 
@@ -60,6 +60,43 @@ describe('MatchResult and group table', () => {
     expectCode(() => result.confirm({ actorId: 'admin-1', actorRole: 'ADMIN', expectedRevision: 1, occurredAt }), 'RESULT_CONFIRMATION_INVALID');
     result.confirm({ actorId: 'admin-2', actorRole: 'ADMIN', expectedRevision: 1, occurredAt });
     expect(result.toSnapshot()).toMatchObject({ confirmedBy: 'admin-2', revision: 2, status: 'CONFIRMED' });
+  });
+
+  it('keeps regulation score separate from a penalty shootout winner', () => {
+    const result = record('penalties', 'A', 'B', {
+      profile: 'SCORE_BASED', scoreA: 2, scoreB: 2,
+      tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 },
+    });
+    expect(result.toSnapshot()).toMatchObject({
+      detail: { scoreA: 2, scoreB: 2, tieBreak: { method: 'PENALTIES', scoreA: 5, scoreB: 4 } },
+      resolved: { scoreA: 2, scoreB: 2, tablePointsA: 3, tablePointsB: 0, winnerParticipantId: 'A' },
+    });
+    expectCode(() => record('bad-penalties', 'A', 'B', {
+      profile: 'SCORE_BASED', scoreA: 1, scoreB: 1,
+      tieBreak: { method: 'PENALTIES', scoreA: 4, scoreB: 4 },
+    }), 'RESULT_DETAIL_INVALID');
+  });
+
+  it('awards administrative 0/3 points without inventing sporting scores', () => {
+    const result = record('no-show', 'A', 'B', { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_A' });
+    result.confirm({ actorId: 'admin-2', actorRole: 'ADMIN', expectedRevision: 1, occurredAt });
+    expect(result.toSnapshot().resolved).toMatchObject({
+      administrativeOutcome: 'NO_SHOW_A', scoreA: 0, scoreB: 0,
+      sportingMetricsCounted: false, tablePointsA: 0, tablePointsB: 3,
+      winnerParticipantId: 'B',
+    });
+    expect(calculateGroupTable(['A', 'B'], [result.toSnapshot()], rules())).toMatchObject([
+      { participantId: 'B', played: 1, wins: 1, tablePoints: 3, scoreFor: 0, scoreAgainst: 0 },
+      { participantId: 'A', played: 1, losses: 1, tablePoints: 0, scoreFor: 0, scoreAgainst: 0 },
+    ]);
+  });
+
+  it('eliminates both absent participants without creating a winner', () => {
+    const result = record('both-absent', 'A', 'B', { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_BOTH' });
+    result.confirm({ actorId: 'admin-2', actorRole: 'ADMIN', expectedRevision: 1, occurredAt });
+    expect(result.toSnapshot().resolved).toMatchObject({
+      outcomeA: 'LOSS', outcomeB: 'LOSS', tablePointsA: 0, tablePointsB: 0, winnerParticipantId: null,
+    });
   });
 
   it('validates set results and calculates set winner', () => {
