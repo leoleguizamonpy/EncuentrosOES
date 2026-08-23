@@ -40,6 +40,7 @@ export interface HistoryStandingView {
   readonly scoreAgainst: number;
   readonly scoreDifference: number;
   readonly scoreFor: number;
+  readonly setDifference: number;
   readonly setsLost: number;
   readonly setsWon: number;
   readonly sportPointDifference: number;
@@ -184,6 +185,7 @@ export class CompetitionHistoryService {
                 scoreAgainst: standing.scoreAgainst,
                 scoreDifference: standing.scoreDifference,
                 scoreFor: standing.scoreFor,
+                setDifference: standing.setDifference,
                 setsLost: standing.setsLost,
                 setsWon: standing.setsWon,
                 sportPointDifference: standing.sportPointDifference,
