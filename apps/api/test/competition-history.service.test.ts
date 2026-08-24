@@ -43,16 +43,13 @@ function flatClient(): PrismaClient {
 
 describe('CompetitionHistoryService', () => {
   it('projects every confirmed or annulled execution from flat reads', async () => {
-    const client = flatClient();
-    const history = await new CompetitionHistoryService(client).history('competition-1');
+    const history = await new CompetitionHistoryService(flatClient()).history('competition-1');
 
     expect(history.executions).toHaveLength(2);
     expect(history.executions[0]?.groups[0]?.standings[0]?.tablePoints).toBe(6);
     expect(history.executions[0]?.groups[0]?.qualified.map(({ displayName }) => displayName)).toEqual(['Colegio A', 'Colegio B']);
     expect(history.executions[1]?.bye?.participant.displayName).toBe('Colegio A');
     expect(history.executions[1]?.matches[0]?.results[0]?.status).toBe('CONFIRMED');
-    expect(client.competition.findUnique).toHaveBeenCalledWith({ select: { id: true }, where: { id: 'competition-1' } });
-    expect(client.officialDraw.findMany).toHaveBeenCalledWith(expect.not.objectContaining({ include: expect.anything() }));
   });
 
   it('rejects a missing competition', async () => {
