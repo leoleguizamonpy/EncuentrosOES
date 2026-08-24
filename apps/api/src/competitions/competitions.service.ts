@@ -6,6 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 
+import { CompetitionQueryService } from './competition-query.service.js';
 import {
   COMPETITION_STORE,
   CompetitionStoreError,
@@ -24,14 +25,15 @@ import {
 export class CompetitionsService {
   public constructor(
     @Inject(COMPETITION_STORE) private readonly store: CompetitionStore,
+    private readonly queries: CompetitionQueryService,
   ) {}
 
   public catalog(): Promise<CompetitionCatalog> {
-    return this.store.catalog();
+    return this.queries.catalog();
   }
 
   public list(): Promise<readonly CompetitionSummary[]> {
-    return this.store.list();
+    return this.queries.list();
   }
 
   public detail(id: string): Promise<CompetitionDetail> {
