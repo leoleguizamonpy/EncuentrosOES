@@ -2,12 +2,17 @@ import type { PrismaClient } from '@oes/database';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CatalogAdminService } from '../src/catalog/catalog-admin.service.js';
+import { CatalogAssetService } from '../src/catalog/catalog-asset.service.js';
 
 const actorId = '20000000-0000-4000-8000-000000000001';
 const correlationId = '30000000-0000-4000-8000-000000000001';
 
 function asPrismaClient(value: object): PrismaClient {
   return value as unknown as PrismaClient;
+}
+
+function serviceFor(client: PrismaClient): CatalogAdminService {
+  return new CatalogAdminService(client, new CatalogAssetService(client));
 }
 
 describe('CatalogAdminService characterization', () => {
@@ -26,7 +31,7 @@ describe('CatalogAdminService characterization', () => {
         { asset_id: 'asset-institution', resource_id: 'institution-1', resource_type: 'INSTITUTION' },
       ]),
     });
-    const service = new CatalogAdminService(client);
+    const service = serviceFor(client);
 
     const catalog = await service.catalog();
 
@@ -58,7 +63,7 @@ describe('CatalogAdminService characterization', () => {
     const client = asPrismaClient({
       $transaction: vi.fn((callback: (value: typeof transaction) => unknown) => Promise.resolve(callback(transaction))),
     });
-    const service = new CatalogAdminService(client);
+    const service = serviceFor(client);
 
     const result = await service.createEdition({
       actorId,
