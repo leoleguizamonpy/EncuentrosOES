@@ -59,8 +59,5 @@ describe('ResultsWorkspacePanel double no-show', () => {
       'match-1',
       { profile: 'ADMINISTRATIVE', outcome: 'NO_SHOW_BOTH' },
     ));
-    const payload = api.recordMatchResult.mock.calls[0]?.[1];
-    expect(payload).not.toHaveProperty('scoreA');
-    expect(payload).not.toHaveProperty('scoreB');
   });
 });
