@@ -18,11 +18,25 @@ export interface CatalogAssetView {
   readonly size_bytes: number;
 }
 
+interface CatalogAssetIndexRow {
+  readonly asset_id: string;
+  readonly resource_id: string;
+  readonly resource_type: CatalogAssetType;
+}
+
 const MAX_ICON_BYTES = 1_572_864;
 
 @Injectable()
 export class CatalogAssetService {
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
+
+  public async indexByResource(): Promise<ReadonlyMap<string, string>> {
+    const rows = await this.client.$queryRaw<readonly CatalogAssetIndexRow[]>`
+      SELECT resource_type, resource_id, id AS asset_id
+      FROM catalog_assets
+    `;
+    return new Map(rows.map((asset) => [`${asset.resource_type}:${asset.resource_id}`, asset.asset_id]));
+  }
 
   public async getById(id: string): Promise<CatalogAssetView> {
     const rows = await this.client.$queryRaw<readonly CatalogAssetView[]>`
