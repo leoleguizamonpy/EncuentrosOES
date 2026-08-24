@@ -30,7 +30,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
 ├── [x] Engineering Hardening — 100%
-├── [x] LOCAL-RUNTIME-001 — mitigación de fan-out relacional Prisma
+├── [x] LOCAL-RUNTIME-001 — cerrado tras CI + retest LOCAL
 └── [~] ACEPTACIÓN LOCAL EN CURSO
 ```
 
@@ -90,8 +90,8 @@ EncuentrosOES — PERFIL LOCAL
 - [x] Backup custom + SHA-256.
 - [x] Restore aislado.
 - [x] Recuperación tras reinicio.
-- [x] Warning runtime de lectura inicial mitigado mediante proyección plana de competencias; CI #460 success.
-- [~] Aceptación manual completa pendiente de cerrar los hallazgos actuales.
+- [x] Warning runtime de lectura inicial retirado de la ruta normal mediante proyección plana de competencias; CI #461 exact-head + retest LOCAL limpio.
+- [~] Aceptación manual completa pendiente de cerrar los hallazgos funcionales restantes.
 
 ### Gate 8 — Experiencia pública
 
@@ -178,7 +178,7 @@ MATCH-RESOLUTION-001
 - En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
 - Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
 
-## LOCAL-RUNTIME-001 — MITIGACIÓN DE WARNING `pg` EN LECTURA INICIAL
+## LOCAL-RUNTIME-001 — CERRADO
 
 Durante la aceptación manual LOCAL se observó una única advertencia deprecada de `pg`: `Calling client.query() when the client is already executing a query`. La investigación aisló el trigger de runtime en las lecturas iniciales de catálogo/listado de competencias que usaban fan-out relacional mediante Prisma `include`.
 
@@ -196,10 +196,11 @@ LOCAL-RUNTIME-001
 ├── [x] Architecture Gate / lint / typecheck
 ├── [x] PostgreSQL integration / backup / restore / roundtrip
 ├── [x] Coverage / build
-└── [x] Visual E2E Chromium — CI #460 success
+├── [x] Visual E2E Chromium — CI #461 success
+└── [x] Retest manual LOCAL — API inicia limpia y sin warning en la ruta observada
 ```
 
-No se redujo la versión de `pg` ni se silenció la advertencia. El stack Prisma `@prisma/adapter-pg` todavía puede emitir el mismo warning dentro de pruebas de integración internas con relaciones complejas; esos tests continúan pasando. El objetivo de este bloque es retirar el trigger observado en el runtime normal de la API. La eliminación efectiva del warning en esa ruta debe confirmarse en el próximo retest manual LOCAL.
+No se redujo la versión de `pg` ni se silenció la advertencia. El stack Prisma `@prisma/adapter-pg` todavía puede emitir el mismo warning dentro de pruebas de integración internas con relaciones complejas; esos tests continúan pasando. El trigger observado en el runtime normal de la API quedó retirado y el retest LOCAL del 24 de agosto de 2026 confirmó un arranque limpio sin la advertencia.
 
 ## Engineering Refactor / Architecture Hardening — CERRADO
 
@@ -305,7 +306,7 @@ Prueba final LOCAL
 ├── [x] Aplicación inicia y restaura estado
 ├── [x] Sorteos y auto-confirmación SUPERADMIN
 ├── [x] Historial competitivo persistente
-├── [~] Retest de warning `pg` tras LOCAL-RUNTIME-001
+├── [x] Retest de warning `pg` tras LOCAL-RUNTIME-001
 ├── [ ] Resultado normal SCORE_BASED
 ├── [ ] Empate KO + penales
 ├── [ ] NO_SHOW individual en grupos → 0/3 sin goles ficticios
