@@ -91,18 +91,21 @@ export class PrismaChampionFinalizationService {
   }
 
   public async find(competitionId: string): Promise<PersistedChampionView | null> {
-    const [competition, confirmation, proposal] = await Promise.all([
-      this.client.competition.findUnique({ select: { revision: true }, where: { id: competitionId } }),
-      this.client.auditEntry.findFirst({
-        orderBy: { occurredAt: 'desc' },
-        where: { actionCode: 'CHAMPION_CONFIRMED', competitionId },
-      }),
-      this.client.auditEntry.findFirst({
-        orderBy: { occurredAt: 'desc' },
-        where: { actionCode: 'CHAMPION_PROPOSED', competitionId },
-      }),
-    ]);
-    if (competition === null || proposal === null) return null;
+    const competition = await this.client.competition.findUnique({
+      select: { revision: true },
+      where: { id: competitionId },
+    });
+    if (competition === null) return null;
+
+    const confirmation = await this.client.auditEntry.findFirst({
+      orderBy: { occurredAt: 'desc' },
+      where: { actionCode: 'CHAMPION_CONFIRMED', competitionId },
+    });
+    const proposal = await this.client.auditEntry.findFirst({
+      orderBy: { occurredAt: 'desc' },
+      where: { actionCode: 'CHAMPION_PROPOSED', competitionId },
+    });
+    if (proposal === null) return null;
     return this.#view(competitionId, competition.revision, proposal, confirmation);
   }
 
@@ -136,17 +139,15 @@ export class PrismaChampionFinalizationService {
     if (execution === null || execution.configuration.formatCode !== 'KNOCKOUT') {
       throw new DomainError('INVALID_COMPETITION_STATE', 'A confirmed knockout final is required before proposing a champion.');
     }
-    const [matches, byes] = await Promise.all([
-      transaction.logicalMatch.findMany({
-        include: { results: { orderBy: { confirmedAt: 'desc' }, take: 1, where: { status: 'CONFIRMED' } } },
-        orderBy: { ordinal: 'asc' },
-        where: { executionId: execution.id },
-      }),
-      transaction.drawPairing.findMany({
-        select: { participantAId: true },
-        where: { executionId: execution.id, pairingType: 'BYE' },
-      }),
-    ]);
+    const matches = await transaction.logicalMatch.findMany({
+      include: { results: { orderBy: { confirmedAt: 'desc' }, take: 1, where: { status: 'CONFIRMED' } } },
+      orderBy: { ordinal: 'asc' },
+      where: { executionId: execution.id },
+    });
+    const byes = await transaction.drawPairing.findMany({
+      select: { participantAId: true },
+      where: { executionId: execution.id, pairingType: 'BYE' },
+    });
     const candidate = deriveChampionCandidate({
       byeParticipantIds: byes.map(({ participantAId }) => participantAId),
       executionId: execution.id,
@@ -196,13 +197,11 @@ export class PrismaChampionFinalizationService {
     transaction: Prisma.TransactionClient,
     input: ConfirmPersistedChampionInput,
   ): Promise<PersistedChampionView> {
-    const [competition, proposal] = await Promise.all([
-      transaction.competition.findUnique({
-        select: { revision: true, status: true },
-        where: { id: input.competitionId },
-      }),
-      transaction.auditEntry.findUnique({ where: { id: input.proposalId } }),
-    ]);
+    const competition = await transaction.competition.findUnique({
+      select: { revision: true, status: true },
+      where: { id: input.competitionId },
+    });
+    const proposal = await transaction.auditEntry.findUnique({ where: { id: input.proposalId } });
     if (competition === null || competition.status !== 'LOCKED' || proposal === null || proposal.actionCode !== 'CHAMPION_PROPOSED' || proposal.competitionId !== input.competitionId) {
       throw new DomainError('INVALID_COMPETITION_STATE', 'A pending champion proposal for the locked competition is required.');
     }
