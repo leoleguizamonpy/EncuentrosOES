@@ -22,7 +22,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Continuidad eliminatoria
 ├── [x] Campeón y finalización
 ├── [x] Historial competitivo persistente
-├── [~] MATCH-RESOLUTION-001 — penales + resoluciones administrativas
+├── [~] MATCH-RESOLUTION-001 — regresión automatizada cerrada; aceptación manual pendiente
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
 ├── [x] Auditoría y seguridad
@@ -138,7 +138,7 @@ Historial competitivo
 └── [x] SCORE_BASED / SET_BASED
 ```
 
-## MATCH-RESOLUTION-001 — EN IMPLEMENTACIÓN
+## MATCH-RESOLUTION-001 — ACEPTACIÓN MANUAL PENDIENTE
 
 Referencia: `docs/13-match-resolution.md`.
 
@@ -163,11 +163,20 @@ MATCH-RESOLUTION-001
 ├── [x] historial conserva la causa administrativa
 ├── [x] UI permite elegir cómo terminó el encuentro
 ├── [x] UI solicita penales ante empate SCORE_BASED en KO
-├── [~] pruebas API/web/database de regresión
-├── [ ] CI completo sobre head exacto
+├── [x] pruebas API/web/database de regresión
+├── [~] CI completo sobre head exacto — CI #466 verde antes de este cierre documental
 ├── [ ] merge a main
 └── [ ] retest manual LOCAL
 ```
+
+### Evidencia automatizada de regresión
+
+- API HTTP conserva marcador reglamentario empatado y penales como capas independientes.
+- API HTTP conserva `NO_SHOW_BOTH` como resolución administrativa sin `scoreA`/`scoreB` ficticios.
+- UI envía `NO_SHOW_BOTH` como resolución administrativa sin marcador deportivo.
+- PostgreSQL real persiste `NO_SHOW_BOTH` con `winnerParticipantId = null`, 0/0 administrativo y métricas deportivas no contabilizadas.
+- Continuidad KO excluye a ambos ausentes; si queda un solo elegible, no crea una ronda siguiente inválida.
+- CI #466 validó Architecture Gate, lint, typecheck, Prisma, PostgreSQL integration, backup/restore, coverage, build y visual E2E Chromium sobre el head de tests previo a esta actualización documental.
 
 ### Invariantes del bloque
 
@@ -299,7 +308,7 @@ Este pendiente no reduce el porcentaje del perfil LOCAL ni del Engineering Harde
 
 ## Próxima salida de aceptación
 
-El hardening queda cerrado. La siguiente actividad vuelve al producto: `MATCH-RESOLUTION-001` y aceptación manual LOCAL.
+El hardening queda cerrado y la regresión automatizada de `MATCH-RESOLUTION-001` ya está cubierta. La siguiente actividad es integración + aceptación manual LOCAL.
 
 ```text
 Prueba final LOCAL
