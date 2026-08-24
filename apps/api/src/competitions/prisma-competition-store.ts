@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaCompetitionRepository, type Prisma, type PrismaClient } from '@oes/database';
@@ -12,6 +12,14 @@ import {
 } from '@oes/domain';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
+import {
+  CompetitionIdempotencyCoordinator,
+  COMPETITION_CREATE_SCOPE,
+  FORMAT_SCOPE,
+  PARTICIPANT_SCOPE,
+  RULE_SET_FREEZE_SCOPE,
+  RULE_SET_SAVE_SCOPE,
+} from './competition-idempotency.js';
 import {
   CompetitionStoreError,
   type AddStoredParticipantInput,
@@ -27,63 +35,8 @@ import {
   type SetTieBreakCriterion,
 } from './competition-store.js';
 
-const IDEMPOTENCY_SCOPE = 'competition:create';
-const PARTICIPANT_SCOPE = 'competition:participant:add';
-const FORMAT_SCOPE = 'competition:format:configure';
-const RULE_SET_SAVE_SCOPE = 'competition:rules:save';
-const RULE_SET_FREEZE_SCOPE = 'competition:rules:freeze';
-
-type StoredMutationInput =
-  | AddStoredParticipantInput
-  | ConfigureStoredFormatInput
-  | FreezeStoredRuleSetInput
-  | SaveStoredRuleSetInput;
-
-function digest(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
-}
-
-function requestDigest(input: CreateStoredCompetitionInput): string {
-  return digest(JSON.stringify({
-    editionId: input.editionId,
-    eventId: input.eventId,
-    modalityId: input.modalityId,
-    sportId: input.sportId,
-  }));
-}
-
 function isUniqueConstraint(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
-}
-
-function parseReplay(value: unknown): CompetitionSummary {
-  if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
-    throw new CompetitionStoreError(
-      'IDEMPOTENCY_CONFLICT',
-      'The stored idempotent response is not valid.',
-    );
-  }
-  return value as CompetitionSummary;
-}
-
-function parseDetailReplay(value: unknown): CompetitionDetail {
-  return parseReplay(value) as CompetitionDetail;
-}
-
-function mutationDigest(input: StoredMutationInput): string {
-  return digest(JSON.stringify({
-    competitionId: input.competitionId,
-    expectedRevision: input.expectedRevision,
-    ...('institutionId' in input
-      ? { institutionId: input.institutionId }
-      : 'formatCode' in input
-        ? { formatCode: input.formatCode, groupCount: input.groupCount }
-        : 'resultProfile' in input
-          ? input.resultProfile === 'SCORE_BASED'
-            ? { allowDraws: input.allowDraws, drawPoints: input.drawPoints, lossPoints: input.lossPoints, resultProfile: input.resultProfile, tieBreakCriteria: input.tieBreakCriteria, winPoints: input.winPoints }
-            : { lossPoints: input.lossPoints, resultProfile: input.resultProfile, setsToWin: input.setsToWin, tieBreakCriteria: input.tieBreakCriteria, winPoints: input.winPoints }
-          : { action: 'freeze' }),
-  }));
 }
 
 function storeError(error: DomainError): CompetitionStoreError {
@@ -167,9 +120,11 @@ function createRuleSet(input: SaveStoredRuleSetInput, id: string, occurredAt: Da
 @Injectable()
 export class PrismaCompetitionStore implements CompetitionStore {
   readonly #competitionRepository: PrismaCompetitionRepository;
+  readonly #idempotency: CompetitionIdempotencyCoordinator;
 
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
     this.#competitionRepository = new PrismaCompetitionRepository(client);
+    this.#idempotency = new CompetitionIdempotencyCoordinator(client);
   }
 
   public async catalog(): Promise<CompetitionCatalog> {
@@ -220,7 +175,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
   public async addParticipant(input: AddStoredParticipantInput): Promise<CompetitionDetail> {
     try {
       return await this.client.$transaction(async (transaction) => {
-        const replay = await this.#beginMutation(transaction, input, PARTICIPANT_SCOPE);
+        const replay = await this.#idempotency.begin(transaction, input, PARTICIPANT_SCOPE);
         if (replay !== null) return replay;
         const aggregate = await this.#aggregate(transaction, input.competitionId);
         const institution = await transaction.institution.findFirst({
@@ -271,12 +226,12 @@ export class PrismaCompetitionStore implements CompetitionStore {
           },
         });
         const response = await this.#detail(transaction, snapshot.id);
-        await this.#completeMutation(transaction, input, PARTICIPANT_SCOPE, response);
+        await this.#idempotency.complete(transaction, input, PARTICIPANT_SCOPE, response);
         return response;
       }, { isolationLevel: 'Serializable' });
     } catch (error: unknown) {
       if (!isUniqueConstraint(error)) throw error;
-      const replay = await this.#readMutationReplay(input, PARTICIPANT_SCOPE);
+      const replay = await this.#idempotency.readMutationReplay(input, PARTICIPANT_SCOPE);
       if (replay !== null) return replay;
       throw new CompetitionStoreError('DUPLICATE_PARTICIPANT', 'The institution is already enabled in this competition.');
     }
@@ -285,7 +240,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
   public async configureFormat(input: ConfigureStoredFormatInput): Promise<CompetitionDetail> {
     try {
       return await this.client.$transaction(async (transaction) => {
-        const replay = await this.#beginMutation(transaction, input, FORMAT_SCOPE);
+        const replay = await this.#idempotency.begin(transaction, input, FORMAT_SCOPE);
         if (replay !== null) return replay;
         const aggregate = await this.#aggregate(transaction, input.competitionId);
         try {
@@ -322,12 +277,12 @@ export class PrismaCompetitionStore implements CompetitionStore {
           },
         });
         const response = await this.#detail(transaction, snapshot.id);
-        await this.#completeMutation(transaction, input, FORMAT_SCOPE, response);
+        await this.#idempotency.complete(transaction, input, FORMAT_SCOPE, response);
         return response;
       }, { isolationLevel: 'Serializable' });
     } catch (error: unknown) {
       if (!isUniqueConstraint(error)) throw error;
-      const replay = await this.#readMutationReplay(input, FORMAT_SCOPE);
+      const replay = await this.#idempotency.readMutationReplay(input, FORMAT_SCOPE);
       if (replay !== null) return replay;
       throw error;
     }
@@ -335,7 +290,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
 
   public async saveRuleSet(input: SaveStoredRuleSetInput): Promise<CompetitionDetail> {
     return this.client.$transaction(async (transaction) => {
-      const replay = await this.#beginMutation(transaction, input, RULE_SET_SAVE_SCOPE);
+      const replay = await this.#idempotency.begin(transaction, input, RULE_SET_SAVE_SCOPE);
       if (replay !== null) return replay;
       await this.#assertEditableCompetition(transaction, input.competitionId);
       const existing = await this.#latestRuleSet(transaction, input.competitionId);
@@ -424,14 +379,14 @@ export class PrismaCompetitionStore implements CompetitionStore {
         },
       });
       const response = await this.#detail(transaction, input.competitionId);
-      await this.#completeMutation(transaction, input, RULE_SET_SAVE_SCOPE, response);
+      await this.#idempotency.complete(transaction, input, RULE_SET_SAVE_SCOPE, response);
       return response;
     }, { isolationLevel: 'Serializable' });
   }
 
   public async freezeRuleSet(input: FreezeStoredRuleSetInput): Promise<CompetitionDetail> {
     return this.client.$transaction(async (transaction) => {
-      const replay = await this.#beginMutation(transaction, input, RULE_SET_FREEZE_SCOPE);
+      const replay = await this.#idempotency.begin(transaction, input, RULE_SET_FREEZE_SCOPE);
       if (replay !== null) return replay;
       await this.#assertEditableCompetition(transaction, input.competitionId);
       const ruleSet = await this.#latestRuleSet(transaction, input.competitionId);
@@ -472,7 +427,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
         },
       });
       const response = await this.#detail(transaction, input.competitionId);
-      await this.#completeMutation(transaction, input, RULE_SET_FREEZE_SCOPE, response);
+      await this.#idempotency.complete(transaction, input, RULE_SET_FREEZE_SCOPE, response);
       return response;
     }, { isolationLevel: 'Serializable' });
   }
@@ -482,7 +437,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
       return await this.#createTransaction(input);
     } catch (error: unknown) {
       if (!isUniqueConstraint(error)) throw error;
-      const replay = await this.#readReplay(input);
+      const replay = await this.#idempotency.readCreateReplay(input);
       if (replay !== null) return replay;
       throw new CompetitionStoreError(
         'COMPETITION_ALREADY_EXISTS',
@@ -492,19 +447,26 @@ export class PrismaCompetitionStore implements CompetitionStore {
   }
 
   async #createTransaction(input: CreateStoredCompetitionInput): Promise<CompetitionSummary> {
-    const keyHash = digest(input.idempotencyKey);
-    const bodyHash = requestDigest(input);
+    const keyHash = this.#idempotency.keyHash(input.idempotencyKey);
+    const bodyHash = this.#idempotency.createRequestHash(input);
     return this.client.$transaction(async (transaction) => {
       const existing = await transaction.idempotencyRecord.findUnique({
         where: {
           actorId_scope_idempotencyKeyHash: {
             actorId: input.actorId,
             idempotencyKeyHash: keyHash,
-            scope: IDEMPOTENCY_SCOPE,
+            scope: COMPETITION_CREATE_SCOPE,
           },
         },
       });
-      if (existing !== null) return this.#existingResponse(existing.requestHash, existing.status, existing.responseBody, bodyHash);
+      if (existing !== null) {
+        return this.#idempotency.summaryResponse(
+          existing.requestHash,
+          existing.status,
+          existing.responseBody,
+          bodyHash,
+        );
+      }
 
       const [edition, combination] = await Promise.all([
         transaction.edition.findFirst({
@@ -551,7 +513,7 @@ export class PrismaCompetitionStore implements CompetitionStore {
           id: randomUUID(),
           idempotencyKeyHash: keyHash,
           requestHash: bodyHash,
-          scope: IDEMPOTENCY_SCOPE,
+          scope: COMPETITION_CREATE_SCOPE,
           status: 'PROCESSING',
         },
       });
@@ -598,47 +560,12 @@ export class PrismaCompetitionStore implements CompetitionStore {
           actorId_scope_idempotencyKeyHash: {
             actorId: input.actorId,
             idempotencyKeyHash: keyHash,
-            scope: IDEMPOTENCY_SCOPE,
+            scope: COMPETITION_CREATE_SCOPE,
           },
         },
       });
       return response;
     }, { isolationLevel: 'Serializable' });
-  }
-
-  async #readReplay(input: CreateStoredCompetitionInput): Promise<CompetitionSummary | null> {
-    const existing = await this.client.idempotencyRecord.findUnique({
-      where: {
-        actorId_scope_idempotencyKeyHash: {
-          actorId: input.actorId,
-          idempotencyKeyHash: digest(input.idempotencyKey),
-          scope: IDEMPOTENCY_SCOPE,
-        },
-      },
-    });
-    if (existing === null) return null;
-    return this.#existingResponse(existing.requestHash, existing.status, existing.responseBody, requestDigest(input));
-  }
-
-  #existingResponse(
-    storedRequestHash: string,
-    status: string,
-    responseBody: unknown,
-    requestHash: string,
-  ): CompetitionSummary {
-    if (storedRequestHash !== requestHash) {
-      throw new CompetitionStoreError(
-        'IDEMPOTENCY_CONFLICT',
-        'The idempotency key was already used for another request.',
-      );
-    }
-    if (status !== 'COMPLETED') {
-      throw new CompetitionStoreError(
-        'IDEMPOTENCY_IN_PROGRESS',
-        'The original request is still being processed.',
-      );
-    }
-    return parseReplay(responseBody);
   }
 
   #summary(record: {
@@ -804,66 +731,5 @@ export class PrismaCompetitionStore implements CompetitionStore {
       tieBreakCriteria: snapshot.tieBreakCriteria as readonly SetTieBreakCriterion[],
       winPoints,
     };
-  }
-
-  async #beginMutation(
-    transaction: Prisma.TransactionClient,
-    input: StoredMutationInput,
-    scope: string,
-  ): Promise<CompetitionDetail | null> {
-    const keyHash = digest(input.idempotencyKey);
-    const requestHash = mutationDigest(input);
-    const existing = await transaction.idempotencyRecord.findUnique({
-      where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: keyHash, scope } },
-    });
-    if (existing !== null) return this.#existingDetail(existing.requestHash, existing.status, existing.responseBody, requestHash);
-    await transaction.idempotencyRecord.create({
-      data: {
-        actorId: input.actorId,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        id: randomUUID(),
-        idempotencyKeyHash: keyHash,
-        requestHash,
-        scope,
-        status: 'PROCESSING',
-      },
-    });
-    return null;
-  }
-
-  async #completeMutation(
-    transaction: Prisma.TransactionClient,
-    input: StoredMutationInput,
-    scope: string,
-    response: CompetitionDetail,
-  ): Promise<void> {
-    await transaction.idempotencyRecord.update({
-      data: {
-        completedAt: new Date(),
-        resourceId: input.competitionId,
-        resourceType: 'COMPETITION',
-        responseBody: response as unknown as Prisma.InputJsonValue,
-        responseStatus: 200,
-        status: 'COMPLETED',
-      },
-      where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: digest(input.idempotencyKey), scope } },
-    });
-  }
-
-  async #readMutationReplay(
-    input: StoredMutationInput,
-    scope: string,
-  ): Promise<CompetitionDetail | null> {
-    const existing = await this.client.idempotencyRecord.findUnique({
-      where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: digest(input.idempotencyKey), scope } },
-    });
-    if (existing === null) return null;
-    return this.#existingDetail(existing.requestHash, existing.status, existing.responseBody, mutationDigest(input));
-  }
-
-  #existingDetail(storedHash: string, status: string, body: unknown, requestHash: string): CompetitionDetail {
-    if (storedHash !== requestHash) throw new CompetitionStoreError('IDEMPOTENCY_CONFLICT', 'The idempotency key was already used for another request.');
-    if (status !== 'COMPLETED') throw new CompetitionStoreError('IDEMPOTENCY_IN_PROGRESS', 'The original request is still being processed.');
-    return parseDetailReplay(body);
   }
 }
