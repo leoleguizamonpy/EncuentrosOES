@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 23 de agosto de 2026  
+> Estado auditado: 24 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md` 2.1.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
@@ -29,6 +29,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
+├── [x] Engineering Hardening — 100%
 └── [~] ACEPTACIÓN LOCAL EN CURSO
 ```
 
@@ -38,7 +39,7 @@ EncuentrosOES — PERFIL LOCAL
 
 - [x] Foundation 2.1.0 vigente.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
-- [x] CI obligatorio con lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
+- [x] CI obligatorio con Architecture Gate, lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
 
 ### Gate 1 — Persistencia competitiva
 
@@ -99,8 +100,9 @@ EncuentrosOES — PERFIL LOCAL
 
 - [x] Árbol limpio de artefactos generados.
 - [x] Persistencia y servicios transaccionales consolidados.
+- [x] Architecture Gate impide regresiones estructurales conocidas.
 
-> Este gate describe el saneamiento funcional previo. No implica que la deuda de mantenibilidad, cohesión, tipado o fronteras arquitectónicas esté completamente cerrada. Esa deuda se controla ahora mediante el bloque `Engineering Refactor / Architecture Hardening`.
+> Este gate describe el saneamiento funcional y técnico vigente. La mantenibilidad residual se controla con `pnpm architecture:check` y `docs/15-engineering-hardening-closeout.md`.
 
 ### Gate 10 — UX administrativa 2.0
 
@@ -173,64 +175,89 @@ MATCH-RESOLUTION-001
 - En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
 - Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
 
-## Engineering Refactor / Architecture Hardening
+## Engineering Refactor / Architecture Hardening — CERRADO
 
-Referencia: `docs/14-engineering-audit-baseline.md`.
+Referencias:
 
-Este bloque no reabre comportamiento funcional ya aceptado; controla la evolución de mantenibilidad y escalabilidad antes de que el crecimiento del producto convierta adaptadores actuales en puntos de fricción.
+- `docs/14-engineering-audit-baseline.md`
+- `docs/15-engineering-hardening-closeout.md`
+
+Este bloque no reabre comportamiento funcional ya aceptado. El alcance de auditoría y hardening queda cerrado al 100%; la calidad final no se presenta como perfección absoluta: Engineering Health = 88/100 y la deuda residual queda baja/controlada.
 
 ```text
-ENGINEERING-HARDENING
+ENGINEERING-HARDENING — 100%
 ├── [x] Baseline arquitectónico inicial
 ├── [x] Contraste Foundation / Roadmap / implementación
-├── [x] Primeros god candidates identificados
-├── [x] CI actual auditado
-├── [ ] Inventario de archivos >300 / >500 / >1000 líneas
-├── [~] Inventario any / casts / TODO / FIXME / console
-├── [ ] Dependency graph y ciclos
-├── [ ] Auditoría completa de controllers y autorización
-├── [ ] Auditoría Prisma: índices, constraints, cascades e invariantes
-├── [~] Auditoría frontend por feature y tamaño
-├── [ ] Auditoría de duplicación exacta/estructural/semántica
-├── [x] Contratos de catálogo sin `unknown` — CI #407 success
-├── [x] Tests de caracterización de CatalogAdminService — CI #414 success
-├── [x] CatalogAssetService aislado — validado por CI #422
-├── [~] CatalogQueryService separado de comandos — CI del head exacto pendiente
-├── [~] CatalogAdminService dividido por responsabilidad
-├── [ ] PrismaCompetitionStore dividido con tests de caracterización
-├── [ ] Shared utilities auditado
-├── [ ] Naming unificado
-├── [ ] Architecture Gate automatizado
-├── [ ] CI ejecuta Architecture Gate
-├── [ ] Score final de ingeniería recalculado
-└── [ ] Re-auditoría de cierre
+├── [x] Hotspots/god candidates identificados y tratados
+├── [x] CI auditado
+├── [x] Inventario de archivos >300 / >500 / >1000 líneas
+├── [x] Inventario any / casts / TODO / FIXME / console
+├── [x] Dependency graph y ciclos
+├── [x] Auditoría completa de controllers y autorización
+├── [x] Auditoría Prisma: índices, constraints, cascades e invariantes
+├── [x] Auditoría frontend por feature y tamaño
+├── [x] Auditoría de duplicación estructural/semántica
+├── [x] Contratos de catálogo sin `unknown`
+├── [x] Tests de caracterización de catálogo
+├── [x] CatalogAssetService aislado
+├── [x] CatalogQueryService separado de comandos
+├── [x] CatalogAdminService dividido por responsabilidad
+├── [x] PrismaCompetitionStore dividido con tests de caracterización
+├── [x] Idempotencia competitiva extraída
+├── [x] Persistencia/proyección de rule-set extraída
+├── [x] PrismaDrawStore auditado y dividido
+├── [x] Idempotencia de sorteo extraída
+├── [x] DrawReadModel extraído
+├── [x] Shared utilities auditado sin crear shared genérico innecesario
+├── [x] Naming auditado y unificado por responsabilidad
+├── [x] Architecture Gate automatizado
+├── [x] CI ejecuta Architecture Gate
+├── [x] Score final de ingeniería recalculado — 88/100
+└── [x] Re-auditoría de cierre
 ```
 
-### Prioridad inicial
+### Cierre de prioridades
 
 ```text
+P0
+└── [x] Sin hallazgos abiertos
+
 P1
-├── TYPE-001 — contratos explícitos para catálogo [x]
-├── ARCH-002A — assets fuera de CatalogAdminService [x]
-├── ARCH-002B — separar lectura y mutaciones del catálogo [~ CI]
-├── ARCH-001 — split protegido de PrismaCompetitionStore
-└── GATE-001 — diseño de Architecture Gate
+├── [x] TYPE-001 — contratos explícitos para catálogo
+├── [x] ARCH-002 — split catálogo: assets + query/commands
+├── [x] ARCH-001 — split protegido de PrismaCompetitionStore
+├── [x] ARCH-DRAW-001 — split protegido de PrismaDrawStore
+└── [x] GATE-001 — Architecture Gate en CI
 
 P2
-├── DATA-001 — revisión integral de schema/invariantes
-├── WEB-001 — auditoría frontend por feature [~]
-└── DRY-001 — duplicación semántica
+├── [x] DATA-001 — schema/invariantes
+├── [x] SEC-001 — controllers/autorización
+├── [x] WEB-001 — frontend por feature
+└── [x] DRY-001 — duplicación semántica
+
+P3 / MONITOR
+├── [x] PrismaDrawStore restante revisado: 568 líneas, command orchestrator cohesivo
+├── [x] double-casts registrados como warnings de boundary/test
+├── [x] consoleOperationalLogger verificado como logging estructurado intencional
+└── [x] archivos de dominio 300–400 líneas revisados sin split artificial
 ```
 
-Hallazgo WEB-001 inicial: las rutas de `app/` son delgadas, pero varios client components concentran la lógica real; `competition-setup-client.tsx`, `confirmations-client.tsx` y otros componentes de `components/` quedan bajo revisión para separar feature UI, fetching y estado sin convertir todo en primitives genéricas.
+### Resultado del gate estructural
 
-ARCH-002A preserva explícitamente la proyección del catálogo, la atomicidad mutación + auditoría y la semántica de assets opcionales. `CatalogAssetService` posee lectura pública, índice por recurso, conservación, eliminación y reemplazo de assets. `CatalogAdminService` mantiene la transacción de negocio y delega la persistencia gráfica usando el mismo `Prisma.TransactionClient`; no se introducen transacciones anidadas.
+Último inventario de código validado durante el cierre:
 
-ARCH-002B separa consultas de comandos sin incorporar un framework CQRS: `CatalogQueryService` posee `GET /admin/catalog` y su proyección; `CatalogAdminService` conserva exclusivamente comandos transaccionales. La separación existe para reducir razones de cambio, no para agregar capas ceremoniales.
+- 246 archivos fuente;
+- 14 por encima de 300 líneas;
+- 2 por encima de 500;
+- 0 por encima de 1000;
+- 0 `any` explícitos;
+- 0 `TODO` / `FIXME`;
+- 1 `console.*`, aceptado en `OperationalLogger`;
+- 24 archivos con double-cast monitorizado;
+- 0 ciclos relativos;
+- 0 violaciones de fronteras domain/database/api/web.
 
-El primer barrido por índice no encontró `TODO`, `FIXME` ni `console.`. Los resultados sobre casts/`any` deben validarse con inventario estructural antes de cerrarse, porque la búsqueda indexada no sustituye una inspección completa del árbol.
-
-No se ejecutará ningún split de alto riesgo sin tests de caracterización que preserven comportamiento, idempotencia, auditoría y atomicidad transaccional.
+El archivo productivo >500 restante es `PrismaDrawStore` con 568 líneas, reducido desde 998 y revisado como comando transaccional cohesivo. El otro archivo >500 es un test de integración, no un servicio productivo.
 
 ## Perfil EXTERNAL — OPCIONAL / NO SELECCIONADO
 
@@ -238,9 +265,11 @@ No se ejecutará ningún split de alto riesgo sin tests de caracterización que 
 - [x] Guardas de privacidad/cifrado/mínimo privilegio.
 - [ ] `REAL-STORAGE-DRILL` contra proveedor externo real solo si se selecciona este perfil.
 
-Este pendiente no reduce el porcentaje del perfil LOCAL.
+Este pendiente no reduce el porcentaje del perfil LOCAL ni del Engineering Hardening.
 
 ## Próxima salida de aceptación
+
+El hardening queda cerrado. La siguiente actividad vuelve al producto: `MATCH-RESOLUTION-001` y aceptación manual LOCAL.
 
 ```text
 Prueba final LOCAL
