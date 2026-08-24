@@ -1,5 +1,6 @@
 'use client';
 
+import { Card, Chip } from '@heroui/react';
 import { useEffect, useState } from 'react';
 
 import { runtimeSettings, type SafeRuntimeSettings } from '../lib/settings-api';
@@ -45,18 +46,20 @@ function SettingsWorkspace(): React.JSX.Element {
       <div><span className="eyebrow eyebrow--dark">Control · Superadministración</span><h2>Configuración</h2><p>Política operativa efectiva del sistema. Estos valores provienen del entorno de despliegue y son deliberadamente de solo lectura: Foundation no autoriza una segunda fuente de configuración global ni la exposición de secretos.</p></div>
     </section>
     <section aria-label="Estado de configuración" style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-      <span className={[styles.status, styles.active].filter(Boolean).join(' ')}>{settings.runtimeMode === 'PRODUCTION' ? 'Producción' : 'No producción'}</span>
-      <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>Fuente: entorno</span>
-      <span className={[styles.status, styles.inactive].filter(Boolean).join(' ')}>Solo lectura</span>
+      <Chip color={settings.runtimeMode === 'PRODUCTION' ? 'success' : 'warning'} size="sm" variant="soft">{settings.runtimeMode === 'PRODUCTION' ? 'Producción' : 'No producción'}</Chip>
+      <Chip color="default" size="sm" variant="soft">Fuente: entorno</Chip>
+      <Chip color="default" size="sm" variant="soft">Solo lectura</Chip>
     </section>
-    <section aria-label="Política operativa" className={styles.tableCard}>
-      <div className={styles.tableHeader}><span>Parámetro</span><span>Valor efectivo</span><span>Gobierno</span><span>Observación</span><span /></div>
-      <article className={styles.row}><strong>Sesión inactiva</strong><span>{settings.sessionIdleMinutes} minutos</span><span className={styles.status}>Entorno</span><span>Expira una sesión sin actividad.</span><span /></article>
-      <article className={styles.row}><strong>Duración absoluta</strong><span>{settings.sessionAbsoluteMinutes} minutos</span><span className={styles.status}>Entorno</span><span>Límite máximo de una sesión autenticada.</span><span /></article>
-      <article className={styles.row}><strong>Origen web</strong><span>{settings.webOrigin}</span><span className={styles.status}>Entorno</span><span>Origen autorizado para la aplicación web.</span><span /></article>
-      <article className={styles.row}><strong>Puerto API</strong><span>{settings.apiPort}</span><span className={styles.status}>Entorno</span><span>Puerto efectivo del servicio API.</span><span /></article>
-    </section>
-    <div className="empty-state" style={{ marginTop: 18 }}><strong>Las reglas competitivas no se editan aquí.</strong><p>Puntuación, desempates, formato y participantes se configuran y congelan dentro de cada competencia para conservar trazabilidad y una única fuente de verdad.</p></div>
+    <Card className={styles.tableCard ?? ''} aria-label="Política operativa">
+      <Card.Content style={{ padding: 0 }}>
+        <div className={styles.tableHeader}><span>Parámetro</span><span>Valor efectivo</span><span>Gobierno</span><span>Observación</span><span /></div>
+        <article className={styles.row}><strong>Sesión inactiva</strong><span>{settings.sessionIdleMinutes} minutos</span><Chip size="sm" variant="soft">Entorno</Chip><span>Expira una sesión sin actividad.</span><span /></article>
+        <article className={styles.row}><strong>Duración absoluta</strong><span>{settings.sessionAbsoluteMinutes} minutos</span><Chip size="sm" variant="soft">Entorno</Chip><span>Límite máximo de una sesión autenticada.</span><span /></article>
+        <article className={styles.row}><strong>Origen web</strong><span>{settings.webOrigin}</span><Chip size="sm" variant="soft">Entorno</Chip><span>Origen autorizado para la aplicación web.</span><span /></article>
+        <article className={styles.row}><strong>Puerto API</strong><span>{settings.apiPort}</span><Chip size="sm" variant="soft">Entorno</Chip><span>Puerto efectivo del servicio API.</span><span /></article>
+      </Card.Content>
+    </Card>
+    <Card variant="tertiary" style={{ marginTop: 18 }}><Card.Content style={{ padding: 24 }}><strong>Las reglas competitivas no se editan aquí.</strong><p style={{ color: 'var(--muted-foreground)', marginBottom: 0 }}>Puntuación, desempates, formato y participantes se configuran y congelan dentro de cada competencia para conservar trazabilidad y una única fuente de verdad.</p></Card.Content></Card>
   </div>;
 }
 
