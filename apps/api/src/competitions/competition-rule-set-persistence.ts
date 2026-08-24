@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type { Prisma } from '@oes/database';
 import {
   CompetitionRuleSet,
@@ -96,7 +98,7 @@ export class CompetitionRuleSetPersistence {
         if (input.expectedRevision !== null) {
           throw new CompetitionStoreError('CONCURRENCY_CONFLICT', 'The rule-set revision is stale.');
         }
-        const snapshot = createRuleSet(input, crypto.randomUUID(), occurredAt).toSnapshot();
+        const snapshot = createRuleSet(input, randomUUID(), occurredAt).toSnapshot();
         await transaction.competitionRuleSet.create({
           data: {
             competitionId: snapshot.competitionId,
