@@ -1,0 +1,357 @@
+.workspace {
+  display: grid;
+  gap: 22px;
+  padding: 36px 0 52px;
+}
+
+.alert {
+  border-radius: 14px;
+}
+
+.headingCard {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.headingContent {
+  align-items: end;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 30px 32px;
+}
+
+.eyebrow {
+  color: #718050;
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .15em;
+  margin-bottom: 9px;
+  text-transform: uppercase;
+}
+
+.headingContent h2 {
+  color: var(--foreground);
+  font-size: clamp(28px, 3vw, 40px);
+  letter-spacing: -.045em;
+  line-height: 1.04;
+  margin: 0 0 12px;
+}
+
+.headingContent p {
+  color: var(--muted-foreground);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 690px;
+}
+
+.metric {
+  align-items: flex-end;
+  background: #0b1424;
+  border-radius: 16px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  min-width: 154px;
+  padding: 18px 20px;
+}
+
+.metric strong {
+  color: #dfff46;
+  font-size: 32px;
+  letter-spacing: -.05em;
+  line-height: 1;
+}
+
+.metric span {
+  color: #8e9bad;
+  font-size: 10px;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+
+.layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.listCard,
+.createCard,
+.loadingCard,
+.emptyCard {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.listContent,
+.createContent,
+.emptyContent {
+  padding: 28px;
+}
+
+.sectionHeader {
+  align-items: end;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.sectionHeader h3,
+.createContent h3 {
+  color: var(--foreground);
+  font-size: 19px;
+  letter-spacing: -.025em;
+  margin: 0;
+}
+
+.rows {
+  display: grid;
+  gap: 10px;
+}
+
+.row {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface) 96%, var(--background));
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  color: inherit;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  min-height: 76px;
+  padding: 12px 14px;
+  text-decoration: none;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.row:hover {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
+  box-shadow: 0 10px 28px rgba(11, 20, 36, .07);
+  transform: translateY(-1px);
+}
+
+.monogram {
+  align-items: center;
+  background: #0b1424;
+  border-radius: 12px;
+  color: #dfff46;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.rowCopy {
+  min-width: 0;
+}
+
+.rowCopy h4 {
+  color: var(--foreground);
+  font-size: 13px;
+  margin: 0 0 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowCopy p {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.count strong {
+  color: var(--foreground);
+  font-size: 15px;
+}
+
+.count span {
+  color: var(--muted-foreground);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.createCard {
+  position: sticky;
+  top: 116px;
+}
+
+.createContent {
+  display: grid;
+  gap: 18px;
+}
+
+.createContent > p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.form label {
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 750;
+  margin-top: 4px;
+}
+
+.form select {
+  appearance: none;
+  background-color: var(--surface);
+  background-image: linear-gradient(45deg, transparent 50%, #778294 50%), linear-gradient(135deg, #778294 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--foreground);
+  font: inherit;
+  min-height: 46px;
+  padding: 0 38px 0 13px;
+}
+
+.form select:focus {
+  border-color: color-mix(in srgb, var(--accent) 72%, #7e922a);
+  box-shadow: 0 0 0 3px rgba(223, 255, 70, .22);
+  outline: 0;
+}
+
+.proof {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 13px;
+  display: flex;
+  gap: 11px;
+  margin: 6px 0 2px;
+  padding: 13px;
+}
+
+.proofMark {
+  align-items: center;
+  background: #0b1424;
+  border-radius: 999px;
+  color: #dfff46;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.proof p {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.proof strong {
+  color: var(--foreground);
+  display: block;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.submitButton {
+  margin-top: 5px;
+  width: 100%;
+}
+
+.emptyContent {
+  text-align: center;
+}
+
+.emptyContent strong {
+  color: var(--foreground);
+  display: block;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.emptyContent p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 auto 16px;
+  max-width: 440px;
+}
+
+.loadingContent {
+  display: grid;
+  gap: 12px;
+  padding: 28px;
+}
+
+.skeletonLine {
+  border-radius: 8px;
+  height: 18px;
+}
+
+.skeletonCard {
+  border-radius: 14px;
+  height: 72px;
+}
+
+@media (max-width: 1040px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .createCard {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .workspace {
+    padding-top: 24px;
+  }
+
+  .headingContent {
+    align-items: start;
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .metric {
+    align-items: flex-start;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .listContent,
+  .createContent {
+    padding: 20px;
+  }
+
+  .row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .count {
+    display: none;
+  }
+}
