@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 23 de agosto de 2026  
+> Estado auditado: 24 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md` 2.1.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
@@ -29,6 +29,8 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
+├── [x] Engineering Hardening — 100%
+├── [x] LOCAL-RUNTIME-001 — cerrado tras CI + retest LOCAL
 └── [~] ACEPTACIÓN LOCAL EN CURSO
 ```
 
@@ -38,7 +40,7 @@ EncuentrosOES — PERFIL LOCAL
 
 - [x] Foundation 2.1.0 vigente.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
-- [x] CI obligatorio con lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
+- [x] CI obligatorio con Architecture Gate, lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
 
 ### Gate 1 — Persistencia competitiva
 
@@ -88,7 +90,8 @@ EncuentrosOES — PERFIL LOCAL
 - [x] Backup custom + SHA-256.
 - [x] Restore aislado.
 - [x] Recuperación tras reinicio.
-- [~] Aceptación manual completa pendiente de cerrar los hallazgos actuales.
+- [x] Warning runtime de lectura inicial retirado de la ruta normal mediante proyección plana de competencias; CI #461 exact-head + retest LOCAL limpio.
+- [~] Aceptación manual completa pendiente de cerrar los hallazgos funcionales restantes.
 
 ### Gate 8 — Experiencia pública
 
@@ -99,6 +102,10 @@ EncuentrosOES — PERFIL LOCAL
 
 - [x] Árbol limpio de artefactos generados.
 - [x] Persistencia y servicios transaccionales consolidados.
+- [x] Architecture Gate impide regresiones estructurales conocidas.
+- [x] Lecturas `GET /competitions` y `GET /competitions/catalog` sin `include` relacional anidado en producción.
+
+> Este gate describe el saneamiento funcional y técnico vigente. La mantenibilidad residual se controla con `pnpm architecture:check` y `docs/15-engineering-hardening-closeout.md`.
 
 ### Gate 10 — UX administrativa 2.0
 
@@ -171,21 +178,135 @@ MATCH-RESOLUTION-001
 - En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
 - Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
 
+## LOCAL-RUNTIME-001 — CERRADO
+
+Durante la aceptación manual LOCAL se observó una única advertencia deprecada de `pg`: `Calling client.query() when the client is already executing a query`. La investigación aisló el trigger de runtime en las lecturas iniciales de catálogo/listado de competencias que usaban fan-out relacional mediante Prisma `include`.
+
+```text
+LOCAL-RUNTIME-001
+├── [x] Warning reproducido en aceptación local
+├── [x] Trigger de lectura inicial identificado
+├── [x] CompetitionQueryService creado
+├── [x] Catálogo reconstruido desde consultas planas
+├── [x] Listado reconstruido desde consultas planas
+├── [x] Conteo de participantes preservado
+├── [x] Contrato HTTP preservado
+├── [x] Adaptadores fake siguen sustituyendo las lecturas en E2E
+├── [x] Regresión sin `include` relacional añadida
+├── [x] Architecture Gate / lint / typecheck
+├── [x] PostgreSQL integration / backup / restore / roundtrip
+├── [x] Coverage / build
+├── [x] Visual E2E Chromium — CI #461 success
+└── [x] Retest manual LOCAL — API inicia limpia y sin warning en la ruta observada
+```
+
+No se redujo la versión de `pg` ni se silenció la advertencia. El stack Prisma `@prisma/adapter-pg` todavía puede emitir el mismo warning dentro de pruebas de integración internas con relaciones complejas; esos tests continúan pasando. El trigger observado en el runtime normal de la API quedó retirado y el retest LOCAL del 24 de agosto de 2026 confirmó un arranque limpio sin la advertencia.
+
+## Engineering Refactor / Architecture Hardening — CERRADO
+
+Referencias:
+
+- `docs/14-engineering-audit-baseline.md`
+- `docs/15-engineering-hardening-closeout.md`
+
+Este bloque no reabre comportamiento funcional ya aceptado. El alcance de auditoría y hardening queda cerrado al 100%; la calidad final no se presenta como perfección absoluta: Engineering Health = 88/100 y la deuda residual queda baja/controlada.
+
+```text
+ENGINEERING-HARDENING — 100%
+├── [x] Baseline arquitectónico inicial
+├── [x] Contraste Foundation / Roadmap / implementación
+├── [x] Hotspots/god candidates identificados y tratados
+├── [x] CI auditado
+├── [x] Inventario de archivos >300 / >500 / >1000 líneas
+├── [x] Inventario any / casts / TODO / FIXME / console
+├── [x] Dependency graph y ciclos
+├── [x] Auditoría completa de controllers y autorización
+├── [x] Auditoría Prisma: índices, constraints, cascades e invariantes
+├── [x] Auditoría frontend por feature y tamaño
+├── [x] Auditoría de duplicación estructural/semántica
+├── [x] Contratos de catálogo sin `unknown`
+├── [x] Tests de caracterización de catálogo
+├── [x] CatalogAssetService aislado
+├── [x] CatalogQueryService separado de comandos
+├── [x] CatalogAdminService dividido por responsabilidad
+├── [x] PrismaCompetitionStore dividido con tests de caracterización
+├── [x] CompetitionQueryService para lecturas planas de catálogo/listado
+├── [x] Idempotencia competitiva extraída
+├── [x] Persistencia/proyección de rule-set extraída
+├── [x] PrismaDrawStore auditado y dividido
+├── [x] Idempotencia de sorteo extraída
+├── [x] DrawReadModel extraído
+├── [x] Shared utilities auditado sin crear shared genérico innecesario
+├── [x] Naming auditado y unificado por responsabilidad
+├── [x] Architecture Gate automatizado
+├── [x] CI ejecuta Architecture Gate
+├── [x] Score final de ingeniería recalculado — 88/100
+└── [x] Re-auditoría de cierre
+```
+
+### Cierre de prioridades
+
+```text
+P0
+└── [x] Sin hallazgos abiertos
+
+P1
+├── [x] TYPE-001 — contratos explícitos para catálogo
+├── [x] ARCH-002 — split catálogo: assets + query/commands
+├── [x] ARCH-001 — split protegido de PrismaCompetitionStore
+├── [x] ARCH-DRAW-001 — split protegido de PrismaDrawStore
+└── [x] GATE-001 — Architecture Gate en CI
+
+P2
+├── [x] DATA-001 — schema/invariantes
+├── [x] SEC-001 — controllers/autorización
+├── [x] WEB-001 — frontend por feature
+├── [x] DRY-001 — duplicación semántica
+└── [x] LOCAL-RUNTIME-001 — fan-out relacional retirado de lectura inicial
+
+P3 / MONITOR
+├── [x] PrismaDrawStore restante revisado: 568 líneas, command orchestrator cohesivo
+├── [x] double-casts registrados como warnings de boundary/test
+├── [x] consoleOperationalLogger verificado como logging estructurado intencional
+├── [x] warning `pg` upstream monitorizado en integración Prisma; no silenciado
+└── [x] archivos de dominio 300–400 líneas revisados sin split artificial
+```
+
+### Resultado del gate estructural
+
+Último inventario de código validado durante el cierre:
+
+- 248 archivos fuente;
+- 14 por encima de 300 líneas;
+- 2 por encima de 500;
+- 0 por encima de 1000;
+- 0 `any` explícitos;
+- 0 `TODO` / `FIXME`;
+- 1 `console.*`, aceptado en `OperationalLogger`;
+- 25 archivos con double-cast monitorizado;
+- 0 ciclos relativos;
+- 0 violaciones de fronteras domain/database/api/web.
+
+El archivo productivo >500 restante es `PrismaDrawStore` con 568 líneas, reducido desde 998 y revisado como comando transaccional cohesivo. El otro archivo >500 es un test de integración, no un servicio productivo.
+
 ## Perfil EXTERNAL — OPCIONAL / NO SELECCIONADO
 
 - [x] Contrato de transporte preparado.
 - [x] Guardas de privacidad/cifrado/mínimo privilegio.
 - [ ] `REAL-STORAGE-DRILL` contra proveedor externo real solo si se selecciona este perfil.
 
-Este pendiente no reduce el porcentaje del perfil LOCAL.
+Este pendiente no reduce el porcentaje del perfil LOCAL ni del Engineering Hardening.
 
 ## Próxima salida de aceptación
+
+El hardening queda cerrado. La siguiente actividad vuelve al producto: `MATCH-RESOLUTION-001` y aceptación manual LOCAL.
 
 ```text
 Prueba final LOCAL
 ├── [x] Aplicación inicia y restaura estado
 ├── [x] Sorteos y auto-confirmación SUPERADMIN
 ├── [x] Historial competitivo persistente
+├── [x] Retest de warning `pg` tras LOCAL-RUNTIME-001
 ├── [ ] Resultado normal SCORE_BASED
 ├── [ ] Empate KO + penales
 ├── [ ] NO_SHOW individual en grupos → 0/3 sin goles ficticios

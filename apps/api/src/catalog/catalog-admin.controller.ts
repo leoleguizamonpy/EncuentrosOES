@@ -19,6 +19,8 @@ import { z } from 'zod';
 import { Public, RequireRoles } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
 import { CatalogAdminService, type CatalogMutationContext } from './catalog-admin.service.js';
+import { CatalogAssetService } from './catalog-asset.service.js';
+import { CatalogQueryService } from './catalog-query.service.js';
 
 const uuidSchema = z.uuid();
 const codeSchema = z.string().trim().min(2).max(24).regex(/^[A-Za-z0-9_-]+$/);
@@ -63,11 +65,14 @@ function resourceId(value: string): string {
 @Controller('admin/catalog')
 @RequireRoles('ADMIN', 'SUPERADMIN')
 export class CatalogAdminController {
-  public constructor(private readonly service: CatalogAdminService) {}
+  public constructor(
+    private readonly service: CatalogAdminService,
+    private readonly queries: CatalogQueryService,
+  ) {}
 
   @Get()
-  public catalog(): ReturnType<CatalogAdminService['catalog']> {
-    return this.service.catalog();
+  public catalog(): ReturnType<CatalogQueryService['catalog']> {
+    return this.queries.catalog();
   }
 
   @HttpCode(201)
@@ -181,14 +186,14 @@ export class CatalogAdminController {
 
 @Controller('public/assets')
 export class CatalogAssetController {
-  public constructor(private readonly service: CatalogAdminService) {}
+  public constructor(private readonly service: CatalogAssetService) {}
 
   @Public()
   @Get(':id')
   public async asset(@Param('id') id: string, @Res() response: Response): Promise<void> {
     const parsed = uuidSchema.safeParse(id);
     if (!parsed.success) throw new BadRequestException('El identificador del recurso gráfico no es válido.');
-    const asset = await this.service.asset(parsed.data);
+    const asset = await this.service.getById(parsed.data);
     response
       .status(200)
       .set({

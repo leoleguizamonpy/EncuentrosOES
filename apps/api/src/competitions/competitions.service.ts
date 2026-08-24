@@ -6,6 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 
+import { CompetitionQueryService } from './competition-query.service.js';
 import {
   COMPETITION_STORE,
   CompetitionStoreError,
@@ -19,19 +20,23 @@ import {
   type FreezeStoredRuleSetInput,
   type SaveStoredRuleSetInput,
 } from './competition-store.js';
+import { PrismaCompetitionStore } from './prisma-competition-store.js';
 
 @Injectable()
 export class CompetitionsService {
   public constructor(
     @Inject(COMPETITION_STORE) private readonly store: CompetitionStore,
+    private readonly queries: CompetitionQueryService,
   ) {}
 
   public catalog(): Promise<CompetitionCatalog> {
-    return this.store.catalog();
+    return this.store instanceof PrismaCompetitionStore
+      ? this.queries.catalog()
+      : this.store.catalog();
   }
 
   public list(): Promise<readonly CompetitionSummary[]> {
-    return this.store.list();
+    return this.store instanceof PrismaCompetitionStore ? this.queries.list() : this.store.list();
   }
 
   public detail(id: string): Promise<CompetitionDetail> {

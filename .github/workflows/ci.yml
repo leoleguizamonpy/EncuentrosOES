@@ -55,6 +55,9 @@ jobs:
       - name: Check formatting
         run: git diff --check
 
+      - name: Architecture gate
+        run: pnpm architecture:check
+
       - name: Lint
         run: pnpm lint
 
