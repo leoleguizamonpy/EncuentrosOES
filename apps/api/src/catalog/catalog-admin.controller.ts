@@ -20,6 +20,7 @@ import { Public, RequireRoles } from '../security/metadata.js';
 import type { AuthenticatedRequest } from '../security/request.js';
 import { CatalogAdminService, type CatalogMutationContext } from './catalog-admin.service.js';
 import { CatalogAssetService } from './catalog-asset.service.js';
+import { CatalogQueryService } from './catalog-query.service.js';
 
 const uuidSchema = z.uuid();
 const codeSchema = z.string().trim().min(2).max(24).regex(/^[A-Za-z0-9_-]+$/);
@@ -64,11 +65,14 @@ function resourceId(value: string): string {
 @Controller('admin/catalog')
 @RequireRoles('ADMIN', 'SUPERADMIN')
 export class CatalogAdminController {
-  public constructor(private readonly service: CatalogAdminService) {}
+  public constructor(
+    private readonly service: CatalogAdminService,
+    private readonly queries: CatalogQueryService,
+  ) {}
 
   @Get()
-  public catalog(): ReturnType<CatalogAdminService['catalog']> {
-    return this.service.catalog();
+  public catalog(): ReturnType<CatalogQueryService['catalog']> {
+    return this.queries.catalog();
   }
 
   @HttpCode(201)
