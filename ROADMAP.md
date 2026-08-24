@@ -30,6 +30,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
 ├── [x] Engineering Hardening — 100%
+├── [x] LOCAL-RUNTIME-001 — mitigación de fan-out relacional Prisma
 └── [~] ACEPTACIÓN LOCAL EN CURSO
 ```
 
@@ -89,6 +90,7 @@ EncuentrosOES — PERFIL LOCAL
 - [x] Backup custom + SHA-256.
 - [x] Restore aislado.
 - [x] Recuperación tras reinicio.
+- [x] Warning runtime de lectura inicial mitigado mediante proyección plana de competencias; CI #460 success.
 - [~] Aceptación manual completa pendiente de cerrar los hallazgos actuales.
 
 ### Gate 8 — Experiencia pública
@@ -101,6 +103,7 @@ EncuentrosOES — PERFIL LOCAL
 - [x] Árbol limpio de artefactos generados.
 - [x] Persistencia y servicios transaccionales consolidados.
 - [x] Architecture Gate impide regresiones estructurales conocidas.
+- [x] Lecturas `GET /competitions` y `GET /competitions/catalog` sin `include` relacional anidado en producción.
 
 > Este gate describe el saneamiento funcional y técnico vigente. La mantenibilidad residual se controla con `pnpm architecture:check` y `docs/15-engineering-hardening-closeout.md`.
 
@@ -175,6 +178,29 @@ MATCH-RESOLUTION-001
 - En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
 - Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
 
+## LOCAL-RUNTIME-001 — MITIGACIÓN DE WARNING `pg` EN LECTURA INICIAL
+
+Durante la aceptación manual LOCAL se observó una única advertencia deprecada de `pg`: `Calling client.query() when the client is already executing a query`. La investigación aisló el trigger de runtime en las lecturas iniciales de catálogo/listado de competencias que usaban fan-out relacional mediante Prisma `include`.
+
+```text
+LOCAL-RUNTIME-001
+├── [x] Warning reproducido en aceptación local
+├── [x] Trigger de lectura inicial identificado
+├── [x] CompetitionQueryService creado
+├── [x] Catálogo reconstruido desde consultas planas
+├── [x] Listado reconstruido desde consultas planas
+├── [x] Conteo de participantes preservado
+├── [x] Contrato HTTP preservado
+├── [x] Adaptadores fake siguen sustituyendo las lecturas en E2E
+├── [x] Regresión sin `include` relacional añadida
+├── [x] Architecture Gate / lint / typecheck
+├── [x] PostgreSQL integration / backup / restore / roundtrip
+├── [x] Coverage / build
+└── [x] Visual E2E Chromium — CI #460 success
+```
+
+No se redujo la versión de `pg` ni se silenció la advertencia. El stack Prisma `@prisma/adapter-pg` todavía puede emitir el mismo warning dentro de pruebas de integración internas con relaciones complejas; esos tests continúan pasando. El objetivo de este bloque es retirar el trigger observado en el runtime normal de la API. La eliminación efectiva del warning en esa ruta debe confirmarse en el próximo retest manual LOCAL.
+
 ## Engineering Refactor / Architecture Hardening — CERRADO
 
 Referencias:
@@ -203,6 +229,7 @@ ENGINEERING-HARDENING — 100%
 ├── [x] CatalogQueryService separado de comandos
 ├── [x] CatalogAdminService dividido por responsabilidad
 ├── [x] PrismaCompetitionStore dividido con tests de caracterización
+├── [x] CompetitionQueryService para lecturas planas de catálogo/listado
 ├── [x] Idempotencia competitiva extraída
 ├── [x] Persistencia/proyección de rule-set extraída
 ├── [x] PrismaDrawStore auditado y dividido
@@ -233,12 +260,14 @@ P2
 ├── [x] DATA-001 — schema/invariantes
 ├── [x] SEC-001 — controllers/autorización
 ├── [x] WEB-001 — frontend por feature
-└── [x] DRY-001 — duplicación semántica
+├── [x] DRY-001 — duplicación semántica
+└── [x] LOCAL-RUNTIME-001 — fan-out relacional retirado de lectura inicial
 
 P3 / MONITOR
 ├── [x] PrismaDrawStore restante revisado: 568 líneas, command orchestrator cohesivo
 ├── [x] double-casts registrados como warnings de boundary/test
 ├── [x] consoleOperationalLogger verificado como logging estructurado intencional
+├── [x] warning `pg` upstream monitorizado en integración Prisma; no silenciado
 └── [x] archivos de dominio 300–400 líneas revisados sin split artificial
 ```
 
@@ -246,14 +275,14 @@ P3 / MONITOR
 
 Último inventario de código validado durante el cierre:
 
-- 246 archivos fuente;
+- 248 archivos fuente;
 - 14 por encima de 300 líneas;
 - 2 por encima de 500;
 - 0 por encima de 1000;
 - 0 `any` explícitos;
 - 0 `TODO` / `FIXME`;
 - 1 `console.*`, aceptado en `OperationalLogger`;
-- 24 archivos con double-cast monitorizado;
+- 25 archivos con double-cast monitorizado;
 - 0 ciclos relativos;
 - 0 violaciones de fronteras domain/database/api/web.
 
@@ -276,6 +305,7 @@ Prueba final LOCAL
 ├── [x] Aplicación inicia y restaura estado
 ├── [x] Sorteos y auto-confirmación SUPERADMIN
 ├── [x] Historial competitivo persistente
+├── [~] Retest de warning `pg` tras LOCAL-RUNTIME-001
 ├── [ ] Resultado normal SCORE_BASED
 ├── [ ] Empate KO + penales
 ├── [ ] NO_SHOW individual en grupos → 0/3 sin goles ficticios
