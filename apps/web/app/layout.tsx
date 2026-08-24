@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
+import './heroui.css';
 import './globals.css';
 import './public-accessibility.css';
 import './public-history.css';
@@ -11,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>): React.JSX.Element {
-  return <html lang="es"><body><a className="skip-link" href="#main-content">Saltar al contenido</a>{children}</body></html>;
+  return <html data-theme="oes" lang="es"><body><a className="skip-link" href="#main-content">Saltar al contenido</a>{children}</body></html>;
 }
