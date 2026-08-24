@@ -193,8 +193,9 @@ ENGINEERING-HARDENING
 ├── [~] Auditoría frontend por feature y tamaño
 ├── [ ] Auditoría de duplicación exacta/estructural/semántica
 ├── [x] Contratos de catálogo sin `unknown` — CI #407 success
-├── [~] Tests de caracterización de CatalogAdminService
-├── [ ] CatalogAdminService dividido por responsabilidad
+├── [x] Tests de caracterización de CatalogAdminService — CI #414 success
+├── [~] CatalogAssetService aislado — lectura, índice, sync y replace extraídos; CI #421 en ejecución
+├── [~] CatalogAdminService dividido por responsabilidad
 ├── [ ] PrismaCompetitionStore dividido con tests de caracterización
 ├── [ ] Shared utilities auditado
 ├── [ ] Naming unificado
@@ -209,7 +210,8 @@ ENGINEERING-HARDENING
 ```text
 P1
 ├── TYPE-001 — contratos explícitos para catálogo [x]
-├── ARCH-002A — caracterización y split incremental de CatalogAdminService [~]
+├── ARCH-002A — assets fuera de CatalogAdminService [~ CI #421]
+├── ARCH-002B — separar lectura y mutaciones del catálogo [ ]
 ├── ARCH-001 — split protegido de PrismaCompetitionStore
 └── GATE-001 — diseño de Architecture Gate
 
@@ -221,7 +223,7 @@ P2
 
 Hallazgo WEB-001 inicial: las rutas de `app/` son delgadas, pero varios client components concentran la lógica real; `competition-setup-client.tsx`, `confirmations-client.tsx` y otros componentes de `components/` quedan bajo revisión para separar feature UI, fetching y estado sin convertir todo en primitives genéricas.
 
-ARCH-002A comienza por preservar explícitamente dos contratos antes del split: proyección del catálogo con asociación de assets y atomicidad de mutación + audit entry. El primer test de caracterización está incorporado y pendiente de validación CI sobre su head exacto.
+ARCH-002A preserva explícitamente la proyección del catálogo, la atomicidad mutación + auditoría y la semántica de assets opcionales. `CatalogAssetService` posee ahora lectura pública, índice por recurso, conservación, eliminación y reemplazo de assets. `CatalogAdminService` mantiene la transacción de negocio y delega la persistencia gráfica usando el mismo `Prisma.TransactionClient`; no se introducen transacciones anidadas.
 
 No se ejecutará ningún split de alto riesgo sin tests de caracterización que preserven comportamiento, idempotencia, auditoría y atomicidad transaccional.
 
