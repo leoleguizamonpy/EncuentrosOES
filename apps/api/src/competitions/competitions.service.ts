@@ -20,6 +20,7 @@ import {
   type FreezeStoredRuleSetInput,
   type SaveStoredRuleSetInput,
 } from './competition-store.js';
+import { PrismaCompetitionStore } from './prisma-competition-store.js';
 
 @Injectable()
 export class CompetitionsService {
@@ -29,11 +30,13 @@ export class CompetitionsService {
   ) {}
 
   public catalog(): Promise<CompetitionCatalog> {
-    return this.queries.catalog();
+    return this.store instanceof PrismaCompetitionStore
+      ? this.queries.catalog()
+      : this.store.catalog();
   }
 
   public list(): Promise<readonly CompetitionSummary[]> {
-    return this.queries.list();
+    return this.store instanceof PrismaCompetitionStore ? this.queries.list() : this.store.list();
   }
 
   public detail(id: string): Promise<CompetitionDetail> {
