@@ -12,9 +12,6 @@ import { IDENTITY_STORE, type AccountRecord } from '../src/identity/identity-sto
 import { hashPassword } from '../src/identity/password.js';
 import {
   RESULTS_STORE,
-  type AnnulResultInput,
-  type ConfirmQualificationInput,
-  type ConfirmResultInput,
   type RecordResultInput,
   type ResultsStore,
   type ResultsWorkspace,
@@ -57,15 +54,15 @@ class CapturingResultsStore implements ResultsStore {
     return Promise.resolve(workspace);
   }
 
-  public confirm(_input: ConfirmResultInput): Promise<ResultsWorkspace> {
+  public confirm(): Promise<ResultsWorkspace> {
     return Promise.resolve(workspace);
   }
 
-  public annul(_input: AnnulResultInput): Promise<ResultsWorkspace> {
+  public annul(): Promise<ResultsWorkspace> {
     return Promise.resolve(workspace);
   }
 
-  public confirmQualification(_input: ConfirmQualificationInput): Promise<ResultsWorkspace> {
+  public confirmQualification(): Promise<ResultsWorkspace> {
     return Promise.resolve(workspace);
   }
 
