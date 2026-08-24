@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Card, Chip, Skeleton } from '@heroui/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 import { publicDraw, type PublicDrawPublication } from '../lib/competition-api';
 import { drawPresentationItems, normalizedPresentationStep } from '../lib/draw-presentation';
@@ -32,41 +33,20 @@ export function OfficialDrawPresentation({ publicationId }: { readonly publicati
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><section className="public-draw-error" role="alert"><h1>Presentación no disponible</h1><p>{error}</p></section></main>;
-  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><p className="public-draw-loading" role="status" aria-live="polite">Cargando sorteo oficial…</p></main>;
+  if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Presentación no disponible</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert></main>;
+  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><Card variant="tertiary"><Card.Content style={{ display: 'grid', gap: 12, padding: 24 }}><Skeleton style={{ height: 10, width: '35%' }} /><strong>Cargando sorteo oficial…</strong></Card.Content></Card></main>;
 
   const act = publication.act;
   return <main id="main-content" className="public-draw-shell">
-    <header className="public-draw-header">
-      <OesMark />
-      <div><span>Presentación oficial · solo lectura</span><h1>{act.competition.sport} · {act.competition.modality}</h1><p>{act.competition.edition} / {act.competition.event}</p></div>
-      <strong className="public-state-label" role="status">{publication.verified ? '✓ Publicación verificada' : 'No verificable'}</strong>
-    </header>
-
-    <section className="public-draw-meta" aria-label="Resumen de presentación">
-      <div><span>Ronda</span><b>{act.configuration.formatCode === 'GROUP_STAGE' ? 'Fase de grupos' : `Eliminatoria ${String(act.configuration.roundNumber)}`}</b></div>
-      <div><span>Revelados</span><b aria-live="polite">{step} / {items.length}</b></div>
-      <div><span>Publicada</span><b>{new Date(publication.publishedAt).toLocaleString('es-PY')}</b></div>
-      <div><span>Verificación</span><code>{publication.verificationCode.slice(0, 16)}…</code></div>
-    </section>
-
+    <header className="public-draw-header"><OesMark /><div><span>Presentación oficial · solo lectura</span><h1>{act.competition.sport} · {act.competition.modality}</h1><p>{act.competition.edition} / {act.competition.event}</p></div><Chip color={publication.verified ? 'success' : 'danger'} size="sm" variant="soft">{publication.verified ? '✓ Publicación verificada' : 'No verificable'}</Chip></header>
+    <section className="public-draw-meta" aria-label="Resumen de presentación"><div><span>Ronda</span><b>{act.configuration.formatCode === 'GROUP_STAGE' ? 'Fase de grupos' : `Eliminatoria ${String(act.configuration.roundNumber)}`}</b></div><div><span>Revelados</span><b aria-live="polite">{step} / {items.length}</b></div><div><span>Publicada</span><b>{new Date(publication.publishedAt).toLocaleString('es-PY')}</b></div><div><span>Verificación</span><code>{publication.verificationCode.slice(0, 16)}…</code></div></section>
     <section aria-live="polite" aria-atomic="false" aria-label="Resultado revelado" className={act.result.formatCode === 'GROUP_STAGE' ? 'public-draw-groups' : 'public-draw-pairings'}>
       {visible.map((item) => {
-        if (item.kind === 'GROUP') return <article key={item.label}><header>{item.label}</header><ol>{item.members.map((member) => <li key={member.id}>{member.name}</li>)}</ol></article>;
-        if (item.kind === 'BYE') return <article key={item.label}><span>{item.label}</span><b>{item.participant.name}</b></article>;
-        return <article key={item.label}><span>{item.label}</span><b>{item.participantA.name}</b><i>vs</i><b>{item.participantB.name}</b></article>;
+        if (item.kind === 'GROUP') return <Card key={item.label}><Card.Header>{item.label}</Card.Header><Card.Content><ol>{item.members.map((member) => <li key={member.id}>{member.name}</li>)}</ol></Card.Content></Card>;
+        if (item.kind === 'BYE') return <Card key={item.label}><Card.Content><span>{item.label}</span><b>{item.participant.name}</b></Card.Content></Card>;
+        return <Card key={item.label}><Card.Content><span>{item.label}</span><b>{item.participantA.name}</b><i>vs</i><b>{item.participantB.name}</b></Card.Content></Card>;
       })}
     </section>
-
-    {items.length > 0 && <section className="public-draw-verification" aria-labelledby="presentation-controls-heading">
-      <h2 className="public-round-heading" id="presentation-controls-heading">Control de presentación</h2>
-      <p>Estos controles solo cambian qué parte del resultado ya publicado se ve en pantalla. No ejecutan, recalculan ni modifican el sorteo.</p>
-      <div className="public-presentation-controls">
-        <button type="button" disabled={step === 0} onClick={() => setStep(step - 1)}>Anterior</button>
-        <button type="button" disabled={step === items.length} onClick={() => setStep(step + 1)}>Mostrar siguiente</button>
-        <button type="button" disabled={step === items.length} onClick={() => setStep(items.length)}>Mostrar todo</button>
-      </div>
-      <code>{publication.verificationCode}</code>
-    </section>}
+    {items.length > 0 && <Card className="public-draw-verification" aria-labelledby="presentation-controls-heading"><Card.Content><h2 className="public-round-heading" id="presentation-controls-heading">Control de presentación</h2><p>Estos controles solo cambian qué parte del resultado ya publicado se ve en pantalla. No ejecutan, recalculan ni modifican el sorteo.</p><div className="public-presentation-controls"><Button isDisabled={step === 0} onPress={() => setStep(step - 1)} variant="secondary">Anterior</Button><Button isDisabled={step === items.length} onPress={() => setStep(step + 1)} variant="primary">Mostrar siguiente</Button><Button isDisabled={step === items.length} onPress={() => setStep(items.length)} variant="secondary">Mostrar todo</Button></div><code>{publication.verificationCode}</code></Card.Content></Card>}
   </main>;
 }
