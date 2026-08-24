@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CatalogAdminController } from '../src/catalog/catalog-admin.controller.js';
 import type { CatalogAdminService } from '../src/catalog/catalog-admin.service.js';
+import type { CatalogQueryService } from '../src/catalog/catalog-query.service.js';
 import type { AuthenticatedRequest } from '../src/security/request.js';
 
 const resourceId = '10000000-0000-4000-8000-000000000001';
@@ -19,10 +20,26 @@ function request(): AuthenticatedRequest {
   } as AuthenticatedRequest;
 }
 
-describe('CatalogAdminController optional assets', () => {
+function controllerFor(service: object, queries: object = {}): CatalogAdminController {
+  return new CatalogAdminController(
+    service as unknown as CatalogAdminService,
+    queries as unknown as CatalogQueryService,
+  );
+}
+
+describe('CatalogAdminController', () => {
+  it('delegates catalog reads to CatalogQueryService', async () => {
+    const snapshot = { combinations: [], editions: [], events: [], institutions: [], modalities: [], sports: [] };
+    const catalog = vi.fn().mockResolvedValue(snapshot);
+    const controller = controllerFor({}, { catalog });
+
+    await expect(controller.catalog()).resolves.toEqual(snapshot);
+    expect(catalog).toHaveBeenCalledTimes(1);
+  });
+
   it('omits icon when an update does not request an asset change', async () => {
     const updateSport = vi.fn().mockResolvedValue({ id: resourceId });
-    const controller = new CatalogAdminController({ updateSport } as unknown as CatalogAdminService);
+    const controller = controllerFor({ updateSport });
 
     await controller.updateSport(resourceId, {
       active: true,
@@ -37,7 +54,7 @@ describe('CatalogAdminController optional assets', () => {
 
   it('preserves explicit null when the caller requests icon removal', async () => {
     const updateSport = vi.fn().mockResolvedValue({ id: resourceId });
-    const controller = new CatalogAdminController({ updateSport } as unknown as CatalogAdminService);
+    const controller = controllerFor({ updateSport });
 
     await controller.updateSport(resourceId, {
       active: true,
