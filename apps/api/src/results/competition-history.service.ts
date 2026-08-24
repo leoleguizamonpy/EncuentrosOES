@@ -105,81 +105,141 @@ function resultStatus(value: string): HistoryResultView['status'] {
   throw new Error(`Unsupported historical result status: ${value}`);
 }
 
+function byKey<T, K>(values: readonly T[], key: (value: T) => K): Map<K, T> {
+  return new Map(values.map((value) => [key(value), value]));
+}
+
+function groupedBy<T, K>(values: readonly T[], key: (value: T) => K): Map<K, T[]> {
+  const grouped = new Map<K, T[]>();
+  for (const value of values) {
+    const group = grouped.get(key(value));
+    if (group === undefined) grouped.set(key(value), [value]);
+    else group.push(value);
+  }
+  return grouped;
+}
+
 @Injectable()
 export class CompetitionHistoryService {
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
 
   public async history(competitionId: string): Promise<CompetitionHistoryView> {
-    const competition = await this.client.competition.findUnique({
-      include: {
-        officialDraws: {
-          include: {
-            configuration: { include: { ruleSet: true } },
-            groups: {
-              include: {
-                qualifications: {
-                  include: { firstParticipant: true, secondParticipant: true },
-                  orderBy: { proposedAt: 'desc' },
-                },
-                standings: {
-                  include: { participant: true },
-                  orderBy: [{ position: 'asc' }, { participantId: 'asc' }],
-                },
-              },
-              orderBy: { ordinal: 'asc' },
-            },
-            matches: {
-              include: {
-                group: true,
-                participantA: true,
-                participantB: true,
-                results: { orderBy: { recordedAt: 'asc' } },
-              },
-              orderBy: [{ roundNumber: 'asc' }, { ordinal: 'asc' }],
-            },
-            pairings: {
-              include: { participantA: true },
-              orderBy: { ordinal: 'asc' },
-            },
-            publication: true,
-          },
-          orderBy: [{ configuration: { roundNumber: 'asc' } }, { executedAt: 'asc' }],
-          where: { status: { in: ['CONFIRMED', 'ANNULLED'] } },
-        },
-      },
-      where: { id: competitionId },
-    });
-
+    const competition = await this.client.competition.findUnique({ select: { id: true }, where: { id: competitionId } });
     if (competition === null) throw new NotFoundException('The competition does not exist.');
+
+    const executions = await this.client.officialDraw.findMany({
+      orderBy: { executedAt: 'asc' },
+      where: { competitionId, status: { in: ['CONFIRMED', 'ANNULLED'] } },
+    });
+    if (executions.length === 0) return { competitionId, executions: [] };
+
+    const executionIds = executions.map(({ id }) => id);
+    const configurationIds = [...new Set(executions.map(({ configurationId }) => configurationId))];
+    const configurations = await this.client.drawConfiguration.findMany({ where: { id: { in: configurationIds } } });
+    const configurationById = byKey(configurations, ({ id }) => id);
+    const ruleSetIds = [...new Set(configurations.map(({ ruleSetId }) => ruleSetId))];
+    const ruleSets = await this.client.competitionRuleSet.findMany({
+      select: { id: true, resultProfile: true },
+      where: { competitionId, id: { in: ruleSetIds } },
+    });
+    const ruleSetById = byKey(ruleSets, ({ id }) => id);
+
+    const groups = await this.client.drawGroup.findMany({ orderBy: { ordinal: 'asc' }, where: { executionId: { in: executionIds } } });
+    const groupIds = groups.map(({ id }) => id);
+    const matches = await this.client.logicalMatch.findMany({
+      orderBy: [{ roundNumber: 'asc' }, { ordinal: 'asc' }],
+      where: { executionId: { in: executionIds } },
+    });
+    const matchIds = matches.map(({ id }) => id);
+    const standings = groupIds.length === 0 ? [] : await this.client.groupStanding.findMany({
+      orderBy: [{ position: 'asc' }, { participantId: 'asc' }],
+      where: { groupId: { in: groupIds } },
+    });
+    const qualifications = groupIds.length === 0 ? [] : await this.client.groupQualification.findMany({
+      orderBy: { proposedAt: 'desc' },
+      where: { groupId: { in: groupIds }, status: 'CONFIRMED' },
+    });
+    const results = matchIds.length === 0 ? [] : await this.client.matchResult.findMany({
+      orderBy: { recordedAt: 'asc' },
+      where: { matchId: { in: matchIds } },
+    });
+    const pairings = await this.client.drawPairing.findMany({
+      orderBy: { ordinal: 'asc' },
+      where: { executionId: { in: executionIds }, pairingType: 'BYE' },
+    });
+    const publications = await this.client.drawPublication.findMany({ where: { officialDrawId: { in: executionIds } } });
+
+    const participantIds = new Set<string>();
+    for (const match of matches) {
+      participantIds.add(match.participantAId);
+      participantIds.add(match.participantBId);
+    }
+    for (const standing of standings) participantIds.add(standing.participantId);
+    for (const qualification of qualifications) {
+      participantIds.add(qualification.firstParticipantId);
+      participantIds.add(qualification.secondParticipantId);
+    }
+    for (const pairing of pairings) participantIds.add(pairing.participantAId);
+    const participants = await this.client.competitionParticipant.findMany({
+      select: { displayName: true, id: true },
+      where: { competitionId, id: { in: [...participantIds] } },
+    });
+    const participantById = byKey(participants, ({ id }) => id);
+    const participant = (id: string): HistoryParticipantView => {
+      const value = participantById.get(id);
+      if (value === undefined) throw new Error(`Historical participant ${id} does not exist.`);
+      return value;
+    };
+
+    const groupsByExecution = groupedBy(groups, ({ executionId }) => executionId);
+    const matchesByExecution = groupedBy(matches, ({ executionId }) => executionId);
+    const standingsByGroup = groupedBy(standings, ({ groupId }) => groupId);
+    const qualificationsByGroup = groupedBy(qualifications, ({ groupId }) => groupId);
+    const resultsByMatch = groupedBy(results, ({ matchId }) => matchId);
+    const byeByExecution = byKey(pairings, ({ executionId }) => executionId);
+    const publicationByExecution = byKey(publications, ({ officialDrawId }) => officialDrawId);
+    const groupById = byKey(groups, ({ id }) => id);
+
+    const orderedExecutions = [...executions].sort((left, right) => {
+      const leftConfiguration = configurationById.get(left.configurationId);
+      const rightConfiguration = configurationById.get(right.configurationId);
+      const roundDifference = (leftConfiguration?.roundNumber ?? 0) - (rightConfiguration?.roundNumber ?? 0);
+      return roundDifference !== 0 ? roundDifference : left.executedAt.getTime() - right.executedAt.getTime();
+    });
 
     return {
       competitionId,
-      executions: competition.officialDraws.map((execution): HistoryExecutionView => {
-        const byePairing = execution.pairings.find((pairing) => pairing.pairingType === 'BYE');
+      executions: orderedExecutions.map((execution): HistoryExecutionView => {
+        const configuration = configurationById.get(execution.configurationId);
+        if (configuration === undefined) throw new Error(`Historical configuration ${execution.configurationId} does not exist.`);
+        const ruleSet = ruleSetById.get(configuration.ruleSetId);
+        if (ruleSet === undefined) throw new Error(`Historical rule set ${configuration.ruleSetId} does not exist.`);
+        const byePairing = byeByExecution.get(execution.id);
+        const publication = publicationByExecution.get(execution.id);
         return {
           annulledAt: execution.annulledAt?.toISOString() ?? null,
           annulmentReason: execution.annulmentReason,
           bye: byePairing === undefined ? null : {
-            participant: { displayName: byePairing.participantA.displayName, id: byePairing.participantA.id },
+            participant: participant(byePairing.participantAId),
             priorByeCount: byePairing.priorByeCount ?? 0,
           },
           confirmedAt: execution.confirmedAt?.toISOString() ?? null,
           executedAt: execution.executedAt.toISOString(),
-          formatCode: formatCode(execution.configuration.formatCode),
-          groups: execution.groups.map((group): HistoryGroupView => {
-            const qualification = group.qualifications.find((candidate) => candidate.status === 'CONFIRMED');
+          formatCode: formatCode(configuration.formatCode),
+          groups: (groupsByExecution.get(execution.id) ?? []).map((group): HistoryGroupView => {
+            const qualification = (qualificationsByGroup.get(group.id) ?? [])[0];
             return {
               id: group.id,
               label: group.label,
               ordinal: group.ordinal,
               qualified: qualification === undefined ? [] : [
-                { displayName: qualification.firstParticipant.displayName, id: qualification.firstParticipant.id },
-                { displayName: qualification.secondParticipant.displayName, id: qualification.secondParticipant.id },
+                participant(qualification.firstParticipantId),
+                participant(qualification.secondParticipantId),
               ],
-              standings: group.standings.map((standing): HistoryStandingView => ({
+              standings: (standingsByGroup.get(group.id) ?? []).map((standing): HistoryStandingView => ({
                 draws: standing.draws,
                 losses: standing.losses,
-                participant: { displayName: standing.participant.displayName, id: standing.participant.id },
+                participant: participant(standing.participantId),
                 played: standing.played,
                 position: standing.position,
                 scoreAgainst: standing.scoreAgainst,
@@ -198,13 +258,13 @@ export class CompetitionHistoryService {
             };
           }),
           id: execution.id,
-          matches: execution.matches.map((match): HistoryMatchView => ({
-            groupLabel: match.group?.label ?? null,
+          matches: (matchesByExecution.get(execution.id) ?? []).map((match): HistoryMatchView => ({
+            groupLabel: match.groupId === null ? null : groupById.get(match.groupId)?.label ?? null,
             id: match.id,
             ordinal: match.ordinal,
-            participantA: { displayName: match.participantA.displayName, id: match.participantA.id },
-            participantB: { displayName: match.participantB.displayName, id: match.participantB.id },
-            results: match.results.map((result): HistoryResultView => ({
+            participantA: participant(match.participantAId),
+            participantB: participant(match.participantBId),
+            results: (resultsByMatch.get(match.id) ?? []).map((result): HistoryResultView => ({
               annulledAt: result.annulledAt?.toISOString() ?? null,
               annulmentReason: result.annulmentReason,
               confirmedAt: result.confirmedAt?.toISOString() ?? null,
@@ -218,13 +278,13 @@ export class CompetitionHistoryService {
             status: match.status,
             winnerParticipantId: match.winnerParticipantId,
           })),
-          publication: execution.publication === null ? null : {
-            id: execution.publication.id,
-            publishedAt: execution.publication.publishedAt.toISOString(),
-            verificationCode: execution.publication.verificationCode,
+          publication: publication === undefined ? null : {
+            id: publication.id,
+            publishedAt: publication.publishedAt.toISOString(),
+            verificationCode: publication.verificationCode,
           },
-          resultProfile: resultProfile(execution.configuration.ruleSet.resultProfile),
-          roundNumber: execution.configuration.roundNumber,
+          resultProfile: resultProfile(ruleSet.resultProfile),
+          roundNumber: configuration.roundNumber,
           status: executionStatus(execution.status),
         };
       }),

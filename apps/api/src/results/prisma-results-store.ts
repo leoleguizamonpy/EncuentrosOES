@@ -12,6 +12,7 @@ import {
   type MatchResultView,
   type RecordResultInput,
   type ResultMatchView,
+  type ResultParticipantView,
   type ResultsStore,
   type ResultsWorkspace,
   type StandingRowView,
@@ -35,6 +36,16 @@ function resultStatus(value: string): MatchResultView['status'] {
 function matchStatus(value: string): ResultMatchView['status'] {
   if (value === 'PENDING_RESULT' || value === 'RESULT_CONFIRMED' || value === 'RESULT_PENDING_CONFIRMATION') return value;
   throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The persisted match status is invalid.');
+}
+
+function groupedBy<T, K>(values: readonly T[], key: (value: T) => K): Map<K, T[]> {
+  const grouped = new Map<K, T[]>();
+  for (const value of values) {
+    const group = grouped.get(key(value));
+    if (group === undefined) grouped.set(key(value), [value]);
+    else group.push(value);
+  }
+  return grouped;
 }
 
 @Injectable()
@@ -110,85 +121,130 @@ export class PrismaResultsStore implements ResultsStore {
   }
 
   public async workspace(competitionId: string): Promise<ResultsWorkspace> {
-    const competition = await this.client.competition.findUnique({
-      include: {
-        officialDraws: {
-          include: {
-            configuration: { include: { ruleSet: true } },
-            groups: {
-              include: {
-                qualifications: {
-                  include: { confirmedBy: true, firstParticipant: true, proposedBy: true, secondParticipant: true },
-                  orderBy: { proposedAt: 'desc' },
-                  take: 1,
-                  where: { status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
-                },
-                standings: { include: { participant: true }, orderBy: [{ position: 'asc' }, { participantId: 'asc' }] },
-              },
-              orderBy: { ordinal: 'asc' },
-            },
-            matches: {
-              include: {
-                group: true,
-                participantA: true,
-                participantB: true,
-                results: {
-                  include: { confirmedBy: true, recordedBy: true },
-                  orderBy: { recordedAt: 'desc' },
-                  take: 1,
-                  where: { status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
-                },
-              },
-              orderBy: { ordinal: 'asc' },
-            },
-          },
-          orderBy: { confirmedAt: 'desc' },
-          take: 1,
-          where: { status: 'CONFIRMED' },
-        },
-      },
-      where: { id: competitionId },
-    });
+    const competition = await this.client.competition.findUnique({ select: { status: true }, where: { id: competitionId } });
     if (competition === null) throw new ResultsStoreError('COMPETITION_NOT_FOUND', 'The competition does not exist.');
-    const execution = competition.officialDraws[0];
-    if (execution === undefined) return {
+
+    const execution = await this.client.officialDraw.findFirst({
+      orderBy: { confirmedAt: 'desc' },
+      select: { configurationId: true, id: true },
+      where: { competitionId, status: 'CONFIRMED' },
+    });
+    if (execution === null) return {
       competitionId,
       competitionStatus: competitionStatus(competition.status),
       groups: [],
       matches: [],
       resultProfile: null,
     };
-    const matches = execution.matches.map((match): ResultMatchView => {
-      const record = match.results[0];
+
+    const configuration = await this.client.drawConfiguration.findUnique({
+      select: { ruleSetId: true },
+      where: { id: execution.configurationId },
+    });
+    if (configuration === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The draw configuration does not exist.');
+    const ruleSet = await this.client.competitionRuleSet.findUnique({
+      select: { resultProfile: true },
+      where: { competitionId_id: { competitionId, id: configuration.ruleSetId } },
+    });
+    if (ruleSet === null) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', 'The frozen rule set does not exist.');
+
+    const groups = await this.client.drawGroup.findMany({ orderBy: { ordinal: 'asc' }, where: { executionId: execution.id } });
+    const matchesRaw = await this.client.logicalMatch.findMany({ orderBy: { ordinal: 'asc' }, where: { executionId: execution.id } });
+    const groupIds = groups.map(({ id }) => id);
+    const matchIds = matchesRaw.map(({ id }) => id);
+    const standings = groupIds.length === 0 ? [] : await this.client.groupStanding.findMany({
+      orderBy: [{ position: 'asc' }, { participantId: 'asc' }],
+      where: { groupId: { in: groupIds } },
+    });
+    const qualifications = groupIds.length === 0 ? [] : await this.client.groupQualification.findMany({
+      orderBy: { proposedAt: 'desc' },
+      where: { groupId: { in: groupIds }, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+    });
+    const resultRecords = matchIds.length === 0 ? [] : await this.client.matchResult.findMany({
+      orderBy: { recordedAt: 'desc' },
+      where: { matchId: { in: matchIds }, status: { in: ['PENDING_CONFIRMATION', 'CONFIRMED'] } },
+    });
+
+    const participantIds = new Set<string>();
+    for (const match of matchesRaw) {
+      participantIds.add(match.participantAId);
+      participantIds.add(match.participantBId);
+    }
+    for (const standing of standings) participantIds.add(standing.participantId);
+    for (const qualification of qualifications) {
+      participantIds.add(qualification.firstParticipantId);
+      participantIds.add(qualification.secondParticipantId);
+    }
+    const participants = await this.client.competitionParticipant.findMany({
+      select: { displayName: true, id: true },
+      where: { competitionId, id: { in: [...participantIds] } },
+    });
+    const participantById = new Map(participants.map((participant) => [participant.id, participant]));
+
+    const userIds = new Set<string>();
+    for (const result of resultRecords) {
+      userIds.add(result.recordedById);
+      if (result.confirmedById !== null) userIds.add(result.confirmedById);
+    }
+    for (const qualification of qualifications) {
+      userIds.add(qualification.proposedById);
+      if (qualification.confirmedById !== null) userIds.add(qualification.confirmedById);
+    }
+    const users = userIds.size === 0 ? [] : await this.client.user.findMany({
+      select: { displayName: true, id: true },
+      where: { id: { in: [...userIds] } },
+    });
+    const userById = new Map(users.map((user) => [user.id, user]));
+
+    const participant = (id: string): ResultParticipantView => {
+      const value = participantById.get(id);
+      if (value === undefined) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', `Participant ${id} does not exist.`);
+      return value;
+    };
+    const user = (id: string): ResultParticipantView => {
+      const value = userById.get(id);
+      if (value === undefined) throw new ResultsStoreError('RESULTS_INTEGRITY_FAILURE', `Authority ${id} does not exist.`);
+      return value;
+    };
+
+    const groupById = new Map(groups.map((group) => [group.id, group]));
+    const standingsByGroup = groupedBy(standings, ({ groupId }) => groupId);
+    const qualificationsByGroup = groupedBy(qualifications, ({ groupId }) => groupId);
+    const resultsByMatch = groupedBy(resultRecords, ({ matchId }) => matchId);
+
+    const matches = matchesRaw.map((match): ResultMatchView => {
+      const record = (resultsByMatch.get(match.id) ?? [])[0];
       const result: MatchResultView | null = record === undefined ? null : {
         confirmedAt: record.confirmedAt?.toISOString() ?? null,
-        confirmedBy: record.confirmedBy === null ? null : { displayName: record.confirmedBy.displayName, id: record.confirmedBy.id },
+        confirmedBy: record.confirmedById === null ? null : user(record.confirmedById),
         detail: record.detailJson,
         id: record.id,
         recordedAt: record.recordedAt.toISOString(),
-        recordedBy: { displayName: record.recordedBy.displayName, id: record.recordedBy.id },
+        recordedBy: user(record.recordedById),
         resolved: record.resolvedJson,
         revision: record.revision,
         status: resultStatus(record.status),
       };
+      const group = match.groupId === null ? null : groupById.get(match.groupId);
       return {
-        group: match.group === null ? null : { id: match.group.id, label: match.group.label },
+        group: group === undefined || group === null ? null : { id: group.id, label: group.label },
         id: match.id,
         ordinal: match.ordinal,
-        participantA: { displayName: match.participantA.displayName, id: match.participantA.id },
-        participantB: { displayName: match.participantB.displayName, id: match.participantB.id },
+        participantA: participant(match.participantAId),
+        participantB: participant(match.participantBId),
         result,
         roundNumber: match.roundNumber,
         status: matchStatus(match.status),
         winnerParticipantId: match.winnerParticipantId,
       };
     });
+
     return {
       competitionId,
       competitionStatus: competitionStatus(competition.status),
-      groups: execution.groups.map((group) => {
+      groups: groups.map((group) => {
         const groupMatches = matches.filter((match) => match.group?.id === group.id);
-        const qualification = group.qualifications[0];
+        const qualification = (qualificationsByGroup.get(group.id) ?? [])[0];
         return {
           complete: groupMatches.length > 0 && groupMatches.every((match) => match.status === 'RESULT_CONFIRMED'),
           id: group.id,
@@ -196,19 +252,19 @@ export class PrismaResultsStore implements ResultsStore {
           ordinal: group.ordinal,
           qualification: qualification === undefined ? null : {
             confirmedAt: qualification.confirmedAt?.toISOString() ?? null,
-            confirmedBy: qualification.confirmedBy === null ? null : { displayName: qualification.confirmedBy.displayName, id: qualification.confirmedBy.id },
-            firstParticipant: { displayName: qualification.firstParticipant.displayName, id: qualification.firstParticipant.id },
+            confirmedBy: qualification.confirmedById === null ? null : user(qualification.confirmedById),
+            firstParticipant: participant(qualification.firstParticipantId),
             id: qualification.id,
             proposedAt: qualification.proposedAt.toISOString(),
-            proposedBy: { displayName: qualification.proposedBy.displayName, id: qualification.proposedBy.id },
+            proposedBy: user(qualification.proposedById),
             revision: qualification.revision,
-            secondParticipant: { displayName: qualification.secondParticipant.displayName, id: qualification.secondParticipant.id },
+            secondParticipant: participant(qualification.secondParticipantId),
             status: qualification.status === 'CONFIRMED' ? 'CONFIRMED' as const : 'PENDING_CONFIRMATION' as const,
           },
-          standings: group.standings.map((standing): StandingRowView => ({
+          standings: (standingsByGroup.get(group.id) ?? []).map((standing): StandingRowView => ({
             draws: standing.draws,
             losses: standing.losses,
-            participant: { displayName: standing.participant.displayName, id: standing.participant.id },
+            participant: participant(standing.participantId),
             played: standing.played,
             position: standing.position,
             scoreAgainst: standing.scoreAgainst,
@@ -227,7 +283,7 @@ export class PrismaResultsStore implements ResultsStore {
         };
       }),
       matches,
-      resultProfile: resultProfile(execution.configuration.ruleSet.resultProfile),
+      resultProfile: resultProfile(ruleSet.resultProfile),
     };
   }
 
