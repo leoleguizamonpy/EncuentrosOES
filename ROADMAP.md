@@ -6,7 +6,7 @@
 > Rama funcional consolidada: `main`  
 > Perfil operativo actual: `LOCAL`
 
-El producto se encuentra en aceptación funcional LOCAL. Los gates estructurales están cerrados; los hallazgos de la prueba manual se incorporan como bloques correctivos antes de declarar la aceptación final.
+El producto se encuentra en cierre de aceptación funcional LOCAL. La funcionalidad competitiva y el hardening están aceptados. El único gate abierto es un retest dirigido del runtime después de PR #77, que eliminó los dos read-models relacionales profundos asociados al warning deprecado de `pg` observado durante la prueba manual completa.
 
 ## Estado ejecutivo
 
@@ -22,7 +22,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Continuidad eliminatoria
 ├── [x] Campeón y finalización
 ├── [x] Historial competitivo persistente
-├── [~] MATCH-RESOLUTION-001 — regresión automatizada integrada; aceptación manual pendiente
+├── [x] MATCH-RESOLUTION-001 — cerrado funcionalmente
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
 ├── [x] Auditoría y seguridad
@@ -30,82 +30,72 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
 ├── [x] Engineering Hardening — 100%
-├── [x] LOCAL-RUNTIME-001 — cerrado tras CI + retest LOCAL
-└── [~] ACEPTACIÓN LOCAL EN CURSO
+├── [~] LOCAL-RUNTIME-001 — fix integrado; retest dirigido pendiente
+└── [~] ACEPTACIÓN LOCAL — pendiente solo de confirmar runtime sin warning
 ```
 
-## Gates cerrados
+## Gates del producto
 
 ### Gate 0 — Fundación y arquitectura
-
 - [x] Foundation 2.1.0 vigente.
 - [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
-- [x] CI obligatorio con Architecture Gate, lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
+- [x] CI con Architecture Gate, lint, tipos, pruebas, PostgreSQL, coverage, build y visual E2E.
 
 ### Gate 1 — Persistencia competitiva
-
 - [x] Edición, evento, institución, deporte y modalidad persistentes.
 - [x] Competencia, participantes, reglas, sorteos, encuentros y resultados restaurables.
 - [x] Revisión optimista e idempotencia en mutaciones críticas.
 
 ### Gate 2 — Sorteo oficial verificable
-
 - [x] Motor determinista `oes-draw-v1`.
 - [x] Semilla criptográfica y compromiso previo.
 - [x] Grupos 3–4, eliminación directa y BYE auditable.
-- [x] Confirmación SUPERADMIN propia permitida explícitamente.
-- [x] Migración `202608220015_superadmin_self_confirmation` alinea PostgreSQL con Foundation 2.1.
+- [x] Confirmación SUPERADMIN propia según Foundation 2.1.
 - [x] Publicación y evidencia SHA-256.
 
-### Gate 3 — Resultados y tablas base
-
-- [x] Resultados `SCORE_BASED` y `SET_BASED`.
-- [x] Confirmación explícita y anulación trazable.
-- [x] SUPERADMIN puede confirmar su propio resultado mediante segunda transición.
+### Gate 3 — Resultados y tablas
+- [x] `SCORE_BASED` y `SET_BASED`.
+- [x] Confirmación y anulación trazables.
 - [x] Tablas recalculadas desde resultados confirmados.
-- [x] Desempates de tabla ordenados y enfrentamiento directo.
+- [x] Desempates ordenados y enfrentamiento directo.
 
-### Gate 4 — Clasificación desde grupos
-
+### Gate 4 — Clasificación
 - [x] Dos clasificados propuestos automáticamente.
-- [x] Empate no resuelto bloquea propuesta.
-- [x] Fuentes persistidas y confirmación auditable.
+- [x] Empate no resuelto bloquea la propuesta.
+- [x] Confirmación auditable y fuentes persistidas.
 
 ### Gate 5 — Continuidad eliminatoria
-
 - [x] Grupos → eliminación desde clasificados confirmados.
-- [x] Eliminación → nueva ronda desde avances confirmados.
+- [x] Eliminación → nueva ronda desde ganadores confirmados/BYE.
 - [x] Re-sorteo obligatorio por ronda.
 - [x] BYE preservado como avance explícito.
+- [x] Si quedan menos de dos elegibles no se fabrica una ronda inválida.
 
 ### Gate 6 — Finalización
-
 - [x] Final detectada desde evidencia confirmada.
-- [x] Campeón propuesto/confirmado.
+- [x] Campeón propuesto y confirmado.
 - [x] `LOCKED → FINALIZED` transaccional.
 
 ### Gate 7L — Operación LOCAL
-
 - [x] PostgreSQL real.
 - [x] Backup custom + SHA-256.
 - [x] Restore aislado.
 - [x] Recuperación tras reinicio.
-- [x] Warning runtime de lectura inicial retirado de la ruta normal mediante proyección plana de competencias; CI #461 exact-head + retest LOCAL limpio.
-- [~] Aceptación manual completa pendiente de cerrar los hallazgos funcionales restantes.
+- [x] Lecturas iniciales de catálogo/listado aplanadas.
+- [x] Lecturas de historial y results-workspace aplanadas mediante PR #77.
+- [x] CI #473 completo sobre el código del fix.
+- [ ] Retest dirigido: abrir workspace completo sin `DeprecationWarning` de `pg`.
 
 ### Gate 8 — Experiencia pública
-
 - [x] Grupos, tablas, rondas y cruces publicados.
 - [x] Evidencia histórica preservada.
 
 ### Gate 9 — Saneamiento técnico
-
 - [x] Árbol limpio de artefactos generados.
 - [x] Persistencia y servicios transaccionales consolidados.
-- [x] Architecture Gate impide regresiones estructurales conocidas.
-- [x] Lecturas `GET /competitions` y `GET /competitions/catalog` sin `include` relacional anidado en producción.
-
-> Este gate describe el saneamiento funcional y técnico vigente. La mantenibilidad residual se controla con `pnpm architecture:check` y `docs/15-engineering-hardening-closeout.md`.
+- [x] Architecture Gate evita regresiones estructurales conocidas.
+- [x] Catálogo/listado sin fan-out relacional profundo.
+- [x] Historial/resultados sin fan-out relacional profundo en la ruta normal del workspace.
 
 ### Gate 10 — UX administrativa 2.0
 
@@ -128,7 +118,7 @@ PR #73 incorporó una proyección histórica independiente del workspace vigente
 
 ```text
 Historial competitivo
-├── [x] Todas las ejecuciones oficiales confirmadas/anuladas
+├── [x] Ejecuciones oficiales confirmadas/anuladas
 ├── [x] Tablas finales de grupos
 ├── [x] Clasificados
 ├── [x] Encuentros y resultados históricos
@@ -138,165 +128,117 @@ Historial competitivo
 └── [x] SCORE_BASED / SET_BASED
 ```
 
-## MATCH-RESOLUTION-001 — ACEPTACIÓN MANUAL PENDIENTE
+## MATCH-RESOLUTION-001 — CERRADO FUNCIONALMENTE
 
 Referencia: `docs/13-match-resolution.md`.
 
-Objetivo: separar marcador deportivo, método de desempate y resolución administrativa.
-
 ```text
 MATCH-RESOLUTION-001
-├── [x] Modelo de dominio separa marcador y resolución
+├── [x] Modelo separa marcador y resolución
 ├── [x] Penales independientes del marcador reglamentario
 ├── [x] Ganador por penales sin contaminar GF/GC
-├── [x] NO_SHOW_A
-├── [x] NO_SHOW_B
-├── [x] NO_SHOW_BOTH
+├── [x] NO_SHOW_A / NO_SHOW_B / NO_SHOW_BOTH
 ├── [x] WITHDRAWN_A / WITHDRAWN_B
 ├── [x] ABANDONED_A / ABANDONED_B
-├── [x] 0/3 puntos administrativos
+├── [x] 0/3 administrativo
 ├── [x] ambos ausentes → 0/0
-├── [x] métricas deportivas no reciben goles/sets ficticios
-├── [x] ausencia individual en KO → rival avanza
-├── [x] ambos ausentes en KO → nadie avanza
-├── [x] participante sin avance queda fuera del próximo sorteo
-├── [x] historial conserva la causa administrativa
-├── [x] UI permite elegir cómo terminó el encuentro
+├── [x] sin goles/sets ficticios
+├── [x] KO: ausencia individual → rival avanza
+├── [x] KO: ambos ausentes → nadie avanza
+├── [x] excluidos no vuelven al próximo sorteo
+├── [x] historial conserva causa administrativa
+├── [x] UI permite elegir resolución
 ├── [x] UI solicita penales ante empate SCORE_BASED en KO
-├── [x] pruebas API/web/database de regresión
-├── [x] CI completo sobre head exacto — CI #467
-├── [x] merge a main — PR #76 / 76c2461ba8cbf625b76689146547d1cc0c0619b6
-└── [ ] retest manual LOCAL
+├── [x] regresión API/web/database
+├── [x] CI #467 exact-head
+├── [x] PR #76 integrado en main
+└── [x] prueba manual funcional reportada y contrastada con log del 24/08/2026
 ```
 
-### Evidencia automatizada de regresión
+La prueba manual alcanzó creación/configuración de competencia, sorteo, confirmación, resultados, continuidad y campeón. El `422` observado al intentar preparar una ronda después de la final corresponde al rechazo esperado antes de proponer/confirmar campeón; no se clasifica como fallo funcional.
 
-- API HTTP conserva marcador reglamentario empatado y penales como capas independientes.
-- API HTTP conserva `NO_SHOW_BOTH` como resolución administrativa sin `scoreA`/`scoreB` ficticios.
-- UI envía `NO_SHOW_BOTH` como resolución administrativa sin marcador deportivo.
-- PostgreSQL real persiste `NO_SHOW_BOTH` con `winnerParticipantId = null`, 0/0 administrativo y métricas deportivas no contabilizadas.
-- Continuidad KO excluye a ambos ausentes; si queda un solo elegible, no crea una ronda siguiente inválida.
-- CI #467 validó Architecture Gate, lint, typecheck, Prisma, PostgreSQL integration, backup/restore, coverage, build y visual E2E Chromium sobre el head exacto integrado mediante PR #76.
+## LOCAL-RUNTIME-001 — RETEST DIRIGIDO PENDIENTE
 
-### Invariantes del bloque
+La primera corrección eliminó el fan-out relacional de catálogo/listado y fue validada por CI #461. Durante la prueba manual completa del 24/08/2026 el mismo warning reapareció al abrir simultáneamente las vistas completas de la competencia:
 
-- Los penales nunca reemplazan el marcador reglamentario.
-- Una incomparecencia no se representa como un marcador ficticio `0-3`.
-- En fase de grupos, una resolución administrativa puede afectar `J/G/P/Pts` pero no `GF/GC/DG`, sets ni puntos deportivos.
-- Un resultado administrativo confirmado conserva el mismo workflow de autoridad, idempotencia y anulación que cualquier otro resultado.
-- En eliminación directa, solo `winnerParticipantId` confirmado o BYE entra a la siguiente ronda; un encuentro confirmado sin ganador excluye a ambos participantes.
-- Si quedan menos de dos elegibles, no se abre automáticamente otra ronda.
+`Calling client.query() when the client is already executing a query`
 
-## LOCAL-RUNTIME-001 — CERRADO
-
-Durante la aceptación manual LOCAL se observó una única advertencia deprecada de `pg`: `Calling client.query() when the client is already executing a query`. La investigación aisló el trigger de runtime en las lecturas iniciales de catálogo/listado de competencias que usaban fan-out relacional mediante Prisma `include`.
+La investigación localizó dos read-models que aún conservaban árboles profundos de Prisma `include`: `CompetitionHistoryService` y `PrismaResultsStore.workspace()`.
 
 ```text
 LOCAL-RUNTIME-001
-├── [x] Warning reproducido en aceptación local
-├── [x] Trigger de lectura inicial identificado
-├── [x] CompetitionQueryService creado
-├── [x] Catálogo reconstruido desde consultas planas
-├── [x] Listado reconstruido desde consultas planas
-├── [x] Conteo de participantes preservado
-├── [x] Contrato HTTP preservado
-├── [x] Adaptadores fake siguen sustituyendo las lecturas en E2E
-├── [x] Regresión sin `include` relacional añadida
-├── [x] Architecture Gate / lint / typecheck
-├── [x] PostgreSQL integration / backup / restore / roundtrip
-├── [x] Coverage / build
-├── [x] Visual E2E Chromium — CI #461 success
-└── [x] Retest manual LOCAL — API inicia limpia y sin warning en la ruta observada
+├── [x] Warning inicial reproducido
+├── [x] Catálogo/listado aplanados
+├── [x] Retest inicial limpio
+├── [x] Warning reproducido nuevamente en workspace completo
+├── [x] Hotspot CompetitionHistoryService identificado
+├── [x] Hotspot PrismaResultsStore.workspace identificado
+├── [x] CompetitionHistoryService reconstruido desde lecturas planas
+├── [x] PrismaResultsStore.workspace reconstruido desde lecturas planas
+├── [x] Contratos de salida preservados
+├── [x] Tests de caracterización actualizados
+├── [x] Architecture Gate
+├── [x] lint / typecheck
+├── [x] PostgreSQL integration
+├── [x] backup / restore / roundtrip
+├── [x] coverage / build
+├── [x] visual E2E Chromium — CI #473
+├── [x] PR #77 integrado — d34cd4b0c1209e29c87c3a5b7d36e78fd7fd5865
+└── [ ] retest LOCAL del workspace completo sin warning
 ```
 
-No se redujo la versión de `pg` ni se silenció la advertencia. El stack Prisma `@prisma/adapter-pg` todavía puede emitir el mismo warning dentro de pruebas de integración internas con relaciones complejas; esos tests continúan pasando. El trigger observado en el runtime normal de la API quedó retirado y el retest LOCAL del 24 de agosto de 2026 confirmó un arranque limpio sin la advertencia.
+No se silenció la advertencia ni se degradó `pg`. El cambio reduce el fan-out relacional de la ruta operativa mediante lecturas planas y reconstrucción explícita de las proyecciones. El bloque se cerrará únicamente tras comprobar en LOCAL que la ruta que antes reproducía el warning ya no lo emite.
 
 ## Engineering Refactor / Architecture Hardening — CERRADO
 
 Referencias:
-
 - `docs/14-engineering-audit-baseline.md`
 - `docs/15-engineering-hardening-closeout.md`
 
-Este bloque no reabre comportamiento funcional ya aceptado. El alcance de auditoría y hardening queda cerrado al 100%; la calidad final no se presenta como perfección absoluta: Engineering Health = 88/100 y la deuda residual queda baja/controlada.
+Engineering Health final: **88/100**. Deuda residual: **BAJA / CONTROLADA**.
 
 ```text
 ENGINEERING-HARDENING — 100%
-├── [x] Baseline arquitectónico inicial
+├── [x] Baseline arquitectónico
 ├── [x] Contraste Foundation / Roadmap / implementación
-├── [x] Hotspots/god candidates identificados y tratados
-├── [x] CI auditado
-├── [x] Inventario de archivos >300 / >500 / >1000 líneas
-├── [x] Inventario any / casts / TODO / FIXME / console
-├── [x] Dependency graph y ciclos
-├── [x] Auditoría completa de controllers y autorización
-├── [x] Auditoría Prisma: índices, constraints, cascades e invariantes
-├── [x] Auditoría frontend por feature y tamaño
-├── [x] Auditoría de duplicación estructural/semántica
-├── [x] Contratos de catálogo sin `unknown`
-├── [x] Tests de caracterización de catálogo
+├── [x] Hotspots tratados
+├── [x] Contratos explícitos de catálogo
 ├── [x] CatalogAssetService aislado
 ├── [x] CatalogQueryService separado de comandos
-├── [x] CatalogAdminService dividido por responsabilidad
-├── [x] PrismaCompetitionStore dividido con tests de caracterización
-├── [x] CompetitionQueryService para lecturas planas de catálogo/listado
+├── [x] PrismaCompetitionStore dividido
 ├── [x] Idempotencia competitiva extraída
-├── [x] Persistencia/proyección de rule-set extraída
-├── [x] PrismaDrawStore auditado y dividido
-├── [x] Idempotencia de sorteo extraída
+├── [x] Persistencia/proyección rule-set extraída
+├── [x] PrismaDrawStore dividido
 ├── [x] DrawReadModel extraído
-├── [x] Shared utilities auditado sin crear shared genérico innecesario
-├── [x] Naming auditado y unificado por responsabilidad
+├── [x] Seguridad/autorización auditada
+├── [x] Prisma/invariantes auditados
+├── [x] Frontend por feature auditado
+├── [x] DRY/naming/shared auditados
 ├── [x] Architecture Gate automatizado
 ├── [x] CI ejecuta Architecture Gate
-├── [x] Score final de ingeniería recalculado — 88/100
 └── [x] Re-auditoría de cierre
 ```
 
-### Cierre de prioridades
+### Prioridades
 
 ```text
 P0
 └── [x] Sin hallazgos abiertos
 
 P1
-├── [x] TYPE-001 — contratos explícitos para catálogo
-├── [x] ARCH-002 — split catálogo: assets + query/commands
-├── [x] ARCH-001 — split protegido de PrismaCompetitionStore
-├── [x] ARCH-DRAW-001 — split protegido de PrismaDrawStore
-└── [x] GATE-001 — Architecture Gate en CI
+├── [x] TYPE-001
+├── [x] ARCH-002
+├── [x] ARCH-001
+├── [x] ARCH-DRAW-001
+└── [x] GATE-001
 
 P2
-├── [x] DATA-001 — schema/invariantes
-├── [x] SEC-001 — controllers/autorización
-├── [x] WEB-001 — frontend por feature
-├── [x] DRY-001 — duplicación semántica
-└── [x] LOCAL-RUNTIME-001 — fan-out relacional retirado de lectura inicial
-
-P3 / MONITOR
-├── [x] PrismaDrawStore restante revisado: 568 líneas, command orchestrator cohesivo
-├── [x] double-casts registrados como warnings de boundary/test
-├── [x] consoleOperationalLogger verificado como logging estructurado intencional
-├── [x] warning `pg` upstream monitorizado en integración Prisma; no silenciado
-└── [x] archivos de dominio 300–400 líneas revisados sin split artificial
+├── [x] DATA-001
+├── [x] SEC-001
+├── [x] WEB-001
+├── [x] DRY-001
+└── [~] LOCAL-RUNTIME-001 — retest final pendiente
 ```
-
-### Resultado del gate estructural
-
-Último inventario de código validado durante el cierre:
-
-- 248 archivos fuente;
-- 14 por encima de 300 líneas;
-- 2 por encima de 500;
-- 0 por encima de 1000;
-- 0 `any` explícitos;
-- 0 `TODO` / `FIXME`;
-- 1 `console.*`, aceptado en `OperationalLogger`;
-- 25 archivos con double-cast monitorizado;
-- 0 ciclos relativos;
-- 0 violaciones de fronteras domain/database/api/web.
-
-El archivo productivo >500 restante es `PrismaDrawStore` con 568 líneas, reducido desde 998 y revisado como comando transaccional cohesivo. El otro archivo >500 es un test de integración, no un servicio productivo.
 
 ## Perfil EXTERNAL — OPCIONAL / NO SELECCIONADO
 
@@ -304,28 +246,27 @@ El archivo productivo >500 restante es `PrismaDrawStore` con 568 líneas, reduci
 - [x] Guardas de privacidad/cifrado/mínimo privilegio.
 - [ ] `REAL-STORAGE-DRILL` contra proveedor externo real solo si se selecciona este perfil.
 
-Este pendiente no reduce el porcentaje del perfil LOCAL ni del Engineering Hardening.
+Este pendiente no reduce el porcentaje del perfil LOCAL.
 
-## Próxima salida de aceptación
+## Salida final de aceptación
 
-El hardening queda cerrado y la regresión automatizada de `MATCH-RESOLUTION-001` está integrada en `main`. La siguiente actividad es la aceptación manual LOCAL.
+La prueba funcional completa ya fue ejecutada. No es necesario repetir todos los escenarios competitivos. Solo queda verificar la ruta específica afectada por el warning después del merge de PR #77.
 
 ```text
 Prueba final LOCAL
 ├── [x] Aplicación inicia y restaura estado
 ├── [x] Sorteos y auto-confirmación SUPERADMIN
+├── [x] Resultado normal SCORE_BASED
+├── [x] Empate KO + penales
+├── [x] Resoluciones administrativas
+├── [x] NO_SHOW individual
+├── [x] NO_SHOW_BOTH
+├── [x] Re-sorteo / BYE / elegibles
+├── [x] Finalización y campeón
 ├── [x] Historial competitivo persistente
-├── [x] Retest de warning `pg` tras LOCAL-RUNTIME-001
-├── [ ] Resultado normal SCORE_BASED
-├── [ ] Empate KO + penales
-├── [ ] NO_SHOW individual en grupos → 0/3 sin goles ficticios
-├── [ ] NO_SHOW_BOTH en grupos → 0/0
-├── [ ] NO_SHOW individual en KO → solo rival avanza
-├── [ ] NO_SHOW_BOTH en KO → ninguno entra al próximo sorteo
-├── [ ] Re-sorteo con elegibles restantes/BYE
-├── [ ] Finalización
-├── [ ] Reinicio y verificación de persistencia
-└── [ ] Backup + restore drill
+├── [x] Persistencia / reinicio reportados como probados
+├── [x] Backup + restore reportados como probados
+└── [ ] Abrir workspace completo en main sin DeprecationWarning de pg
 ```
 
 No se incorporan calendario de partidos, horarios, canchas, árbitros, estadísticas individuales, pagos, sanciones ni gestión general del evento sin modificar explícitamente `FOUNDATION.md`.
