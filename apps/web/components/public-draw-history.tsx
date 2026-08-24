@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, Card, Chip, Skeleton } from '@heroui/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -21,28 +22,20 @@ export function PublicDrawHistory({ competitionId }: { readonly competitionId: s
     return () => { active = false; };
   }, [competitionId]);
 
-  if (error !== null) return <section className="public-draw-verification" role="alert"><h2 className="public-round-heading">Historial público</h2><p>{error}</p></section>;
-  if (items === null) return <section className="public-draw-verification" role="status" aria-live="polite"><h2 className="public-round-heading">Historial público</h2><p>Cargando publicaciones y verificaciones…</p></section>;
-  if (items.length === 0) return <section className="public-draw-verification"><h2 className="public-round-heading">Historial público</h2><p>Aún no existen publicaciones oficiales para esta competencia.</p></section>;
+  if (error !== null) return <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Historial público</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert>;
+  if (items === null) return <Card className="public-draw-verification" role="status" aria-live="polite"><Card.Content style={{ display: 'grid', gap: 12 }}><h2 className="public-round-heading">Historial público</h2><Skeleton style={{ height: 10, width: '40%' }} /><p>Cargando publicaciones y verificaciones…</p></Card.Content></Card>;
+  if (items.length === 0) return <Card className="public-draw-verification"><Card.Content><h2 className="public-round-heading">Historial público</h2><p>Aún no existen publicaciones oficiales para esta competencia.</p></Card.Content></Card>;
 
-  return <section className="public-draw-verification" aria-labelledby="public-history-heading">
-    <h2 className="public-round-heading" id="public-history-heading">Historial público de publicaciones</h2>
-    <p>Cada entrada conserva su estado histórico. Una publicación revocada permanece visible como evidencia, pero deja de ser un acta vigente.</p>
-    <ol className="public-history-list">
-      {items.map((item) => <li key={item.publicationId} className="public-history-item">
-        <div>
-          <span>{publicationLabel(item)}</span>
-          <b>{new Date(item.publishedAt).toLocaleString('es-PY')}</b>
-          <code>{item.verificationCode}</code>
-        </div>
-        <div>
-          <strong className="public-state-label" role="status">{item.status === 'PUBLISHED' ? '✓ Vigente' : 'Revocada'}</strong>
-          <small>{item.integrityValid ? 'Integridad criptográfica válida' : 'Integridad no verificable'}</small>
-          {item.status === 'PUBLISHED'
-            ? <Link href={`/draws/${item.publicationId}`}>Ver acta vigente</Link>
-            : <p>Revocada {item.revokedAt === null ? '' : `el ${new Date(item.revokedAt).toLocaleString('es-PY')}`}{item.revocationReason === null ? '' : ` · ${item.revocationReason}`}</p>}
-        </div>
-      </li>)}
-    </ol>
-  </section>;
+  return <Card className="public-draw-verification" aria-labelledby="public-history-heading">
+    <Card.Content>
+      <h2 className="public-round-heading" id="public-history-heading">Historial público de publicaciones</h2>
+      <p>Cada entrada conserva su estado histórico. Una publicación revocada permanece visible como evidencia, pero deja de ser un acta vigente.</p>
+      <ol className="public-history-list">
+        {items.map((item) => <li key={item.publicationId} className="public-history-item">
+          <div><span>{publicationLabel(item)}</span><b>{new Date(item.publishedAt).toLocaleString('es-PY')}</b><code>{item.verificationCode}</code></div>
+          <div><Chip color={item.status === 'PUBLISHED' ? 'success' : 'danger'} size="sm" variant="soft">{item.status === 'PUBLISHED' ? '✓ Vigente' : 'Revocada'}</Chip><small>{item.integrityValid ? 'Integridad criptográfica válida' : 'Integridad no verificable'}</small>{item.status === 'PUBLISHED' ? <Link href={`/draws/${item.publicationId}`}>Ver acta vigente</Link> : <p>Revocada {item.revokedAt === null ? '' : `el ${new Date(item.revokedAt).toLocaleString('es-PY')}`}{item.revocationReason === null ? '' : ` · ${item.revocationReason}`}</p>}</div>
+        </li>)}
+      </ol>
+    </Card.Content>
+  </Card>;
 }
