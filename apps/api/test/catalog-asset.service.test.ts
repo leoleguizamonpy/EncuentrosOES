@@ -13,6 +13,22 @@ function asTransaction(value: object): Prisma.TransactionClient {
 }
 
 describe('CatalogAssetService', () => {
+  it('indexes persisted assets by resource type and id', async () => {
+    const client = asPrismaClient({
+      $queryRaw: vi.fn().mockResolvedValue([
+        { asset_id: 'asset-sport', resource_id: 'sport-1', resource_type: 'SPORT' },
+        { asset_id: 'asset-institution', resource_id: 'institution-1', resource_type: 'INSTITUTION' },
+      ]),
+    });
+    const service = new CatalogAssetService(client);
+
+    const index = await service.indexByResource();
+
+    expect(index.get('SPORT:sport-1')).toBe('asset-sport');
+    expect(index.get('INSTITUTION:institution-1')).toBe('asset-institution');
+    expect(index.get('MODALITY:missing')).toBeUndefined();
+  });
+
   it('returns the persisted asset payload without changing its bytes or metadata', async () => {
     const content = new Uint8Array([1, 2, 3, 4]);
     const client = asPrismaClient({
