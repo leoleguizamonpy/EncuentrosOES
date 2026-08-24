@@ -190,9 +190,9 @@ ENGINEERING-HARDENING
 ├── [ ] Dependency graph y ciclos
 ├── [ ] Auditoría completa de controllers y autorización
 ├── [ ] Auditoría Prisma: índices, constraints, cascades e invariantes
-├── [ ] Auditoría frontend por feature y tamaño
+├── [~] Auditoría frontend por feature y tamaño
 ├── [ ] Auditoría de duplicación exacta/estructural/semántica
-├── [ ] Contratos de catálogo sin `unknown`
+├── [~] Contratos de catálogo sin `unknown` — implementado, CI #406 en ejecución
 ├── [ ] CatalogAdminService dividido por responsabilidad
 ├── [ ] PrismaCompetitionStore dividido con tests de caracterización
 ├── [ ] Shared utilities auditado
@@ -207,16 +207,18 @@ ENGINEERING-HARDENING
 
 ```text
 P1
-├── TYPE-001 — contratos explícitos para catálogo
+├── TYPE-001 — contratos explícitos para catálogo [~ CI]
 ├── ARCH-001 — split protegido de PrismaCompetitionStore
 ├── ARCH-002 — split protegido de CatalogAdminService
 └── GATE-001 — diseño de Architecture Gate
 
 P2
 ├── DATA-001 — revisión integral de schema/invariantes
-├── WEB-001 — auditoría frontend por feature
+├── WEB-001 — auditoría frontend por feature [~]
 └── DRY-001 — duplicación semántica
 ```
+
+Hallazgo WEB-001 inicial: las rutas de `app/` son delgadas, pero varios client components concentran la lógica real; `competition-setup-client.tsx`, `confirmations-client.tsx` y otros componentes de `components/` quedan bajo revisión para separar feature UI, fetching y estado sin convertir todo en primitives genéricas.
 
 No se ejecutará ningún split de alto riesgo sin tests de caracterización que preserven comportamiento, idempotencia, auditoría y atomicidad transaccional.
 
