@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, Chip, Input } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -46,6 +47,12 @@ function scoreOf(match: ResultMatchView): string {
 
 function locationOf(match: ResultMatchView): string {
   return match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`;
+}
+
+function statusColor(status: ResultMatchView['status']): 'default' | 'success' | 'warning' {
+  if (status === 'RESULT_CONFIRMED') return 'success';
+  if (status === 'RESULT_PENDING_CONFIRMATION') return 'warning';
+  return 'default';
 }
 
 function MatchesWorkspace(): React.JSX.Element {
@@ -103,19 +110,18 @@ function MatchesWorkspace(): React.JSX.Element {
 
   const pendingResults = rows.filter(({ match }) => match.status === 'PENDING_RESULT').length;
   const pendingConfirmations = rows.filter(({ match }) => match.status === 'RESULT_PENDING_CONFIRMATION').length;
-  const summaryClass = [styles.status, styles.inactive].filter(Boolean).join(' ');
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Encuentros</h2><p>Consulta todos los encuentros materializados, detecta resultados pendientes y entra a la competencia correspondiente para registrar o confirmar el marcador.</p></div>
     </section>
-    {failedCompetitionCount === 0 ? null : <p className={styles.error} role="status">No fue posible recuperar los encuentros de {failedCompetitionCount} {failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Los datos disponibles de las demás competencias siguen visibles.</p>}
-    <section aria-label="Resumen de encuentros" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-      <span className={summaryClass}>{pendingResults} sin resultado</span>
-      <span className={summaryClass}>{pendingConfirmations} por confirmar</span>
+    {failedCompetitionCount === 0 ? null : <Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Datos parciales</Alert.Title><Alert.Description>No fue posible recuperar los encuentros de {failedCompetitionCount} {failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Los datos disponibles de las demás competencias siguen visibles.</Alert.Description></Alert.Content></Alert>}
+    <section aria-label="Resumen de encuentros" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+      <Chip color="default" size="sm" variant="soft">{pendingResults} sin resultado</Chip>
+      <Chip color="warning" size="sm" variant="soft">{pendingConfirmations} por confirmar</Chip>
     </section>
     <section aria-label="Filtros de encuentros" className={styles.toolbar}>
-      <input aria-label="Buscar encuentro" placeholder="Buscar competencia o participante…" value={query} onChange={(event) => setQuery(event.target.value)} />
+      <Input aria-label="Buscar encuentro" placeholder="Buscar competencia o participante…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
       <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as MatchFilter)}>
         <option value="ALL">Todos los estados</option>
         <option value="PENDING_RESULT">Pendientes de resultado</option>
@@ -131,7 +137,7 @@ function MatchesWorkspace(): React.JSX.Element {
         <span className={styles.logo}>{match.group === null ? `R${String(match.roundNumber)}` : match.group.label}</span>
         <div className={styles.identity}><strong>{match.participantA.displayName} · {match.participantB.displayName}</strong><small>{locationOf(match)} · Encuentro {String(match.ordinal)} · {scoreOf(match)}</small></div>
         <span className={styles.eventName}>{competition.sport.name} · {competition.modality.name}<br />{competition.edition.name} / {competition.event.name}</span>
-        <span className={[styles.status, match.status === 'RESULT_CONFIRMED' ? styles.active : styles.inactive].filter(Boolean).join(' ')}>{statusLabel[match.status]}</span>
+        <Chip color={statusColor(match.status)} size="sm" variant="soft">{statusLabel[match.status]}</Chip>
         <a className={styles.editButton} href={`/competitions/${competition.id}#results-workspace`} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center', textDecoration: 'none' }}>Operar</a>
       </article>)}
     </section>
