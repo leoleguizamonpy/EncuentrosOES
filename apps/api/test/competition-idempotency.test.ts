@@ -2,10 +2,20 @@ import type { PrismaClient } from '@oes/database';
 import { describe, expect, it } from 'vitest';
 
 import { CompetitionIdempotencyCoordinator } from '../src/competitions/competition-idempotency.js';
-import type { CompetitionStoreError } from '../src/competitions/competition-store.js';
+import { CompetitionStoreError } from '../src/competitions/competition-store.js';
 
 function client(): PrismaClient {
   return {} as PrismaClient;
+}
+
+function capturedError(run: () => unknown): CompetitionStoreError {
+  try {
+    run();
+  } catch (error: unknown) {
+    if (error instanceof CompetitionStoreError) return error;
+    throw error;
+  }
+  throw new Error('Expected CompetitionStoreError.');
 }
 
 describe('CompetitionIdempotencyCoordinator', () => {
@@ -47,12 +57,9 @@ describe('CompetitionIdempotencyCoordinator', () => {
     };
 
     expect(coordinator.summaryResponse('hash', 'COMPLETED', response, 'hash')).toEqual(response);
-
-    expect(() => coordinator.summaryResponse('stored', 'COMPLETED', response, 'different')).toThrowError(
-      expect.objectContaining({ code: 'IDEMPOTENCY_CONFLICT' } satisfies Partial<CompetitionStoreError>),
-    );
-    expect(() => coordinator.summaryResponse('hash', 'PROCESSING', response, 'hash')).toThrowError(
-      expect.objectContaining({ code: 'IDEMPOTENCY_IN_PROGRESS' } satisfies Partial<CompetitionStoreError>),
-    );
+    expect(capturedError(() => coordinator.summaryResponse('stored', 'COMPLETED', response, 'different')).code)
+      .toBe('IDEMPOTENCY_CONFLICT');
+    expect(capturedError(() => coordinator.summaryResponse('hash', 'PROCESSING', response, 'hash')).code)
+      .toBe('IDEMPOTENCY_IN_PROGRESS');
   });
 });
