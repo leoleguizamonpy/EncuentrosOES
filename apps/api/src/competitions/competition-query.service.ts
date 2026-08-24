@@ -1,14 +1,8 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
-import {
-  COMPETITION_STORE,
-  type CompetitionCatalog,
-  type CompetitionStore,
-  type CompetitionSummary,
-} from './competition-store.js';
-import { PrismaCompetitionStore } from './prisma-competition-store.js';
+import type { CompetitionCatalog, CompetitionSummary } from './competition-store.js';
 
 interface CatalogEntity {
   readonly code: string;
@@ -32,16 +26,9 @@ function required<T>(map: ReadonlyMap<string, T>, id: string, entity: string): T
 
 @Injectable()
 export class CompetitionQueryService {
-  public constructor(
-    @Inject(PRISMA_CLIENT) private readonly client: PrismaClient,
-    @Optional() @Inject(COMPETITION_STORE) private readonly store?: CompetitionStore,
-  ) {}
+  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
 
   public async catalog(): Promise<CompetitionCatalog> {
-    if (this.store !== undefined && !(this.store instanceof PrismaCompetitionStore)) {
-      return this.store.catalog();
-    }
-
     const [editions, combinationRows, events, sports, modalities] = await Promise.all([
       this.client.edition.findMany({
         orderBy: [{ year: 'desc' }, { name: 'asc' }],
@@ -91,10 +78,6 @@ export class CompetitionQueryService {
   }
 
   public async list(): Promise<readonly CompetitionSummary[]> {
-    if (this.store !== undefined && !(this.store instanceof PrismaCompetitionStore)) {
-      return this.store.list();
-    }
-
     const records = await this.client.competition.findMany({
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
       select: {
