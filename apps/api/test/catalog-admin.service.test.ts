@@ -56,7 +56,7 @@ describe('CatalogAdminService characterization', () => {
       edition: { create: editionCreate },
     };
     const client = asPrismaClient({
-      $transaction: vi.fn(async (callback: (value: typeof transaction) => unknown) => callback(transaction)),
+      $transaction: vi.fn((callback: (value: typeof transaction) => unknown) => Promise.resolve(callback(transaction))),
     });
     const service = new CatalogAdminService(client);
 
@@ -78,15 +78,17 @@ describe('CatalogAdminService characterization', () => {
         year: 2027,
       },
     });
-    expect(auditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actionCode: 'CATALOG_EDITION_CREATE',
-        actorId,
-        actorRole: 'ADMIN',
-        correlationId,
-        resourceId: 'edition-1',
-        resourceType: 'EDITION',
-      }),
+    expect(auditCreate).toHaveBeenCalledTimes(1);
+    const auditCall = auditCreate.mock.calls[0]?.[0] as
+      | { readonly data: { readonly actionCode: string; readonly actorId: string; readonly actorRole: string; readonly correlationId: string; readonly resourceId: string; readonly resourceType: string } }
+      | undefined;
+    expect(auditCall?.data).toMatchObject({
+      actionCode: 'CATALOG_EDITION_CREATE',
+      actorId,
+      actorRole: 'ADMIN',
+      correlationId,
+      resourceId: 'edition-1',
+      resourceType: 'EDITION',
     });
     expect(result).toMatchObject({ id: 'edition-1', name: 'OES 2027', year: 2027 });
   });
