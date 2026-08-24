@@ -1,0 +1,153 @@
+.page {
+  display: grid;
+  gap: 20px;
+  padding: 38px 0 52px;
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(223, 255, 70, .18), transparent 17rem),
+    #0b1424;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(11, 20, 36, .16);
+  color: #fff;
+  overflow: hidden;
+}
+
+.heroContent {
+  display: grid;
+  gap: 44px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+  padding: clamp(30px, 5vw, 58px);
+}
+
+.heroCopy {
+  align-self: center;
+}
+
+.heroCopy h2 {
+  font-size: clamp(38px, 5vw, 66px);
+  letter-spacing: -.06em;
+  line-height: .98;
+  margin: 24px 0 20px;
+  max-width: 760px;
+}
+
+.heroCopy p {
+  color: #aeb8c7;
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 0;
+  max-width: 650px;
+}
+
+.sessionChip {
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.readiness {
+  align-self: stretch;
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 18px;
+  display: grid;
+  padding: 8px 20px;
+}
+
+.readinessRow {
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 68px;
+}
+
+.readinessRow:last-child {
+  border-bottom: 0;
+}
+
+.readinessRow strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.guarantees {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.guaranteeCard {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  min-height: 210px;
+}
+
+.guaranteeContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 28px;
+}
+
+.index {
+  color: #829052;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.guaranteeContent h3 {
+  color: var(--foreground);
+  font-size: 18px;
+  letter-spacing: -.025em;
+  margin: auto 0 10px;
+}
+
+.guaranteeContent p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  .heroContent {
+    grid-template-columns: 1fr;
+  }
+
+  .guarantees {
+    grid-template-columns: 1fr;
+  }
+
+  .guaranteeCard {
+    min-height: 170px;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding-top: 24px;
+  }
+
+  .hero {
+    border-radius: 18px;
+  }
+
+  .heroContent {
+    gap: 28px;
+    padding: 26px 22px;
+  }
+
+  .heroCopy h2 {
+    font-size: 38px;
+  }
+
+  .readiness {
+    padding: 5px 14px;
+  }
+}
