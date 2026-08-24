@@ -2,6 +2,7 @@ import { ConflictException, Inject, Injectable, NotFoundException } from '@nestj
 import type { Prisma, PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
+import { CatalogAssetService, type CatalogAssetType, type CatalogIconInput } from './catalog-asset.service.js';
 import type {
   CatalogCombination,
   CatalogEdition,
@@ -12,13 +13,7 @@ import type {
   CatalogSportView,
 } from './catalog-contracts.js';
 
-export type CatalogAssetType = 'INSTITUTION' | 'MODALITY' | 'SPORT';
-
-export interface CatalogIconInput {
-  readonly base64: string;
-  readonly fileName: string;
-  readonly mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
-}
+export type { CatalogAssetType, CatalogIconInput } from './catalog-asset.service.js';
 
 export interface CatalogMutationContext {
   readonly actorId: string;
@@ -31,15 +26,6 @@ interface AssetIndexRow {
   readonly resource_id: string;
   readonly resource_type: CatalogAssetType;
 }
-
-interface AssetRow {
-  readonly content: Uint8Array;
-  readonly file_name: string;
-  readonly mime_type: string;
-  readonly size_bytes: number;
-}
-
-const MAX_ICON_BYTES = 1_572_864;
 
 function normalizedName(value: string): string {
   return value
@@ -56,7 +42,10 @@ function isUniqueConstraint(error: unknown): boolean {
 
 @Injectable()
 export class CatalogAdminService {
-  public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
+  public constructor(
+    @Inject(PRISMA_CLIENT) private readonly client: PrismaClient,
+    private readonly assets: CatalogAssetService,
+  ) {}
 
   public async catalog(): Promise<CatalogSnapshot> {
     const [editions, events, sports, modalities, institutions, combinations, assets] = await Promise.all([
@@ -163,7 +152,7 @@ export class CatalogAdminService {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.sport.create({ data: { active: true, code: input.code.trim().toUpperCase(), name: input.name.trim() } });
-        const iconAssetId = input.icon === null ? null : await this.replaceAsset(transaction, 'SPORT', record.id, input.icon, input.actorId);
+        const iconAssetId = input.icon === null ? null : await this.assets.replace(transaction, 'SPORT', record.id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_SPORT_CREATE', 'SPORT', record.id, { code: record.code, iconAssetId });
         return { ...record, iconAssetId };
       });
@@ -185,7 +174,7 @@ export class CatalogAdminService {
           data: { active: input.active, code: input.code.trim().toUpperCase(), name: input.name.trim() },
           where: { id },
         });
-        const iconAssetId = await this.syncAsset(transaction, 'SPORT', id, input.icon, input.actorId);
+        const iconAssetId = await this.assets.sync(transaction, 'SPORT', id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_SPORT_UPDATE', 'SPORT', id, { active: record.active, code: record.code, iconAssetId });
         return { ...record, iconAssetId };
       });
@@ -201,7 +190,7 @@ export class CatalogAdminService {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.modality.create({ data: { active: true, code: input.code.trim().toUpperCase(), name: input.name.trim() } });
-        const iconAssetId = input.icon === null ? null : await this.replaceAsset(transaction, 'MODALITY', record.id, input.icon, input.actorId);
+        const iconAssetId = input.icon === null ? null : await this.assets.replace(transaction, 'MODALITY', record.id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_MODALITY_CREATE', 'MODALITY', record.id, { code: record.code, iconAssetId });
         return { ...record, iconAssetId };
       });
@@ -223,7 +212,7 @@ export class CatalogAdminService {
           data: { active: input.active, code: input.code.trim().toUpperCase(), name: input.name.trim() },
           where: { id },
         });
-        const iconAssetId = await this.syncAsset(transaction, 'MODALITY', id, input.icon, input.actorId);
+        const iconAssetId = await this.assets.sync(transaction, 'MODALITY', id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_MODALITY_UPDATE', 'MODALITY', id, { active: record.active, code: record.code, iconAssetId });
         return { ...record, iconAssetId };
       });
@@ -251,7 +240,7 @@ export class CatalogAdminService {
             updatedById: input.actorId,
           },
         });
-        const iconAssetId = input.icon === null ? null : await this.replaceAsset(transaction, 'INSTITUTION', record.id, input.icon, input.actorId);
+        const iconAssetId = input.icon === null ? null : await this.assets.replace(transaction, 'INSTITUTION', record.id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_INSTITUTION_CREATE', 'INSTITUTION', record.id, { code: record.code, eventId: record.eventId, iconAssetId });
         return { ...record, iconAssetId };
       });
@@ -285,7 +274,7 @@ export class CatalogAdminService {
           },
           where: { id },
         });
-        const iconAssetId = await this.syncAsset(transaction, 'INSTITUTION', id, input.icon, input.actorId);
+        const iconAssetId = await this.assets.sync(transaction, 'INSTITUTION', id, input.icon, input.actorId);
         await this.audit(transaction, input, 'CATALOG_INSTITUTION_UPDATE', 'INSTITUTION', id, {
           active: record.active,
           code: record.code,
@@ -312,18 +301,6 @@ export class CatalogAdminService {
     return this.setCombination(input);
   }
 
-  public async asset(id: string): Promise<AssetRow> {
-    const rows = await this.client.$queryRaw<readonly AssetRow[]>`
-      SELECT content, file_name, mime_type, size_bytes
-      FROM catalog_assets
-      WHERE id = ${id}::uuid
-      LIMIT 1
-    `;
-    const asset = rows[0];
-    if (asset === undefined) throw new NotFoundException('El recurso gráfico no existe.');
-    return asset;
-  }
-
   private async setCombination(
     input: Readonly<{ active: boolean; eventId: string; modalityId: string; sportId: string }> & CatalogMutationContext,
   ): Promise<CatalogCombination> {
@@ -345,63 +322,6 @@ export class CatalogAdminService {
       });
       return record;
     });
-  }
-
-  private async currentAssetId(
-    transaction: Prisma.TransactionClient,
-    resourceType: CatalogAssetType,
-    resourceId: string,
-  ): Promise<string | null> {
-    const rows = await transaction.$queryRaw<readonly { readonly id: string }[]>`
-      SELECT id FROM catalog_assets
-      WHERE resource_type = ${resourceType} AND resource_id = ${resourceId}::uuid
-      LIMIT 1
-    `;
-    return rows[0]?.id ?? null;
-  }
-
-  private async syncAsset(
-    transaction: Prisma.TransactionClient,
-    resourceType: CatalogAssetType,
-    resourceId: string,
-    icon: CatalogIconInput | null | undefined,
-    actorId: string,
-  ): Promise<string | null> {
-    if (icon === undefined) return this.currentAssetId(transaction, resourceType, resourceId);
-    if (icon === null) {
-      await transaction.$executeRaw`
-        DELETE FROM catalog_assets
-        WHERE resource_type = ${resourceType} AND resource_id = ${resourceId}::uuid
-      `;
-      return null;
-    }
-    return this.replaceAsset(transaction, resourceType, resourceId, icon, actorId);
-  }
-
-  private async replaceAsset(
-    transaction: Prisma.TransactionClient,
-    resourceType: CatalogAssetType,
-    resourceId: string,
-    icon: CatalogIconInput,
-    actorId: string,
-  ): Promise<string> {
-    const content = Buffer.from(icon.base64, 'base64');
-    if (content.length === 0 || content.length > MAX_ICON_BYTES) throw new ConflictException('El icono debe pesar como máximo 1,5 MB.');
-    await transaction.$executeRaw`
-      DELETE FROM catalog_assets
-      WHERE resource_type = ${resourceType} AND resource_id = ${resourceId}::uuid
-    `;
-    const rows = await transaction.$queryRaw<readonly { readonly id: string }[]>`
-      INSERT INTO catalog_assets (
-        resource_type, resource_id, file_name, mime_type, size_bytes, content, uploaded_by
-      ) VALUES (
-        ${resourceType}, ${resourceId}::uuid, ${icon.fileName}, ${icon.mimeType}, ${content.length}, ${content}, ${actorId}::uuid
-      )
-      RETURNING id
-    `;
-    const asset = rows[0];
-    if (asset === undefined) throw new Error('Catalog asset could not be persisted.');
-    return asset.id;
   }
 
   private async audit(
