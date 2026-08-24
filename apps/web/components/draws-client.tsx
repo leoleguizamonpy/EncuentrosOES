@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, Chip, Input } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -37,6 +38,13 @@ function formatLabel(formatCode: CompetitionSummary['formatCode']): string {
   if (formatCode === 'GROUP_STAGE') return 'Fase de grupos';
   if (formatCode === 'KNOCKOUT') return 'Eliminación directa';
   return 'Sin formato';
+}
+
+function chipColor(filter: DrawFilter): 'accent' | 'default' | 'success' | 'warning' {
+  if (filter === 'PUBLISHED' || filter === 'CONFIRMED') return 'success';
+  if (filter === 'PENDING') return 'warning';
+  if (filter === 'PREPARED') return 'accent';
+  return 'default';
 }
 
 function DrawsWorkspace(): React.JSX.Element {
@@ -96,9 +104,9 @@ function DrawsWorkspace(): React.JSX.Element {
     <section className={styles.heading}>
       <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Sorteos</h2><p>Consulta qué competencias están listas para sortear, cuáles esperan confirmación y cuáles ya fueron publicadas oficialmente.</p></div>
     </section>
-    {failedCount === 0 ? null : <p className={styles.error} role="status">No fue posible recuperar el estado de {failedCount} {failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.</p>}
+    {failedCount === 0 ? null : <Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Estado parcial</Alert.Title><Alert.Description>No fue posible recuperar el estado de {failedCount} {failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.</Alert.Description></Alert.Content></Alert>}
     <section aria-label="Filtros de sorteos" className={styles.toolbar}>
-      <input aria-label="Buscar sorteo" placeholder="Buscar por edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} />
+      <Input aria-label="Buscar sorteo" placeholder="Buscar por edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
       <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as DrawFilter)}>
         <option value="ALL">Todos los estados</option>
         <option value="PENDING">Pendientes</option>
@@ -119,7 +127,7 @@ function DrawsWorkspace(): React.JSX.Element {
           <span className={styles.logo}>{row.competition.formatCode === 'GROUP_STAGE' ? 'GR' : row.competition.formatCode === 'KNOCKOUT' ? 'KO' : '—'}</span>
           <div className={styles.identity}><strong>{row.competition.sport.name} · {row.competition.modality.name}</strong><small>{row.competition.edition.name} / {row.competition.event.name}</small></div>
           <span className={styles.eventName}>{formatLabel(row.competition.formatCode)} · {row.competition.participantCount} participantes</span>
-          <span className={[styles.status, state.filter === 'PUBLISHED' || state.filter === 'CONFIRMED' ? styles.active : styles.inactive].filter(Boolean).join(' ')}>{state.label}</span>
+          <Chip color={chipColor(state.filter)} size="sm" variant="soft">{state.label}</Chip>
           <span style={{ display: 'grid', gap: 6 }}><a className={styles.editButton} href={`/competitions/${row.competition.id}`} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center', textDecoration: 'none' }}>Operar</a>{publication === null ? null : <a href={`/draws/${publication.id}`} style={{ fontSize: 9, textAlign: 'center' }}>Ver publicación</a>}</span>
         </article>;
       })}
