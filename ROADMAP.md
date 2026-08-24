@@ -186,7 +186,7 @@ ENGINEERING-HARDENING
 ├── [x] Primeros god candidates identificados
 ├── [x] CI actual auditado
 ├── [ ] Inventario de archivos >300 / >500 / >1000 líneas
-├── [ ] Inventario any / casts / TODO / FIXME / console
+├── [~] Inventario any / casts / TODO / FIXME / console
 ├── [ ] Dependency graph y ciclos
 ├── [ ] Auditoría completa de controllers y autorización
 ├── [ ] Auditoría Prisma: índices, constraints, cascades e invariantes
@@ -194,7 +194,8 @@ ENGINEERING-HARDENING
 ├── [ ] Auditoría de duplicación exacta/estructural/semántica
 ├── [x] Contratos de catálogo sin `unknown` — CI #407 success
 ├── [x] Tests de caracterización de CatalogAdminService — CI #414 success
-├── [~] CatalogAssetService aislado — lectura, índice, sync y replace extraídos; CI #421 en ejecución
+├── [x] CatalogAssetService aislado — validado por CI #422
+├── [~] CatalogQueryService separado de comandos — CI del head exacto pendiente
 ├── [~] CatalogAdminService dividido por responsabilidad
 ├── [ ] PrismaCompetitionStore dividido con tests de caracterización
 ├── [ ] Shared utilities auditado
@@ -210,8 +211,8 @@ ENGINEERING-HARDENING
 ```text
 P1
 ├── TYPE-001 — contratos explícitos para catálogo [x]
-├── ARCH-002A — assets fuera de CatalogAdminService [~ CI #421]
-├── ARCH-002B — separar lectura y mutaciones del catálogo [ ]
+├── ARCH-002A — assets fuera de CatalogAdminService [x]
+├── ARCH-002B — separar lectura y mutaciones del catálogo [~ CI]
 ├── ARCH-001 — split protegido de PrismaCompetitionStore
 └── GATE-001 — diseño de Architecture Gate
 
@@ -223,7 +224,11 @@ P2
 
 Hallazgo WEB-001 inicial: las rutas de `app/` son delgadas, pero varios client components concentran la lógica real; `competition-setup-client.tsx`, `confirmations-client.tsx` y otros componentes de `components/` quedan bajo revisión para separar feature UI, fetching y estado sin convertir todo en primitives genéricas.
 
-ARCH-002A preserva explícitamente la proyección del catálogo, la atomicidad mutación + auditoría y la semántica de assets opcionales. `CatalogAssetService` posee ahora lectura pública, índice por recurso, conservación, eliminación y reemplazo de assets. `CatalogAdminService` mantiene la transacción de negocio y delega la persistencia gráfica usando el mismo `Prisma.TransactionClient`; no se introducen transacciones anidadas.
+ARCH-002A preserva explícitamente la proyección del catálogo, la atomicidad mutación + auditoría y la semántica de assets opcionales. `CatalogAssetService` posee lectura pública, índice por recurso, conservación, eliminación y reemplazo de assets. `CatalogAdminService` mantiene la transacción de negocio y delega la persistencia gráfica usando el mismo `Prisma.TransactionClient`; no se introducen transacciones anidadas.
+
+ARCH-002B separa consultas de comandos sin incorporar un framework CQRS: `CatalogQueryService` posee `GET /admin/catalog` y su proyección; `CatalogAdminService` conserva exclusivamente comandos transaccionales. La separación existe para reducir razones de cambio, no para agregar capas ceremoniales.
+
+El primer barrido por índice no encontró `TODO`, `FIXME` ni `console.`. Los resultados sobre casts/`any` deben validarse con inventario estructural antes de cerrarse, porque la búsqueda indexada no sustituye una inspección completa del árbol.
 
 No se ejecutará ningún split de alto riesgo sin tests de caracterización que preserven comportamiento, idempotencia, auditoría y atomicidad transaccional.
 
