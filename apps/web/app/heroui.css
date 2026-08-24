@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+:root,
+[data-theme="oes"] {
+  color-scheme: light;
+  --background: #f4f6f8;
+  --foreground: #0b1424;
+  --surface: #ffffff;
+  --surface-foreground: #0b1424;
+  --overlay: #ffffff;
+  --overlay-foreground: #0b1424;
+  --muted: #eef1f4;
+  --muted-foreground: #667085;
+  --accent: #dfff46;
+  --accent-foreground: #0b1424;
+  --border: #dfe4ea;
+  --focus: #9ab52f;
+  --danger: #d83b3b;
+  --danger-foreground: #ffffff;
+  --radius: 0.875rem;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
