@@ -22,7 +22,7 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Continuidad eliminatoria
 ├── [x] Campeón y finalización
 ├── [x] Historial competitivo persistente
-├── [~] MATCH-RESOLUTION-001 — regresión automatizada cerrada; aceptación manual pendiente
+├── [~] MATCH-RESOLUTION-001 — regresión automatizada integrada; aceptación manual pendiente
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
 ├── [x] Auditoría y seguridad
@@ -164,8 +164,8 @@ MATCH-RESOLUTION-001
 ├── [x] UI permite elegir cómo terminó el encuentro
 ├── [x] UI solicita penales ante empate SCORE_BASED en KO
 ├── [x] pruebas API/web/database de regresión
-├── [~] CI completo sobre head exacto — CI #466 verde antes de este cierre documental
-├── [ ] merge a main
+├── [x] CI completo sobre head exacto — CI #467
+├── [x] merge a main — PR #76 / 76c2461ba8cbf625b76689146547d1cc0c0619b6
 └── [ ] retest manual LOCAL
 ```
 
@@ -176,7 +176,7 @@ MATCH-RESOLUTION-001
 - UI envía `NO_SHOW_BOTH` como resolución administrativa sin marcador deportivo.
 - PostgreSQL real persiste `NO_SHOW_BOTH` con `winnerParticipantId = null`, 0/0 administrativo y métricas deportivas no contabilizadas.
 - Continuidad KO excluye a ambos ausentes; si queda un solo elegible, no crea una ronda siguiente inválida.
-- CI #466 validó Architecture Gate, lint, typecheck, Prisma, PostgreSQL integration, backup/restore, coverage, build y visual E2E Chromium sobre el head de tests previo a esta actualización documental.
+- CI #467 validó Architecture Gate, lint, typecheck, Prisma, PostgreSQL integration, backup/restore, coverage, build y visual E2E Chromium sobre el head exacto integrado mediante PR #76.
 
 ### Invariantes del bloque
 
@@ -308,7 +308,7 @@ Este pendiente no reduce el porcentaje del perfil LOCAL ni del Engineering Harde
 
 ## Próxima salida de aceptación
 
-El hardening queda cerrado y la regresión automatizada de `MATCH-RESOLUTION-001` ya está cubierta. La siguiente actividad es integración + aceptación manual LOCAL.
+El hardening queda cerrado y la regresión automatizada de `MATCH-RESOLUTION-001` está integrada en `main`. La siguiente actividad es la aceptación manual LOCAL.
 
 ```text
 Prueba final LOCAL
