@@ -2,7 +2,7 @@ import { ConflictException, Inject, Injectable, NotFoundException } from '@nestj
 import type { Prisma, PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
-import { CatalogAssetService, type CatalogAssetType, type CatalogIconInput } from './catalog-asset.service.js';
+import { CatalogAssetService, type CatalogIconInput } from './catalog-asset.service.js';
 import type {
   CatalogCombination,
   CatalogEdition,
@@ -19,12 +19,6 @@ export interface CatalogMutationContext {
   readonly actorId: string;
   readonly actorRole: 'ADMIN' | 'SUPERADMIN';
   readonly correlationId: string;
-}
-
-interface AssetIndexRow {
-  readonly asset_id: string;
-  readonly resource_id: string;
-  readonly resource_type: CatalogAssetType;
 }
 
 function normalizedName(value: string): string {
@@ -48,7 +42,7 @@ export class CatalogAdminService {
   ) {}
 
   public async catalog(): Promise<CatalogSnapshot> {
-    const [editions, events, sports, modalities, institutions, combinations, assets] = await Promise.all([
+    const [editions, events, sports, modalities, institutions, combinations, assetMap] = await Promise.all([
       this.client.edition.findMany({ orderBy: [{ year: 'desc' }, { name: 'asc' }] }),
       this.client.event.findMany({ orderBy: { name: 'asc' } }),
       this.client.sport.findMany({ orderBy: { name: 'asc' } }),
@@ -58,12 +52,8 @@ export class CatalogAdminService {
         include: { event: true, modality: true, sport: true },
         orderBy: [{ event: { name: 'asc' } }, { sport: { name: 'asc' } }, { modality: { name: 'asc' } }],
       }),
-      this.client.$queryRaw<readonly AssetIndexRow[]>`
-        SELECT resource_type, resource_id, id AS asset_id
-        FROM catalog_assets
-      `,
+      this.assets.indexByResource(),
     ]);
-    const assetMap = new Map(assets.map((asset) => [`${asset.resource_type}:${asset.resource_id}`, asset.asset_id]));
     return {
       combinations,
       editions,
