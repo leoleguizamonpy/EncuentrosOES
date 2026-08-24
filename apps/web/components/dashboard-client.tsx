@@ -12,10 +12,10 @@ function DashboardContent(): React.JSX.Element {
       {(actor) => (
         <AppShell actor={actor} active="dashboard" eyebrow="Panel de autoridad" title="Centro de operaciones">
           <div className={styles.page}>
-            <Card className={styles.hero} variant="tertiary">
-              <Card.Content className={styles.heroContent}>
+            <Card className={styles.hero ?? ''} variant="tertiary">
+              <Card.Content className={styles.heroContent ?? ''}>
                 <div className={styles.heroCopy}>
-                  <Chip className={styles.sessionChip} color="success" size="sm" variant="soft">Sesión verificada</Chip>
+                  <Chip className={styles.sessionChip ?? ''} color="success" size="sm" variant="soft">Sesión verificada</Chip>
                   <h2>Tu operación empieza desde un solo workspace.</h2>
                   <p>Organización, competencias y control se separan por tareas reales. Cada módulo tendrá su propia experiencia y el sistema te indicará siempre cuál es el siguiente paso permitido.</p>
                 </div>
@@ -28,14 +28,14 @@ function DashboardContent(): React.JSX.Element {
             </Card>
 
             <section className={styles.guarantees} aria-label="Garantías del sistema">
-              <Card className={styles.guaranteeCard}>
-                <Card.Content className={styles.guaranteeContent}><span className={styles.index}>01</span><h3>Doble autoridad</h3><p>Quien registra una decisión oficial no puede confirmarla.</p></Card.Content>
+              <Card className={styles.guaranteeCard ?? ''}>
+                <Card.Content className={styles.guaranteeContent ?? ''}><span className={styles.index}>01</span><h3>Doble autoridad</h3><p>Quien registra una decisión oficial no puede confirmarla.</p></Card.Content>
               </Card>
-              <Card className={styles.guaranteeCard}>
-                <Card.Content className={styles.guaranteeContent}><span className={styles.index}>02</span><h3>Estado persistente</h3><p>Cada competencia puede retomarse desde el estado guardado en servidor.</p></Card.Content>
+              <Card className={styles.guaranteeCard ?? ''}>
+                <Card.Content className={styles.guaranteeContent ?? ''}><span className={styles.index}>02</span><h3>Estado persistente</h3><p>Cada competencia puede retomarse desde el estado guardado en servidor.</p></Card.Content>
               </Card>
-              <Card className={styles.guaranteeCard}>
-                <Card.Content className={styles.guaranteeContent}><span className={styles.index}>03</span><h3>Siguiente acción clara</h3><p>La nueva experiencia prioriza tareas reales y evita exponer conceptos técnicos internos.</p></Card.Content>
+              <Card className={styles.guaranteeCard ?? ''}>
+                <Card.Content className={styles.guaranteeContent ?? ''}><span className={styles.index}>03</span><h3>Siguiente acción clara</h3><p>La nueva experiencia prioriza tareas reales y evita exponer conceptos técnicos internos.</p></Card.Content>
               </Card>
             </section>
           </div>
