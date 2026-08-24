@@ -2,6 +2,15 @@ import { ConflictException, Inject, Injectable, NotFoundException } from '@nestj
 import type { Prisma, PrismaClient } from '@oes/database';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
+import type {
+  CatalogCombination,
+  CatalogEdition,
+  CatalogEvent,
+  CatalogInstitutionView,
+  CatalogModalityView,
+  CatalogSnapshot,
+  CatalogSportView,
+} from './catalog-contracts.js';
 
 export type CatalogAssetType = 'INSTITUTION' | 'MODALITY' | 'SPORT';
 
@@ -49,14 +58,7 @@ function isUniqueConstraint(error: unknown): boolean {
 export class CatalogAdminService {
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {}
 
-  public async catalog(): Promise<{
-    readonly combinations: readonly unknown[];
-    readonly editions: readonly unknown[];
-    readonly events: readonly unknown[];
-    readonly institutions: readonly unknown[];
-    readonly modalities: readonly unknown[];
-    readonly sports: readonly unknown[];
-  }> {
+  public async catalog(): Promise<CatalogSnapshot> {
     const [editions, events, sports, modalities, institutions, combinations, assets] = await Promise.all([
       this.client.edition.findMany({ orderBy: [{ year: 'desc' }, { name: 'asc' }] }),
       this.client.event.findMany({ orderBy: { name: 'asc' } }),
@@ -85,7 +87,7 @@ export class CatalogAdminService {
 
   public async createEdition(
     input: Readonly<{ name: string; status: 'CLOSED' | 'OPEN'; year: number }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogEdition> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.edition.create({
@@ -103,7 +105,7 @@ export class CatalogAdminService {
   public async updateEdition(
     id: string,
     input: Readonly<{ name: string; status: 'CLOSED' | 'OPEN'; year: number }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogEdition> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const current = await transaction.edition.findUnique({ where: { id } });
@@ -121,7 +123,7 @@ export class CatalogAdminService {
     }
   }
 
-  public async createEvent(input: Readonly<{ code: string; name: string }> & CatalogMutationContext): Promise<unknown> {
+  public async createEvent(input: Readonly<{ code: string; name: string }> & CatalogMutationContext): Promise<CatalogEvent> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.event.create({ data: { active: true, code: input.code.trim().toUpperCase(), name: input.name.trim() } });
@@ -137,7 +139,7 @@ export class CatalogAdminService {
   public async updateEvent(
     id: string,
     input: Readonly<{ active: boolean; code: string; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogEvent> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const current = await transaction.event.findUnique({ where: { id } });
@@ -157,7 +159,7 @@ export class CatalogAdminService {
 
   public async createSport(
     input: Readonly<{ code: string; icon: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogSportView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.sport.create({ data: { active: true, code: input.code.trim().toUpperCase(), name: input.name.trim() } });
@@ -174,7 +176,7 @@ export class CatalogAdminService {
   public async updateSport(
     id: string,
     input: Readonly<{ active: boolean; code: string; icon?: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogSportView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const current = await transaction.sport.findUnique({ where: { id } });
@@ -195,7 +197,7 @@ export class CatalogAdminService {
 
   public async createModality(
     input: Readonly<{ code: string; icon: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogModalityView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const record = await transaction.modality.create({ data: { active: true, code: input.code.trim().toUpperCase(), name: input.name.trim() } });
@@ -212,7 +214,7 @@ export class CatalogAdminService {
   public async updateModality(
     id: string,
     input: Readonly<{ active: boolean; code: string; icon?: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogModalityView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const current = await transaction.modality.findUnique({ where: { id } });
@@ -233,7 +235,7 @@ export class CatalogAdminService {
 
   public async createInstitution(
     input: Readonly<{ code: string; eventId: string; icon: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogInstitutionView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const event = await transaction.event.findUnique({ where: { id: input.eventId } });
@@ -262,7 +264,7 @@ export class CatalogAdminService {
   public async updateInstitution(
     id: string,
     input: Readonly<{ active: boolean; code: string; eventId: string; icon?: CatalogIconInput | null; name: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogInstitutionView> {
     try {
       return await this.client.$transaction(async (transaction) => {
         const [current, event] = await Promise.all([
@@ -300,13 +302,13 @@ export class CatalogAdminService {
 
   public async createCombination(
     input: Readonly<{ eventId: string; modalityId: string; sportId: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogCombination> {
     return this.setCombination({ ...input, active: true });
   }
 
   public async updateCombination(
     input: Readonly<{ active: boolean; eventId: string; modalityId: string; sportId: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogCombination> {
     return this.setCombination(input);
   }
 
@@ -324,7 +326,7 @@ export class CatalogAdminService {
 
   private async setCombination(
     input: Readonly<{ active: boolean; eventId: string; modalityId: string; sportId: string }> & CatalogMutationContext,
-  ): Promise<unknown> {
+  ): Promise<CatalogCombination> {
     return this.client.$transaction(async (transaction) => {
       const [event, sport, modality] = await Promise.all([
         transaction.event.findUnique({ where: { id: input.eventId } }),
