@@ -9,7 +9,6 @@ import {
   type DrawWorkspace,
   type ExecuteDrawInput,
   type PrepareDrawInput,
-  type PublishDrawInput,
 } from './draw-store.js';
 
 export const PREPARE_SCOPE = 'draw:prepare';
@@ -22,8 +21,7 @@ export type DrawMutationInput =
   | PrepareDrawInput
   | ExecuteDrawInput
   | ConfirmDrawInput
-  | AnnulDrawInput
-  | PublishDrawInput;
+  | AnnulDrawInput;
 
 function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
