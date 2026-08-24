@@ -88,14 +88,20 @@ describe('CompetitionQueryService', () => {
       revision: 4,
       status: 'OPEN',
     });
-    expect(competitionFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      select: expect.objectContaining({
+    expect(competitionFindMany).toHaveBeenCalledWith({
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        createdAt: true,
         editionId: true,
         eventId: true,
+        formatCode: true,
+        groupCount: true,
+        id: true,
         modalityId: true,
+        revision: true,
         sportId: true,
-      }),
-    }));
-    expect(competitionFindMany.mock.calls[0]?.[0]).not.toHaveProperty('include');
+        status: true,
+      },
+    });
   });
 });
