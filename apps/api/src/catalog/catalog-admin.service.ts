@@ -9,7 +9,6 @@ import type {
   CatalogEvent,
   CatalogInstitutionView,
   CatalogModalityView,
-  CatalogSnapshot,
   CatalogSportView,
 } from './catalog-contracts.js';
 
@@ -40,29 +39,6 @@ export class CatalogAdminService {
     @Inject(PRISMA_CLIENT) private readonly client: PrismaClient,
     private readonly assets: CatalogAssetService,
   ) {}
-
-  public async catalog(): Promise<CatalogSnapshot> {
-    const [editions, events, sports, modalities, institutions, combinations, assetMap] = await Promise.all([
-      this.client.edition.findMany({ orderBy: [{ year: 'desc' }, { name: 'asc' }] }),
-      this.client.event.findMany({ orderBy: { name: 'asc' } }),
-      this.client.sport.findMany({ orderBy: { name: 'asc' } }),
-      this.client.modality.findMany({ orderBy: { name: 'asc' } }),
-      this.client.institution.findMany({ orderBy: [{ event: { name: 'asc' } }, { name: 'asc' }] }),
-      this.client.eventSportModality.findMany({
-        include: { event: true, modality: true, sport: true },
-        orderBy: [{ event: { name: 'asc' } }, { sport: { name: 'asc' } }, { modality: { name: 'asc' } }],
-      }),
-      this.assets.indexByResource(),
-    ]);
-    return {
-      combinations,
-      editions,
-      events,
-      institutions: institutions.map((item) => ({ ...item, iconAssetId: assetMap.get(`INSTITUTION:${item.id}`) ?? null })),
-      modalities: modalities.map((item) => ({ ...item, iconAssetId: assetMap.get(`MODALITY:${item.id}`) ?? null })),
-      sports: sports.map((item) => ({ ...item, iconAssetId: assetMap.get(`SPORT:${item.id}`) ?? null })),
-    };
-  }
 
   public async createEdition(
     input: Readonly<{ name: string; status: 'CLOSED' | 'OPEN'; year: number }> & CatalogMutationContext,
