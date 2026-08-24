@@ -1,9 +1,11 @@
 'use client';
 
+import { Alert, Button, Input } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { useState, type SyntheticEvent } from 'react';
 
 import { login } from '../lib/auth-api';
+import styles from './login-form.module.css';
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
@@ -28,20 +30,25 @@ export function LoginForm(): React.JSX.Element {
   }
 
   return (
-    <form className="login-form" onSubmit={(event) => void submit(event)}>
-      <div className="field">
+    <form className={styles.form} onSubmit={(event) => void submit(event)}>
+      <div className={styles.field}>
         <label htmlFor="email">Correo institucional</label>
-        <input autoComplete="username" id="email" name="email" placeholder="nombre@oes.org.py" required type="email" />
+        <Input autoComplete="username" className={styles.input ?? ''} fullWidth id="email" name="email" placeholder="nombre@oes.org.py" required type="email" variant="secondary" />
       </div>
-      <div className="field">
+      <div className={styles.field}>
         <label htmlFor="password">Contraseña</label>
-        <input autoComplete="current-password" id="password" minLength={12} name="password" required type="password" />
+        <Input autoComplete="current-password" className={styles.input ?? ''} fullWidth id="password" minLength={12} name="password" required type="password" variant="secondary" />
       </div>
-      {error === null ? null : <p className="form-error" role="alert">{error}</p>}
-      <button className="primary-button" disabled={pending} type="submit">
+      {error === null ? null : (
+        <Alert className={styles.alert ?? ''} status="danger" role="alert">
+          <Alert.Indicator />
+          <Alert.Content><Alert.Title>Acceso no autorizado</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content>
+        </Alert>
+      )}
+      <Button className={styles.submit ?? ''} isDisabled={pending} type="submit" variant="primary">
         {pending ? 'Verificando…' : 'Ingresar al sistema'}
-      </button>
-      <p className="access-note">Acceso exclusivo para autoridades habilitadas por la OES.</p>
+      </Button>
+      <p className={styles.note}>Acceso exclusivo para autoridades habilitadas por la OES.</p>
     </form>
   );
 }
