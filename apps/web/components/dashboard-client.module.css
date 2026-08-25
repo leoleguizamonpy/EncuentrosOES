@@ -1,7 +1,5 @@
 .page {
-  display: grid;
-  gap: 22px;
-  padding: 40px 0 56px;
+  composes: workspace from './workspace-standard.module.css';
 }
 
 .hero {
@@ -147,10 +145,6 @@
 }
 
 @media (max-width: 560px) {
-  .page {
-    padding-top: 24px;
-  }
-
   .hero {
     border-radius: 17px;
   }
