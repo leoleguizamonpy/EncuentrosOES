@@ -139,6 +139,7 @@ function CompetitionsWorkspace({ actor }: { readonly actor: Actor }): React.JSX.
 
   const canCreate = actor.role !== 'OPERATOR';
   const catalogReady = catalog.editions.length > 0 && catalog.combinations.length > 0;
+  const activeCount = items.filter((item) => item.status !== 'FINALIZED').length;
 
   return (
     <div className={styles.workspace}>
@@ -152,68 +153,75 @@ function CompetitionsWorkspace({ actor }: { readonly actor: Actor }): React.JSX.
         </Alert>
       )}
 
-      <Card className={styles.headingCard ?? ''} variant="secondary">
-        <Card.Content className={styles.headingContent ?? ''}>
-          <div>
-            <span className={styles.eyebrow}>Estado persistente</span>
-            <h2>Un punto de partida para cada torneo.</h2>
-            <p>Crea la unidad competitiva y retómala después con su edición, evento, deporte y modalidad intactos.</p>
-          </div>
-          <div className={styles.metric}><strong>{items.length}</strong><span>competencias registradas</span></div>
-        </Card.Content>
-      </Card>
+      <section className={styles.pageIntro} aria-labelledby="competitions-heading">
+        <div className={styles.introCopy}>
+          <span className={styles.eyebrow}>Registro competitivo</span>
+          <h2 id="competitions-heading">Cada torneo, bajo control.</h2>
+          <p>Organiza las unidades competitivas por edición, evento, deporte y modalidad. Desde aquí comienza todo el ciclo oficial.</p>
+        </div>
+        <div className={styles.metrics} aria-label="Resumen de competencias">
+          <div className={styles.metric}><strong>{items.length}</strong><span>Total</span></div>
+          <div className={styles.metric}><strong>{activeCount}</strong><span>En curso</span></div>
+        </div>
+      </section>
 
       <div className={styles.layout}>
-        <Card className={styles.listCard ?? ''} aria-labelledby="competition-list-title">
-          <Card.Content className={styles.listContent ?? ''}>
-            <div className={styles.sectionHeader}>
-              <div><span className={styles.eyebrow}>Registro</span><h3 id="competition-list-title">Competencias guardadas</h3></div>
-              <Chip color="accent" size="sm" variant="soft">{items.length}</Chip>
+        <section className={styles.listPanel} aria-labelledby="competition-list-title">
+          <div className={styles.sectionHeader}>
+            <div><span className={styles.eyebrow}>Workspace</span><h3 id="competition-list-title">Competencias registradas</h3></div>
+            <span className={styles.sectionCount}>{String(items.length).padStart(2, '0')}</span>
+          </div>
+
+          {items.length === 0 ? (
+            <div className={styles.emptyContent}>
+              <span className={styles.emptyIndex}>00</span>
+              <strong>Aún no hay competencias.</strong>
+              <p>Crea la primera unidad competitiva para iniciar participantes, reglas, sorteo y resultados.</p>
             </div>
+          ) : (
+            <div className={styles.rows}>
+              {items.map((item, index) => (
+                <a className={styles.row} href={`/competitions/${item.id}`} key={item.id}>
+                  <span className={styles.rowIndex}>{String(index + 1).padStart(2, '0')}</span>
+                  <div className={styles.monogram} aria-hidden="true">{item.sport.name.charAt(0)}</div>
+                  <div className={styles.rowCopy}>
+                    <h4>{item.sport.name} <span>·</span> {item.modality.name}</h4>
+                    <p>{item.edition.name} <span>/</span> {item.event.name}</p>
+                  </div>
+                  <div className={styles.count}><strong>{item.participantCount}</strong><span>participantes</span></div>
+                  <Chip color={statusColors[item.status]} size="sm" variant="soft">{statusLabels[item.status]}</Chip>
+                  <span className={styles.rowArrow} aria-hidden="true">→</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
 
-            {items.length === 0 ? (
-              <div className={styles.emptyContent}>
-                <strong>Aún no hay competencias.</strong>
-                <p>La primera aparecerá aquí y quedará disponible después de reiniciar o cambiar de dispositivo.</p>
-              </div>
-            ) : (
-              <div className={styles.rows}>
-                {items.map((item) => (
-                  <a className={styles.row} href={`/competitions/${item.id}`} key={item.id}>
-                    <div className={styles.monogram} aria-hidden="true">{item.sport.name.charAt(0)}</div>
-                    <div className={styles.rowCopy}><h4>{item.sport.name} · {item.modality.name}</h4><p>{item.edition.name} / {item.event.name}</p></div>
-                    <div className={styles.count}><strong>{item.participantCount}</strong><span>participantes</span></div>
-                    <Chip color={statusColors[item.status]} size="sm" variant="soft">{statusLabels[item.status]}</Chip>
-                  </a>
-                ))}
-              </div>
-            )}
-          </Card.Content>
-        </Card>
-
-        <Card className={styles.createCard ?? ''} variant="secondary" aria-labelledby="create-competition-title">
-          <Card.Content className={styles.createContent ?? ''}>
+        <aside className={styles.createPanel} aria-labelledby="create-competition-title">
+          <div className={styles.createHeader}>
+            <span className={styles.createNumber}>+</span>
             <div><span className={styles.eyebrow}>Nueva unidad</span><h3 id="create-competition-title">Crear competencia</h3></div>
-            {!canCreate ? (
-              <p>Tu rol puede consultar el registro, pero no crear competencias.</p>
-            ) : !catalogReady ? (
-              <p>Primero carga una edición y habilita una combinación de evento, deporte y modalidad en la sección Organización.</p>
-            ) : (
-              <form className={styles.form} onSubmit={(event) => void submit(event)}>
-                <label htmlFor="edition">Edición</label>
-                <select id="edition" onChange={(event) => setEditionId(event.target.value)} value={editionId}>
-                  {catalog.editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.name} ({edition.year})</option>)}
-                </select>
-                <label htmlFor="combination">Evento, deporte y modalidad</label>
-                <select id="combination" onChange={(event) => setSelectedCombination(event.target.value)} value={selectedCombination}>
-                  {catalog.combinations.map((candidate) => <option key={combinationKey(candidate)} value={combinationKey(candidate)}>{candidate.event.name} · {candidate.sport.name} · {candidate.modality.name}</option>)}
-                </select>
-                <div className={styles.proof}><span className={styles.proofMark}>✓</span><p><strong>Creación segura</strong>La operación es idempotente y quedará registrada en auditoría.</p></div>
-                <Button className={styles.submitButton ?? ''} isDisabled={submitting} type="submit" variant="primary">{submitting ? 'Guardando…' : 'Crear competencia'}</Button>
-              </form>
-            )}
-          </Card.Content>
-        </Card>
+          </div>
+          <p className={styles.createLead}>Define el contexto competitivo. Participantes, reglas y sorteo se configuran después dentro de su workspace.</p>
+          {!canCreate ? (
+            <p className={styles.permissionNote}>Tu rol puede consultar el registro, pero no crear competencias.</p>
+          ) : !catalogReady ? (
+            <p className={styles.permissionNote}>Primero carga una edición y habilita una combinación de evento, deporte y modalidad en Organización.</p>
+          ) : (
+            <form className={styles.form} onSubmit={(event) => void submit(event)}>
+              <label htmlFor="edition">Edición</label>
+              <select id="edition" onChange={(event) => setEditionId(event.target.value)} value={editionId}>
+                {catalog.editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.name} ({edition.year})</option>)}
+              </select>
+              <label htmlFor="combination">Evento · deporte · modalidad</label>
+              <select id="combination" onChange={(event) => setSelectedCombination(event.target.value)} value={selectedCombination}>
+                {catalog.combinations.map((candidate) => <option key={combinationKey(candidate)} value={combinationKey(candidate)}>{candidate.event.name} · {candidate.sport.name} · {candidate.modality.name}</option>)}
+              </select>
+              <div className={styles.proof}><span className={styles.proofMark}>✓</span><p><strong>Registro oficial</strong>La creación es idempotente y queda trazada en auditoría.</p></div>
+              <Button className={styles.submitButton ?? ''} isDisabled={submitting} type="submit" variant="primary">{submitting ? 'Guardando…' : 'Crear competencia'}</Button>
+            </form>
+          )}
+        </aside>
       </div>
     </div>
   );
