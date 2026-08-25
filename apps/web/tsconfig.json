@@ -12,5 +12,5 @@
     "plugins": [{ "name": "next" }],
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["next-env.d.ts", ".next/types/**/*.ts", "app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts", "test/**/*.ts", "test/**/*.tsx", "next.config.ts", "vitest.config.ts"]
+  "include": ["next-env.d.ts", ".next/types/**/*.ts", "app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "ui/**/*.ts", "ui/**/*.tsx", "lib/**/*.ts", "test/**/*.ts", "test/**/*.tsx", "next.config.ts", "vitest.config.ts"]
 }
