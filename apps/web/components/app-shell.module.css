@@ -1,70 +1,108 @@
 .shell {
   background:
-    radial-gradient(circle at 82% 0%, rgba(223, 255, 70, .09), transparent 28rem),
+    linear-gradient(180deg, rgba(31, 46, 67, .018), transparent 220px),
     var(--background);
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 252px minmax(0, 1fr);
   min-width: 0;
 }
 
 .sidebar {
-  background: #0b1424;
-  border-right: 1px solid rgba(255, 255, 255, .06);
+  background:
+    radial-gradient(circle at 22% -8%, rgba(215, 255, 63, .075), transparent 15rem),
+    var(--oes-brand);
+  border-right: 1px solid rgba(255, 255, 255, .065);
+  color: #fff;
   min-width: 0;
-  padding: 28px 18px 22px;
+  padding: 30px 18px 22px;
+}
+
+.sidebar :global(.brand) {
+  color: #fff;
+  margin-left: 8px;
+}
+
+.sidebar :global(.brand__symbol) {
+  background: var(--oes-signal);
+  box-shadow: 0 0 0 5px rgba(215, 255, 63, .075);
+  color: var(--oes-brand-strong);
+}
+
+.sidebar :global(.brand__descriptor) {
+  color: rgba(255, 255, 255, .48);
 }
 
 .sidebar :global(nav) {
-  gap: 4px;
-  margin-top: 44px;
+  gap: 3px;
+  margin-top: 46px;
 }
 
 .sidebar :global(.nav-heading) {
-  color: #68758a;
-  font-size: 10px;
-  letter-spacing: .16em;
-  margin: 26px 12px 8px;
+  color: rgba(255, 255, 255, .36);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  margin: 28px 12px 9px;
 }
 
 .sidebar :global(.nav-item) {
   border: 1px solid transparent;
-  border-radius: 12px;
-  color: #aeb8c7;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, .64);
   min-height: 44px;
   padding: 0 12px;
-  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+  position: relative;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
 }
 
 .sidebar :global(.nav-item:hover) {
   background: rgba(255, 255, 255, .055);
-  color: #f6f8fb;
-  transform: translateX(2px);
+  color: #fff;
 }
 
 .sidebar :global(.nav-item--active) {
-  background: rgba(223, 255, 70, .105);
-  border-color: rgba(223, 255, 70, .16);
-  color: #dfff46;
+  background: rgba(255, 255, 255, .09);
+  border-color: rgba(255, 255, 255, .055);
+  color: #fff;
+}
+
+.sidebar :global(.nav-item--active)::before {
+  background: var(--oes-signal);
+  border-radius: 99px;
+  content: '';
+  height: 22px;
+  left: -8px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+}
+
+.sidebar :global(.nav-item--active) .navIcon {
+  color: var(--oes-signal);
 }
 
 .sidebar :global(.sidebar__footer) {
-  border-top: 1px solid rgba(255, 255, 255, .07);
-  color: #68758a;
+  border-top: 1px solid rgba(255, 255, 255, .075);
+  color: rgba(255, 255, 255, .34);
+  font-size: 9px;
+  letter-spacing: .08em;
   padding-top: 18px;
+  text-transform: uppercase;
 }
 
 .main {
   min-width: 0;
-  padding-left: clamp(28px, 4vw, 56px);
-  padding-right: clamp(28px, 4vw, 56px);
+  padding-left: clamp(30px, 4vw, 60px);
+  padding-right: clamp(30px, 4vw, 60px);
 }
 
 .topbar {
   align-items: center;
   backdrop-filter: blur(18px);
-  background: color-mix(in srgb, var(--background) 88%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--border) 84%, transparent);
-  gap: 24px;
-  min-height: 96px;
+  background: color-mix(in srgb, var(--background) 91%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  gap: 28px;
+  min-height: 94px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -77,40 +115,42 @@
 }
 
 .titleBlock :global(.eyebrow) {
-  color: #718050;
-  font-size: 10px;
-  letter-spacing: .16em;
+  color: var(--oes-brand-muted);
+  font-size: 9px;
+  letter-spacing: .18em;
 }
 
 .titleBlock h1 {
+  color: var(--oes-brand);
   font-size: clamp(22px, 2vw, 28px);
-  letter-spacing: -.035em;
+  font-weight: 800;
+  letter-spacing: -.04em;
   margin-top: 7px;
 }
 
 .accountMenu {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: rgba(255, 255, 255, .74);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 8px 26px rgba(11, 20, 36, .05);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(31, 46, 67, .045);
   gap: 11px;
-  padding: 7px 8px 7px 9px;
+  padding: 6px 7px 6px 8px;
 }
 
 .accountMenu :global(.account-avatar) {
-  background: #0b1424;
+  background: var(--oes-brand);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
-  color: #dfff46;
+  color: var(--oes-signal);
   height: 36px;
   width: 36px;
 }
 
 .accountIdentity {
-  padding-right: 4px;
+  padding-right: 5px;
 }
 
 .accountIdentity strong {
-  color: var(--foreground);
+  color: var(--oes-brand);
   font-size: 12px;
 }
 
@@ -120,21 +160,27 @@
 }
 
 .logoutButton {
-  color: #586476;
+  color: var(--oes-brand-muted);
   font-weight: 700;
 }
 
 .navLabel {
   align-items: center;
   display: inline-flex;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
 }
 
 .navIcon {
+  color: rgba(255, 255, 255, .48);
   flex: 0 0 auto;
   height: 17px;
+  transition: color .16s ease;
   width: 17px;
+}
+
+.sidebar :global(.nav-item:hover) .navIcon {
+  color: rgba(255, 255, 255, .78);
 }
 
 .navText {
@@ -150,12 +196,12 @@
 
 @media (max-width: 1180px) {
   .shell {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 222px minmax(0, 1fr);
   }
 
   .sidebar {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 15px;
+    padding-right: 15px;
   }
 
   .main {
@@ -164,7 +210,7 @@
   }
 
   .topbar {
-    min-height: 92px;
+    min-height: 90px;
   }
 }
 
@@ -176,10 +222,10 @@
 
   .menuButton {
     align-items: center;
-    background: #0b1424;
+    background: var(--oes-brand);
     border: 1px solid rgba(255, 255, 255, .08);
-    border-radius: 12px;
-    box-shadow: 0 10px 24px rgba(11, 20, 36, .18);
+    border-radius: 11px;
+    box-shadow: 0 10px 24px rgba(31, 46, 67, .2);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -195,7 +241,7 @@
   }
 
   .menuButton span {
-    background: #dfff46;
+    background: var(--oes-signal);
     border-radius: 999px;
     display: block;
     height: 2px;
@@ -204,7 +250,7 @@
 
   .backdrop {
     backdrop-filter: blur(3px);
-    background: rgba(5, 12, 24, .56);
+    background: rgba(23, 35, 53, .6);
     border: 0;
     display: block;
     inset: 0;
@@ -215,7 +261,7 @@
 
   .sidebar {
     bottom: 0;
-    box-shadow: 18px 0 44px rgba(5, 12, 24, .22);
+    box-shadow: 18px 0 44px rgba(23, 35, 53, .24);
     left: 0;
     max-width: min(320px, 86vw);
     overflow-y: auto;
