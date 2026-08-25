@@ -93,7 +93,7 @@ function ConfirmationsWorkspace({ actor }: { readonly actor: Actor }): React.JSX
   return <PageLayout>
     <PageHeader description="Revisa decisiones críticas con separación de funciones. Cada confirmación es una transición explícita y auditada." eyebrow="Control" title="Confirmaciones" />
     {error === null ? null : <Notice description={error} title="No fue posible confirmar" tone="danger" />}
-    <StatusSummary label="Resumen de confirmaciones"><StatusBadge label={`${actionable} disponibles para confirmar`} tone="success" />{ownBlocked > 0 ? <StatusBadge label={`${ownBlocked} requieren otra autoridad`} tone="warning" /> : null}</StatusSummary>
+    <StatusSummary label="Resumen de confirmaciones"><StatusBadge label={`${String(actionable)} disponibles para confirmar`} tone="success" />{ownBlocked > 0 ? <StatusBadge label={`${String(ownBlocked)} requieren otra autoridad`} tone="warning" /> : null}</StatusSummary>
     <ListToolbar count={filtered.length} onQueryChange={setQuery} onStatusChange={setFilter} query={query} searchLabel="Buscar confirmación" searchPlaceholder="Buscar competencia, participante o autoridad…" status={filter} statusLabel="Filtrar confirmaciones por tipo" statusOptions={FILTER_OPTIONS} total={items.length} />
     <DataList empty={{ description: items.length === 0 ? 'La bandeja está al día.' : 'Ajusta la búsqueda o el filtro.', title: items.length === 0 ? 'No hay confirmaciones pendientes.' : 'No encontramos decisiones.' }} isEmpty={filtered.length === 0} label="Decisiones pendientes">
       {filtered.map((decision) => {
