@@ -22,6 +22,50 @@ async function assertNoHorizontalOverflow(page, label) {
   assert(metrics.scrollWidth <= metrics.clientWidth + 1, `${label} has horizontal overflow: ${metrics.scrollWidth}px > ${metrics.clientWidth}px`);
 }
 
+async function assertMobileNavigationStack(page) {
+  const metrics = await page.evaluate(() => {
+    const nav = document.querySelector('#workspace-navigation nav');
+    if (!(nav instanceof HTMLElement)) return null;
+    const items = [...nav.querySelectorAll('.nav-item')].map((item) => {
+      const rect = item.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width };
+    });
+    return { navWidth: nav.getBoundingClientRect().width, items };
+  });
+  assert(metrics !== null, 'Mobile navigation must exist.');
+  assert(metrics.items.length >= 8, 'Mobile navigation must expose the expected entries.');
+  for (const item of metrics.items) {
+    assert(Math.abs(item.left - metrics.items[0].left) <= 2, 'Mobile navigation items must stay in one vertical column.');
+    assert(item.width >= metrics.navWidth - 4, 'Mobile navigation items must use the available navigation width.');
+  }
+  for (let index = 1; index < metrics.items.length; index += 1) {
+    assert(metrics.items[index].top > metrics.items[index - 1].top, 'Mobile navigation entries must be vertically ordered.');
+  }
+}
+
+async function assertDesktopShellGeometry(page) {
+  const geometry = await page.evaluate(() => {
+    const sidebar = document.querySelector('#workspace-navigation');
+    const main = document.querySelector('#main-content');
+    if (!(sidebar instanceof HTMLElement) || !(main instanceof HTMLElement)) return null;
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const mainRect = main.getBoundingClientRect();
+    return {
+      mainLeft: mainRect.left,
+      sidebarHeight: sidebarRect.height,
+      sidebarLeft: sidebarRect.left,
+      sidebarTop: sidebarRect.top,
+      sidebarWidth: sidebarRect.width,
+      viewportHeight: window.innerHeight,
+    };
+  });
+  assert(geometry !== null, 'Desktop shell geometry must be measurable.');
+  assert(geometry.sidebarLeft <= 1 && geometry.sidebarTop <= 1, 'Desktop sidebar must be anchored to the top-left edge.');
+  assert(geometry.sidebarWidth >= 210 && geometry.sidebarWidth <= 270, `Desktop sidebar width is invalid: ${geometry.sidebarWidth}px.`);
+  assert(geometry.sidebarHeight >= geometry.viewportHeight - 2, 'Desktop sidebar must span the viewport height.');
+  assert(geometry.mainLeft >= geometry.sidebarWidth - 2, 'Desktop main content must render beside the sidebar, not below it.');
+}
+
 async function screenshot(page, name) {
   await page.screenshot({ fullPage: true, path: `${outputDir}/${name}.png` });
 }
@@ -50,6 +94,7 @@ try {
     if (!(navigation instanceof HTMLElement)) return false;
     return navigation.getBoundingClientRect().x >= -1;
   });
+  await assertMobileNavigationStack(page);
   await screenshot(page, 'mobile-navigation');
   await closeToggle.click();
 
@@ -65,10 +110,12 @@ try {
 
   await page.setViewportSize({ height: 768, width: 1024 });
   await assertNoHorizontalOverflow(page, 'small desktop users');
+  await assertDesktopShellGeometry(page);
   await screenshot(page, 'small-desktop-users');
 
   await page.setViewportSize({ height: 900, width: 1440 });
   await assertNoHorizontalOverflow(page, 'desktop users');
+  await assertDesktopShellGeometry(page);
   await screenshot(page, 'desktop-users');
 
   const usersLink = page.getByRole('link', { name: /Usuarios/ });
