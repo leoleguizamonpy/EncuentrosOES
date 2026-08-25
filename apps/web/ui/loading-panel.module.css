@@ -1,0 +1,11 @@
+.content {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.line {
+  height: 10px;
+  max-width: 220px;
+  width: 35%;
+}
