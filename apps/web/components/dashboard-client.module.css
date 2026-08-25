@@ -1,25 +1,40 @@
 .page {
   display: grid;
-  gap: 20px;
-  padding: 38px 0 52px;
+  gap: 22px;
+  padding: 40px 0 56px;
 }
 
 .hero {
   background:
-    radial-gradient(circle at 92% 8%, rgba(223, 255, 70, .18), transparent 17rem),
-    #0b1424;
-  border: 1px solid rgba(255, 255, 255, .08);
-  border-radius: 24px;
-  box-shadow: 0 24px 64px rgba(11, 20, 36, .16);
+    radial-gradient(circle at 88% 4%, rgba(215, 255, 63, .12), transparent 19rem),
+    linear-gradient(135deg, var(--oes-brand), var(--oes-brand-strong));
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 22px;
+  box-shadow: 0 24px 68px rgba(31, 46, 67, .15);
   color: #fff;
   overflow: hidden;
+  position: relative;
+}
+
+.hero::after {
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 999px;
+  content: '';
+  height: 330px;
+  pointer-events: none;
+  position: absolute;
+  right: -150px;
+  top: -175px;
+  width: 330px;
 }
 
 .heroContent {
   display: grid;
-  gap: 44px;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
-  padding: clamp(30px, 5vw, 58px);
+  gap: 50px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(270px, .6fr);
+  padding: clamp(34px, 5vw, 60px);
+  position: relative;
+  z-index: 1;
 }
 
 .heroCopy {
@@ -27,39 +42,40 @@
 }
 
 .heroCopy h2 {
-  font-size: clamp(38px, 5vw, 66px);
-  letter-spacing: -.06em;
-  line-height: .98;
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 800;
+  letter-spacing: -.065em;
+  line-height: .96;
   margin: 24px 0 20px;
   max-width: 760px;
 }
 
 .heroCopy p {
-  color: #aeb8c7;
+  color: rgba(255, 255, 255, .63);
   font-size: 15px;
   line-height: 1.75;
   margin: 0;
-  max-width: 650px;
+  max-width: 640px;
 }
 
 .sessionChip {
-  font-weight: 800;
-  letter-spacing: .06em;
+  font-weight: 850;
+  letter-spacing: .07em;
   text-transform: uppercase;
 }
 
 .readiness {
   align-self: stretch;
-  background: rgba(255, 255, 255, .045);
-  border: 1px solid rgba(255, 255, 255, .09);
-  border-radius: 18px;
+  background: rgba(255, 255, 255, .055);
+  border: 1px solid rgba(255, 255, 255, .085);
+  border-radius: 16px;
   display: grid;
   padding: 8px 20px;
 }
 
 .readinessRow {
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  border-bottom: 1px solid rgba(255, 255, 255, .075);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -77,14 +93,15 @@
 
 .guarantees {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .guaranteeCard {
   border: 1px solid var(--border);
-  border-radius: 18px;
-  min-height: 210px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(31, 46, 67, .035);
+  min-height: 205px;
 }
 
 .guaranteeContent {
@@ -95,14 +112,14 @@
 }
 
 .index {
-  color: #829052;
-  font-size: 11px;
+  color: var(--oes-brand-muted);
+  font-size: 10px;
   font-weight: 900;
-  letter-spacing: .12em;
+  letter-spacing: .14em;
 }
 
 .guaranteeContent h3 {
-  color: var(--foreground);
+  color: var(--oes-brand);
   font-size: 18px;
   letter-spacing: -.025em;
   margin: auto 0 10px;
@@ -125,7 +142,7 @@
   }
 
   .guaranteeCard {
-    min-height: 170px;
+    min-height: 165px;
   }
 }
 
@@ -135,16 +152,16 @@
   }
 
   .hero {
-    border-radius: 18px;
+    border-radius: 17px;
   }
 
   .heroContent {
     gap: 28px;
-    padding: 26px 22px;
+    padding: 28px 22px;
   }
 
   .heroCopy h2 {
-    font-size: 38px;
+    font-size: 39px;
   }
 
   .readiness {
