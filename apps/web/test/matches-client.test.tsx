@@ -60,6 +60,6 @@ describe('MatchesClient', () => {
     expect(screen.getByText('Colegio A · Colegio B')).toBeInTheDocument();
     expect(screen.getByText('Pendiente de resultado')).toBeInTheDocument();
     expect(screen.getByText('1 sin resultado')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Operar' })).toHaveAttribute('href', '/competitions/competition-1#results-workspace');
+    expect(screen.getByRole('link', { name: 'Operar encuentro Colegio A contra Colegio B' })).toHaveAttribute('href', '/competitions/competition-1#results-workspace');
   });
 });
