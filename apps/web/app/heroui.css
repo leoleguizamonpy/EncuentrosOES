@@ -14,6 +14,16 @@
   --oes-signal-soft: #efffb4;
   --oes-signal-foreground: #172335;
 
+  /* Product-level semantic aliases.
+     Components consume these roles instead of duplicating brand hex values. */
+  --brand: var(--oes-brand);
+  --brand-strong: var(--oes-brand-strong);
+  --brand-soft: var(--oes-brand-soft);
+  --brand-muted: var(--oes-brand-muted);
+  --signal: var(--oes-signal);
+  --signal-soft: var(--oes-signal-soft);
+  --signal-foreground: var(--oes-signal-foreground);
+
   /* Product neutrals */
   --background: #f6f8fa;
   --foreground: #17202c;
