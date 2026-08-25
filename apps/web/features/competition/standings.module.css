@@ -1,0 +1,38 @@
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.identity {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.identity strong {
+  color: var(--brand);
+  font-size: var(--text-row-title);
+  font-weight: 500;
+}
+
+.identity small {
+  color: var(--muted-foreground);
+  font-size: var(--text-row-meta);
+}
+
+.qualification {
+  display: grid;
+  gap: 5px;
+}
+
+.qualification strong {
+  color: var(--brand);
+  font-size: var(--text-row-title);
+  font-weight: 500;
+}
+
+.qualification small {
+  color: var(--muted-foreground);
+  font-size: var(--text-row-meta);
+}
