@@ -34,13 +34,11 @@
 
 .introCopy h2 {
   color: var(--brand);
-  font-family: var(--display-font);
-  font-size: clamp(40px, 5vw, 68px);
-  font-weight: 600;
-  letter-spacing: -.035em;
-  line-height: .96;
-  margin: 0 0 20px;
-  max-width: 760px;
+  font-size: clamp(34px, 4vw, 56px);
+  letter-spacing: -.055em;
+  line-height: 1;
+  margin: 12px 0 14px;
+  max-width: 780px;
 }
 
 .introCopy p {
@@ -510,8 +508,9 @@
   }
 
   .introCopy h2 {
-    font-size: 40px;
-    letter-spacing: -.025em;
+    font-size: clamp(30px, 12vw, 44px);
+    letter-spacing: -.055em;
+    line-height: 1;
   }
 
   .metrics {
