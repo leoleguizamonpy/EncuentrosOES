@@ -9,7 +9,7 @@ interface PageHeaderProps {
   readonly action?: {
     readonly label: string;
     readonly onPress: () => void;
-  };
+  } | undefined;
   readonly description: string;
   readonly eyebrow: string;
   readonly title: string;
