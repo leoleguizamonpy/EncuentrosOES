@@ -4,6 +4,7 @@ export { DataList, DataRow } from './data-list';
 export { DataTable, type DataTableColumn } from './data-table';
 export { EntityDrawer, FormActions } from './entity-drawer';
 export { Field, TextField } from './form-field';
+export { FormStack } from './form-layout';
 export { ListToolbar } from './list-toolbar';
 export { Notice } from './notice';
 export { PageHeader } from './page-header';
