@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 24 de agosto de 2026  
+> Estado auditado: 25 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md` 2.1.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
@@ -117,6 +117,41 @@ OES WORKSPACE
 │   └── [x] Historial competitivo
 └── [x] CONTROL
 ```
+
+## UI-STANDARD-001 — EN CURSO
+
+Objetivo: usar **Competencias** como contrato visual único de los workspaces administrativos. Las páginas pueden definir únicamente su grid y semántica de dominio; márgenes exteriores, padding vertical, heading, toolbar, superficies de lista, filas, estados vacíos y responsive deben provenir de primitivas compartidas.
+
+```text
+UI-STANDARD-001
+├── [x] Competencias declarada referencia visual
+├── [x] `workspace-standard.module.css` creado
+├── [x] Frame exterior único: 34px / 56px
+├── [x] Ritmo vertical único: 26px
+├── [x] Heading compartido: 14px / 34px
+├── [x] Filas base compartidas: 92px / 6px horizontal
+├── [x] Competencias consume el estándar que define
+├── [x] Ediciones alineada por módulo compartido
+├── [x] Eventos alineada por módulo compartido
+├── [x] Instituciones alineada por módulo compartido
+├── [x] Deportes alineada por módulo compartido
+├── [x] Modalidades alineada por módulo compartido
+├── [x] Sorteos alineada
+├── [x] Encuentros alineada
+├── [x] Dashboard alineado en su frame exterior
+├── [x] Detalle de competencia alineado en su frame exterior
+├── [x] Architecture Gate detecta `.workspace` independiente
+├── [ ] Clasificación: retirar geometría inline restante
+├── [ ] Confirmaciones: retirar geometría inline restante
+├── [ ] Auditoría: retirar geometría inline restante
+├── [ ] Usuarios: desacoplar estilos accidentales de Instituciones
+├── [ ] Consolidar primitivas de listas de CONTROL/ORGANIZACIÓN
+├── [ ] Verificación visual de coordenadas entre rutas
+├── [ ] CI exact-head verde
+└── [ ] PR #80 integrado en main
+```
+
+Criterio de cierre: cambiar entre páginas administrativas no debe mover el inicio horizontal/vertical de encabezados, filtros, superficies o tablas equivalentes. Ninguna página administrativa nueva podrá definir un frame `.workspace` independiente sin que el Architecture Gate falle.
 
 ## COMPETITION-HISTORY-001 — CERRADO
 
