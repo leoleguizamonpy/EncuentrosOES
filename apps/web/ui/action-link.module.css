@@ -1,0 +1,12 @@
+.link {
+  color: var(--brand);
+  font-size: var(--text-row-meta);
+  font-weight: 600;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline;
+}
