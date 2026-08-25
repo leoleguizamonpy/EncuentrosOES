@@ -26,6 +26,7 @@ EncuentrosOES — PERFIL LOCAL — 100%
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
 ├── [x] UI-ARCH-001 — 100%
+├── [x] UI-SHELL-UX-001 — 100%
 ├── [x] Auditoría y seguridad
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
@@ -159,6 +160,39 @@ UI-ARCH-001
 ├── [x] Evidencia visual E2E
 ├── [x] CI #670 exact-head sobre `7e6bf930f1c040e5779649c8c42dfafbfebd4cd6`
 └── [x] PR #81 integrado en `main` — `e7c0e8a9dc83caa14c69adf6934892c8cc8f8b5c`
+```
+
+## UI-SHELL-UX-001 — CERRADO — 100%
+
+Corrección de regresión del shell administrativo y endurecimiento de la validación responsive. El cierre no se limita a snapshots: Chromium comprueba geometría, ausencia de overflow y estructura vertical del menú móvil.
+
+```text
+UI-SHELL-UX-001
+├── [x] Sidebar desktop vertical restaurada
+├── [x] Sidebar anclada al borde superior izquierdo
+├── [x] Sidebar cubre la altura del viewport
+├── [x] Main renderiza al costado del sidebar
+├── [x] Navegación mobile en una sola columna
+├── [x] Topbar responsive compactado
+├── [x] Identidad de cuenta optimizada en mobile/tablet
+├── [x] Buscador con contraste legible
+├── [x] Sin overflow horizontal en 390 px
+├── [x] Sin overflow horizontal en 820 px
+├── [x] Sin overflow horizontal en 1024 px
+├── [x] Sin overflow horizontal en 1440 px
+├── [x] E2E valida geometría desktop
+├── [x] E2E valida stacking mobile
+├── [x] Architecture Gate
+├── [x] UI Architecture Gate
+├── [x] Lint
+├── [x] Typecheck
+├── [x] PostgreSQL integration
+├── [x] Backup / restore / storage guards
+├── [x] Coverage
+├── [x] Build de producción
+├── [x] Chromium responsive
+├── [x] Evidencia visual revisada
+└── [x] CI #679 exact-head sobre `2f6f6c7166a1714d71f4553dc1428177f706204a`
 ```
 
 ## COMPETITION-HISTORY-001 — CERRADO
@@ -304,6 +338,7 @@ Prueba final LOCAL
 ├── [x] Backup + restore
 ├── [x] Runtime warning protegido por test PostgreSQL
 ├── [x] UI-ARCH-001 protegido por CI y Chromium
+├── [x] UI-SHELL-UX-001 protegido por CI y geometría Chromium
 └── [x] PERFIL LOCAL — 100%
 ```
 
