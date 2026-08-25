@@ -40,6 +40,6 @@ describe('AuditClient', () => {
     expect(screen.getByText(/MATCH_RESULT · result-1/)).toBeInTheDocument();
     expect(screen.getByText(/Admin B/)).toBeInTheDocument();
     expect(screen.getByText('2 → 3')).toBeInTheDocument();
-    expect(screen.getByText('1 de 1 trazas')).toBeInTheDocument();
+    expect(screen.getByText('1 de 1')).toBeInTheDocument();
   });
 });
