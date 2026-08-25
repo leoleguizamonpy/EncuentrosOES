@@ -1,6 +1,5 @@
 'use client';
 
-import { Alert, Button, Card, Chip, Input } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { champion, confirmChampion } from '../lib/champion-api';
@@ -14,14 +13,21 @@ import {
   type CompetitionSummary,
 } from '../lib/competition-api';
 import type { Actor } from '../lib/auth-api';
+import { ActionButton, DataList, DataRow, ListToolbar, Notice, PageHeader, PageLayout, StatusBadge, StatusSummary } from '../ui';
 import { AppShell } from './app-shell';
-import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
 const CONTROL_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 type DecisionKind = 'CHAMPION' | 'DRAW' | 'QUALIFICATION' | 'RESULT';
 type DecisionFilter = 'ALL' | DecisionKind;
+const FILTER_OPTIONS: readonly { readonly label: string; readonly value: DecisionFilter }[] = [
+  { label: 'Todos los tipos', value: 'ALL' },
+  { label: 'Sorteos', value: 'DRAW' },
+  { label: 'Resultados', value: 'RESULT' },
+  { label: 'Clasificados', value: 'QUALIFICATION' },
+  { label: 'Campeón', value: 'CHAMPION' },
+];
 
 interface PendingDecision {
   readonly competition: CompetitionSummary;
@@ -35,26 +41,14 @@ interface PendingDecision {
 }
 
 const kindLabels: Readonly<Record<DecisionKind, string>> = { CHAMPION: 'Campeón', DRAW: 'Sorteo', QUALIFICATION: 'Clasificados', RESULT: 'Resultado' };
-
-function competitionLabel(competition: CompetitionSummary): string {
-  return `${competition.edition.name} · ${competition.event.name} · ${competition.sport.name} · ${competition.modality.name}`;
-}
+function competitionLabel(competition: CompetitionSummary): string { return `${competition.edition.name} · ${competition.event.name} · ${competition.sport.name} · ${competition.modality.name}`; }
 
 async function decisionsFor(competition: CompetitionSummary): Promise<readonly PendingDecision[]> {
   const decisions: PendingDecision[] = [];
-  const [draw, results, championView] = await Promise.all([
-    drawWorkspace(competition.id).catch(() => null), resultsWorkspace(competition.id).catch(() => null), champion(competition.id).catch(() => null),
-  ]);
+  const [draw, results, championView] = await Promise.all([drawWorkspace(competition.id).catch(() => null), resultsWorkspace(competition.id).catch(() => null), champion(competition.id).catch(() => null)]);
   if (draw?.execution?.status === 'PENDING_CONFIRMATION') decisions.push({ competition, detail: `${String(draw.execution.matchCount)} encuentros · evidencia ${draw.execution.evidenceHash.slice(0, 10)}…`, kind: 'DRAW', originatorId: draw.execution.executedBy.id, originatorName: draw.execution.executedBy.displayName, resourceId: draw.execution.id, revision: draw.execution.revision, title: 'Sorteo oficial pendiente' });
-  for (const match of results?.matches ?? []) {
-    if (match.result?.status !== 'PENDING_CONFIRMATION') continue;
-    decisions.push({ competition, detail: `${match.participantA.displayName} vs ${match.participantB.displayName} · ${match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`}`, kind: 'RESULT', originatorId: match.result.recordedBy.id, originatorName: match.result.recordedBy.displayName, resourceId: match.result.id, revision: match.result.revision, title: 'Resultado pendiente' });
-  }
-  for (const group of results?.groups ?? []) {
-    const qualification = group.qualification;
-    if (qualification?.status !== 'PENDING_CONFIRMATION') continue;
-    decisions.push({ competition, detail: `Grupo ${group.label}: 1.º ${qualification.firstParticipant.displayName} · 2.º ${qualification.secondParticipant.displayName}`, kind: 'QUALIFICATION', originatorId: qualification.proposedBy.id, originatorName: qualification.proposedBy.displayName, resourceId: qualification.id, revision: qualification.revision, title: 'Clasificados pendientes' });
-  }
+  for (const match of results?.matches ?? []) if (match.result?.status === 'PENDING_CONFIRMATION') decisions.push({ competition, detail: `${match.participantA.displayName} vs ${match.participantB.displayName} · ${match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`}`, kind: 'RESULT', originatorId: match.result.recordedBy.id, originatorName: match.result.recordedBy.displayName, resourceId: match.result.id, revision: match.result.revision, title: 'Resultado pendiente' });
+  for (const group of results?.groups ?? []) { const qualification = group.qualification; if (qualification?.status === 'PENDING_CONFIRMATION') decisions.push({ competition, detail: `Grupo ${group.label}: 1.º ${qualification.firstParticipant.displayName} · 2.º ${qualification.secondParticipant.displayName}`, kind: 'QUALIFICATION', originatorId: qualification.proposedBy.id, originatorName: qualification.proposedBy.displayName, resourceId: qualification.id, revision: qualification.revision, title: 'Clasificados pendientes' }); }
   if (championView?.status === 'PENDING_CONFIRMATION') decisions.push({ competition, detail: `${championView.participantDisplayName} · ronda final ${String(championView.sourceRoundNumber)}`, kind: 'CHAMPION', originatorId: championView.proposedBy, originatorName: championView.proposedBy, resourceId: championView.proposalId, revision: championView.competitionRevision, title: 'Campeón pendiente' });
   return decisions;
 }
@@ -96,18 +90,18 @@ function ConfirmationsWorkspace({ actor }: { readonly actor: Actor }): React.JSX
   const actionable = items.filter((item) => item.originatorId !== actor.id || canConfirmOwn).length;
   const ownBlocked = items.filter((item) => item.originatorId === actor.id && !canConfirmOwn).length;
 
-  return <div className={styles.workspace}>
-    <section className={styles.heading}><div><span className="eyebrow eyebrow--dark">Control</span><h2>Confirmaciones</h2><p>Los administradores conservan separación de funciones. El superadministrador puede confirmar también sus propias operaciones críticas, siempre mediante una transición explícita y auditada.</p></div></section>
-    {error === null ? null : <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>No fue posible confirmar</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert>}
-    <section aria-label="Resumen de confirmaciones" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}><Chip color="success" size="sm" variant="soft">{actionable} disponibles para confirmar</Chip>{ownBlocked > 0 ? <Chip color="warning" size="sm" variant="soft">{ownBlocked} requieren otra autoridad</Chip> : null}</section>
-    <section aria-label="Filtros de confirmaciones" className={styles.toolbar}><Input aria-label="Buscar confirmación" placeholder="Buscar competencia, participante o autoridad…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" /><select aria-label="Filtrar confirmaciones por tipo" value={filter} onChange={(event) => setFilter(event.target.value as DecisionFilter)}><option value="ALL">Todos los tipos</option><option value="DRAW">Sorteos</option><option value="RESULT">Resultados</option><option value="QUALIFICATION">Clasificados</option><option value="CHAMPION">Campeón</option></select><span /><span className={styles.counter}>{filtered.length} de {items.length}</span></section>
-    <Card className={styles.tableCard ?? ''} aria-label="Decisiones pendientes"><Card.Content style={{ padding: 0 }}><div className={styles.tableHeader}><span>Tipo</span><span>Decisión</span><span>Competencia</span><span>Autoridad</span><span>Acción</span></div>
-      {filtered.length === 0 ? <div className={styles.empty}><strong>{items.length === 0 ? 'No hay confirmaciones pendientes.' : 'No encontramos decisiones.'}</strong><p>{items.length === 0 ? 'La bandeja está al día.' : 'Ajusta la búsqueda o el filtro.'}</p></div> : filtered.map((decision) => {
+  return <PageLayout>
+    <PageHeader description="Revisa decisiones críticas con separación de funciones. Cada confirmación es una transición explícita y auditada." eyebrow="Control" title="Confirmaciones" />
+    {error === null ? null : <Notice description={error} title="No fue posible confirmar" tone="danger" />}
+    <StatusSummary label="Resumen de confirmaciones"><StatusBadge label={`${actionable} disponibles para confirmar`} tone="success" />{ownBlocked > 0 ? <StatusBadge label={`${ownBlocked} requieren otra autoridad`} tone="warning" /> : null}</StatusSummary>
+    <ListToolbar count={filtered.length} onQueryChange={setQuery} onStatusChange={setFilter} query={query} searchLabel="Buscar confirmación" searchPlaceholder="Buscar competencia, participante o autoridad…" status={filter} statusLabel="Filtrar confirmaciones por tipo" statusOptions={FILTER_OPTIONS} total={items.length} />
+    <DataList empty={{ description: items.length === 0 ? 'La bandeja está al día.' : 'Ajusta la búsqueda o el filtro.', title: items.length === 0 ? 'No hay confirmaciones pendientes.' : 'No encontramos decisiones.' }} isEmpty={filtered.length === 0} label="Decisiones pendientes">
+      {filtered.map((decision) => {
         const ownDecision = decision.originatorId === actor.id; const blockedOwnDecision = ownDecision && !canConfirmOwn; const key = `${decision.kind}:${decision.resourceId}`;
-        return <article className={styles.row} key={key}><span className={styles.logo}>{kindLabels[decision.kind].slice(0, 2).toUpperCase()}</span><div className={styles.identity}><strong>{decision.title}</strong><small>{decision.detail}</small></div><span className={styles.eventName}>{competitionLabel(decision.competition)}</span><Chip color={blockedOwnDecision ? 'warning' : 'success'} size="sm" variant="soft">{ownDecision ? canConfirmOwn ? 'Originada por ti · confirmable' : 'Originada por ti' : `Por ${decision.originatorName}`}</Chip>{blockedOwnDecision ? <span className={styles.eventName}>Otra autoridad debe confirmar</span> : <Button isDisabled={submitting !== null} onPress={() => void confirm(decision)} size="sm" variant="secondary">{submitting === key ? 'Confirmando…' : `Confirmar ${kindLabels[decision.kind].toLocaleLowerCase('es-PY')}`}</Button>}</article>;
+        return <DataRow action={blockedOwnDecision ? undefined : <ActionButton disabled={submitting !== null} onPress={() => void confirm(decision)} size="sm" variant="secondary">{submitting === key ? 'Confirmando…' : 'Confirmar'}</ActionButton>} description={decision.detail} key={key} meta={competitionLabel(decision.competition)} status={<StatusBadge label={ownDecision ? canConfirmOwn ? 'Originada por ti · confirmable' : 'Requiere otra autoridad' : `Por ${decision.originatorName}`} tone={blockedOwnDecision ? 'warning' : 'success'} />} title={decision.title} visual={kindLabels[decision.kind].slice(0, 2).toUpperCase()} />;
       })}
-    </Card.Content></Card>
-  </div>;
+    </DataList>
+  </PageLayout>;
 }
 
 export function ConfirmationsClient(): React.JSX.Element { return <SessionBoundary allowedRoles={CONTROL_ROLES}>{(actor) => <AppShell actor={actor} active="confirmations" title="Confirmaciones"><ConfirmationsWorkspace actor={actor} /></AppShell>}</SessionBoundary>; }
