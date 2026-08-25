@@ -6,9 +6,12 @@ import type { ChangeEventHandler, HTMLInputTypeAttribute, ReactNode } from 'reac
 import styles from './system.module.css';
 
 interface TextFieldProps {
+  readonly disabled?: boolean;
   readonly label: string;
   readonly max?: string;
+  readonly maxLength?: number;
   readonly min?: string;
+  readonly minLength?: number;
   readonly onChange: ChangeEventHandler<HTMLInputElement>;
   readonly placeholder?: string;
   readonly required?: boolean;
@@ -16,8 +19,8 @@ interface TextFieldProps {
   readonly value: string;
 }
 
-export function TextField({ label, max, min, onChange, placeholder, required = false, type = 'text', value }: TextFieldProps): React.JSX.Element {
-  return <label className={styles.field}><span>{label}</span><Input max={max} min={min} onChange={onChange} placeholder={placeholder} required={required} type={type} value={value} variant="secondary" /></label>;
+export function TextField({ disabled = false, label, max, maxLength, min, minLength, onChange, placeholder, required = false, type = 'text', value }: TextFieldProps): React.JSX.Element {
+  return <label className={styles.field}><span>{label}</span><Input isDisabled={disabled} max={max} maxLength={maxLength} min={min} minLength={minLength} onChange={onChange} placeholder={placeholder} required={required} type={type} value={value} variant="secondary" /></label>;
 }
 
 export function Field({ children, label }: { readonly children: ReactNode; readonly label: string }): React.JSX.Element {
