@@ -107,7 +107,7 @@
   align-items: center;
   display: grid;
   gap: 14px;
-  grid-template-columns: 34px 50px minmax(220px, 1.5fr) minmax(150px, .8fr) 100px 100px;
+  grid-template-columns: 34px 44px minmax(220px, 1.5fr) minmax(150px, .8fr) auto 20px;
   padding: 0 6px;
 }
 
@@ -129,7 +129,9 @@
 .row {
   border-bottom: 1px solid var(--border);
   counter-increment: organization-row;
-  min-height: 86px;
+  cursor: pointer;
+  min-height: 92px;
+  outline: none;
   transition: background-color .16s ease, padding .16s ease;
 }
 
@@ -141,10 +143,15 @@
   letter-spacing: .08em;
 }
 
-.row:hover {
+.row:hover,
+.row:focus-visible {
   background: color-mix(in srgb, var(--brand) 4%, transparent);
   padding-left: 12px;
   padding-right: 12px;
+}
+
+.row:focus-visible {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .row:last-child {
@@ -161,12 +168,12 @@
   font-family: var(--display-font);
   font-size: 10px;
   font-weight: 700;
-  height: 42px;
+  height: 44px;
   justify-content: center;
   overflow: hidden;
   position: relative;
   text-transform: uppercase;
-  width: 42px;
+  width: 44px;
 }
 
 .logo::after {
@@ -231,16 +238,17 @@
   color: #697486;
 }
 
-.editButton {
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
+.rowArrow {
+  color: var(--brand-muted);
+  font-size: 18px;
+  justify-self: end;
+  transition: transform .16s ease, color .16s ease;
+}
+
+.row:hover .rowArrow,
+.row:focus-visible .rowArrow {
   color: var(--brand);
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 850;
-  min-height: 36px;
-  min-width: 0;
+  transform: translateX(3px);
 }
 
 .empty {
@@ -486,7 +494,7 @@
   }
 
   .row {
-    grid-template-columns: 30px 46px minmax(0,1fr) auto;
+    grid-template-columns: 30px 44px minmax(0,1fr) auto 20px;
     gap: 12px;
     padding: 14px 6px;
   }
@@ -500,16 +508,14 @@
     grid-column: 3;
   }
 
-  .status {
+  .row > :nth-last-child(2) {
     grid-column: 4;
     grid-row: 1;
   }
 
-  .editButton {
-    grid-column: 3 / -1;
-    justify-self: start;
-    padding-left: 0;
-    padding-right: 0;
+  .rowArrow {
+    grid-column: 5;
+    grid-row: 1;
   }
 }
 
@@ -539,7 +545,7 @@
 
   .row {
     align-items: start;
-    grid-template-columns: 28px 42px minmax(0, 1fr);
+    grid-template-columns: 28px 42px minmax(0, 1fr) 20px;
     gap: 10px 12px;
   }
 
@@ -550,19 +556,17 @@
   }
 
   .eventName,
-  .status {
+  .row > :nth-last-child(2) {
     grid-column: 3;
   }
 
-  .status {
+  .row > :nth-last-child(2) {
     grid-row: auto;
-    white-space: normal;
   }
 
-  .editButton {
-    grid-column: 3;
-    min-height: 36px;
-    width: auto;
+  .rowArrow {
+    grid-column: 4;
+    grid-row: 1;
   }
 
   .empty {
