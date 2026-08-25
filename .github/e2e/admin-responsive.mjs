@@ -100,7 +100,7 @@ try {
 
   await page.goto(`${baseUrl}/admin/users`, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { level: 2, name: 'Usuarios' }).waitFor();
-  await page.getByText('E2E Superadmin').first().waitFor();
+  await page.getByRole('button', { name: /E2E Superadmin/ }).waitFor();
   await assertNoHorizontalOverflow(page, 'mobile users');
   await screenshot(page, 'mobile-users');
 
