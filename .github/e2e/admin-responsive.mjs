@@ -5,6 +5,7 @@ const baseUrl = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
 const email = process.env.E2E_SUPERADMIN_EMAIL;
 const password = process.env.E2E_SUPERADMIN_PASSWORD;
 const outputDir = process.env.E2E_SCREENSHOT_DIR ?? 'artifacts/visual-e2e';
+const competitionFixtureId = '96000000-0000-4000-8000-000000000001';
 
 if (!email || !password) throw new Error('E2E superadmin credentials are required.');
 
@@ -66,6 +67,19 @@ async function assertDesktopShellGeometry(page) {
   assert(geometry.mainLeft >= geometry.sidebarWidth - 2, 'Desktop main content must render beside the sidebar, not below it.');
 }
 
+async function assertCompetitionRulesGeometry(page) {
+  const geometry = await page.getByRole('heading', { name: 'Puntuación y desempates' }).evaluate((heading) => {
+    const panel = heading.closest('section');
+    const grid = panel?.parentElement;
+    if (!(panel instanceof HTMLElement) || !(grid instanceof HTMLElement)) return null;
+    const panelRect = panel.getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+    return { gridWidth: gridRect.width, panelLeft: panelRect.left, panelWidth: panelRect.width };
+  });
+  assert(geometry !== null, 'Competition rules panel geometry must be measurable.');
+  assert(geometry.panelWidth >= geometry.gridWidth - 4, `Rules panel must span the competition grid: ${geometry.panelWidth}px of ${geometry.gridWidth}px.`);
+}
+
 async function screenshot(page, name) {
   await page.screenshot({ fullPage: true, path: `${outputDir}/${name}.png` });
 }
@@ -122,6 +136,23 @@ try {
   const settingsLink = page.getByRole('link', { name: /Configuración/ });
   assert(await usersLink.count() === 1, 'SUPERADMIN must see Usuarios navigation.');
   assert(await settingsLink.count() === 1, 'SUPERADMIN must see Configuración navigation.');
+
+  await page.goto(`${baseUrl}/competitions/${competitionFixtureId}`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Puntuación y desempates' }).waitFor();
+  await page.getByRole('heading', { name: 'Perfil de puntuación' }).waitFor();
+  await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
+  await page.getByText('Plantilla inmutable').waitFor();
+  await page.getByRole('heading', { name: 'Recorrido completo' }).waitFor();
+  await assertNoHorizontalOverflow(page, 'desktop competition detail');
+  await assertDesktopShellGeometry(page);
+  await assertCompetitionRulesGeometry(page);
+  await screenshot(page, 'desktop-competition-detail');
+
+  await page.setViewportSize({ height: 844, width: 390 });
+  await assertNoHorizontalOverflow(page, 'mobile competition detail');
+  await page.getByRole('heading', { name: 'Perfil de puntuación' }).waitFor();
+  await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
+  await screenshot(page, 'mobile-competition-detail');
 } finally {
   await context.close();
   await browser.close();
