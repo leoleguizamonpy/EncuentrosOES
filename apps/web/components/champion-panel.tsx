@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { confirmChampion, proposeChampion, type ChampionView } from '../lib/champion-api';
 import type { DrawWorkspace, ResultsWorkspace } from '../lib/competition-api';
+import { SectionPanel } from '../ui';
 
 function finalReady(draw: DrawWorkspace, results: ResultsWorkspace): boolean {
   const configuration = draw.configuration;
@@ -62,16 +63,13 @@ export function ChampionPanel({
 
   const ownPendingProposal = champion?.status === 'PENDING_CONFIRMATION' && champion.proposedBy === actorId;
 
-  return <Card className="setup-card qualification-panel" id="champion-workspace" aria-labelledby="champion-title">
-    <Card.Content>
-      <div className="section-title"><div><span className="eyebrow eyebrow--dark">Cierre</span><h3 id="champion-title">Campeón de la competencia</h3></div><Chip color={champion?.status === 'CONFIRMED' ? 'success' : 'accent'} size="sm" variant="soft">★</Chip></div>
-      {champion === null ? <div className="draw-empty">
-        <div><strong>Final resuelta</strong><p>El último resultado confirmado permite proponer al campeón. El servidor verificará nuevamente toda la evidencia antes de registrar la propuesta.</p></div>
-        {canOperate ? <Button isDisabled={submitting !== null} onPress={() => void propose()} variant="primary">{submitting === 'propose' ? 'Proponiendo…' : 'Proponer campeón'}</Button> : <p className="readonly-note">Una autoridad habilitada debe proponer el campeón.</p>}
-      </div> : <div className="draw-ready">
-        <Card variant="tertiary"><Card.Content className="draw-proof"><span>{champion.status === 'CONFIRMED' ? 'Campeón confirmado' : 'Campeón propuesto'}</span><strong>{champion.participantDisplayName}</strong><small>Ronda {champion.sourceRoundNumber} · evidencia vinculada al resultado final</small></Card.Content></Card>
-        {champion.status === 'CONFIRMED' ? <Alert status="success"><Alert.Indicator /><Alert.Content><Alert.Title>Competencia finalizada oficialmente</Alert.Title><Alert.Description><a href={`/competitions/${competitionId}/public`}>Ver campeón y recorrido público</a></Alert.Description></Alert.Content></Alert> : ownPendingProposal && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar al campeón.</p> : canOperate ? <Button isDisabled={submitting !== null} onPress={() => void confirm()} variant="primary">{submitting === 'confirm' ? 'Confirmando…' : ownPendingProposal ? 'Confirmar mi propuesta y finalizar' : 'Confirmar campeón y finalizar'}</Button> : <p className="readonly-note">Una autoridad habilitada debe confirmar al campeón.</p>}
-      </div>}
-    </Card.Content>
-  </Card>;
+  return <SectionPanel className="champion-panel" id="champion-workspace" eyebrow="Cierre" title="Campeón de la competencia" status={<Chip color={champion?.status === 'CONFIRMED' ? 'success' : 'accent'} size="sm" variant="soft">★</Chip>}>
+    {champion === null ? <div className="draw-empty">
+      <div><strong>Final resuelta</strong><p>El último resultado confirmado permite proponer al campeón. El servidor verificará nuevamente toda la evidencia antes de registrar la propuesta.</p></div>
+      {canOperate ? <Button isDisabled={submitting !== null} onPress={() => void propose()} variant="primary">{submitting === 'propose' ? 'Proponiendo…' : 'Proponer campeón'}</Button> : <p className="readonly-note">Una autoridad habilitada debe proponer el campeón.</p>}
+    </div> : <div className="draw-ready">
+      <Card variant="tertiary"><Card.Content className="draw-proof"><span>{champion.status === 'CONFIRMED' ? 'Campeón confirmado' : 'Campeón propuesto'}</span><strong>{champion.participantDisplayName}</strong><small>Ronda {champion.sourceRoundNumber} · evidencia vinculada al resultado final</small></Card.Content></Card>
+      {champion.status === 'CONFIRMED' ? <Alert status="success"><Alert.Indicator /><Alert.Content><Alert.Title>Competencia finalizada oficialmente</Alert.Title><Alert.Description><a href={`/competitions/${competitionId}/public`}>Ver campeón y recorrido público</a></Alert.Description></Alert.Content></Alert> : ownPendingProposal && !canSelfConfirm ? <p className="readonly-note">Otra autoridad debe confirmar al campeón.</p> : canOperate ? <Button isDisabled={submitting !== null} onPress={() => void confirm()} variant="primary">{submitting === 'confirm' ? 'Confirmando…' : ownPendingProposal ? 'Confirmar mi propuesta y finalizar' : 'Confirmar campeón y finalizar'}</Button> : <p className="readonly-note">Una autoridad habilitada debe confirmar al campeón.</p>}
+    </div>}
+  </SectionPanel>;
 }
