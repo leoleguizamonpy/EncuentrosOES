@@ -41,7 +41,7 @@ const copy: Record<VisualCatalogKind, VisualCatalogCopy> = {
   modality: {
     activeLabel: 'Modalidad activa',
     createLabel: '+ Nueva modalidad',
-    description: 'Administra las modalidades disponibles para las competencias OES y su identidad visual dentro del sistema.',
+    description: 'Administra las modalidades disponibles para las competencias y su identidad visual.',
     emptyDescription: 'Carga las modalidades que podrán utilizarse al configurar las competencias.',
     emptyLabel: 'No hay modalidades todavía.',
     itemLabel: 'Modalidad OES',
@@ -54,7 +54,7 @@ const copy: Record<VisualCatalogKind, VisualCatalogCopy> = {
   sport: {
     activeLabel: 'Deporte activo',
     createLabel: '+ Nuevo deporte',
-    description: 'Administra los deportes disponibles para las competencias OES y su identidad visual dentro del sistema.',
+    description: 'Administra los deportes disponibles para las competencias y su identidad visual.',
     emptyDescription: 'Carga los deportes que podrán utilizarse al configurar las competencias.',
     emptyLabel: 'No hay deportes todavía.',
     itemLabel: 'Deporte OES',
