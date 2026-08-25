@@ -10,7 +10,7 @@ import {
   type ResultMatchView,
 } from '../lib/competition-api';
 import { AppShell } from './app-shell';
-import styles from './institutions.module.css';
+import styles from './matches-client.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
@@ -113,13 +113,15 @@ function MatchesWorkspace(): React.JSX.Element {
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
-      <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Encuentros</h2><p>Consulta todos los encuentros materializados, detecta resultados pendientes y entra a la competencia correspondiente para registrar o confirmar el marcador.</p></div>
+      <div className={styles.headingCopy}><span className="eyebrow eyebrow--dark">Competencia</span><h2>Encuentros</h2><p>Lee el estado de cada partido como una mesa de control: marcador, fase, contexto y acción operativa en una sola línea.</p></div>
+      <div className={styles.summary} aria-label="Resumen de encuentros">
+        <div className={styles.summaryItem}><strong>{pendingResults}</strong><span>Sin resultado</span></div>
+        <div className={styles.summaryItem}><strong>{pendingConfirmations}</strong><span>Por confirmar</span></div>
+      </div>
     </section>
+
     {failedCompetitionCount === 0 ? null : <Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Datos parciales</Alert.Title><Alert.Description>No fue posible recuperar los encuentros de {failedCompetitionCount} {failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Los datos disponibles de las demás competencias siguen visibles.</Alert.Description></Alert.Content></Alert>}
-    <section aria-label="Resumen de encuentros" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
-      <Chip color="default" size="sm" variant="soft">{pendingResults} sin resultado</Chip>
-      <Chip color="warning" size="sm" variant="soft">{pendingConfirmations} por confirmar</Chip>
-    </section>
+
     <section aria-label="Filtros de encuentros" className={styles.toolbar}>
       <Input aria-label="Buscar encuentro" placeholder="Buscar competencia o participante…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
       <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as MatchFilter)}>
@@ -128,17 +130,19 @@ function MatchesWorkspace(): React.JSX.Element {
         <option value="PENDING_CONFIRMATION">Pendientes de confirmación</option>
         <option value="CONFIRMED">Confirmados</option>
       </select>
-      <span />
       <span className={styles.counter}>{filtered.length} de {rows.length}</span>
     </section>
-    <section aria-label="Listado de encuentros" className={styles.tableCard}>
-      <div className={styles.tableHeader}><span>Fase</span><span>Encuentro</span><span>Competencia</span><span>Estado</span><span>Acción</span></div>
+
+    <section aria-label="Listado de encuentros" className={styles.board}>
       {filtered.length === 0 ? <div className={styles.empty}><strong>{rows.length === 0 ? 'No hay encuentros materializados.' : 'No encontramos encuentros.'}</strong><p>{rows.length === 0 ? 'Los encuentros aparecerán después de confirmar un sorteo oficial.' : 'Ajusta la búsqueda o el filtro para ver otros partidos.'}</p></div> : filtered.map(({ competition, match }) => <article className={styles.row} key={match.id}>
-        <span className={styles.logo}>{match.group === null ? `R${String(match.roundNumber)}` : match.group.label}</span>
-        <div className={styles.identity}><strong>{match.participantA.displayName} · {match.participantB.displayName}</strong><small>{locationOf(match)} · Encuentro {String(match.ordinal)} · {scoreOf(match)}</small></div>
-        <span className={styles.eventName}>{competition.sport.name} · {competition.modality.name}<br />{competition.edition.name} / {competition.event.name}</span>
+        <span className={styles.phase}>{match.group === null ? `R${String(match.roundNumber)}` : match.group.label}</span>
+        <div className={styles.matchIdentity}>
+          <strong>{match.participantA.displayName} · {match.participantB.displayName}</strong>
+          <div className={styles.matchMeta}><span className={styles.score}>{scoreOf(match)}</span><small>{locationOf(match)} · Encuentro {String(match.ordinal)}</small></div>
+        </div>
+        <div className={styles.context}><strong>{competition.sport.name} · {competition.modality.name}</strong><small>{competition.edition.name} / {competition.event.name}</small></div>
         <Chip color={statusColor(match.status)} size="sm" variant="soft">{statusLabel[match.status]}</Chip>
-        <a className={styles.editButton} href={`/competitions/${competition.id}#results-workspace`} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center', textDecoration: 'none' }}>Operar</a>
+        <a className={styles.action} href={`/competitions/${competition.id}#results-workspace`}>Operar</a>
       </article>)}
     </section>
   </div>;
