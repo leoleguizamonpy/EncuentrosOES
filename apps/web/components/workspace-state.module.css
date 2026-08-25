@@ -1,0 +1,17 @@
+.content {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.line {
+  border-radius: 999px;
+  height: 8px;
+  max-width: 140px;
+  width: 32%;
+}
+
+.detail {
+  color: var(--muted-foreground);
+  margin: 0;
+}
