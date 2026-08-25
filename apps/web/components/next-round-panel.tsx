@@ -1,10 +1,11 @@
 'use client';
 
-import { Button, Card, Chip } from '@heroui/react';
+import { Button, Chip } from '@heroui/react';
 import { useState } from 'react';
 
 import { drawWorkspace, type DrawWorkspace, type ResultsWorkspace } from '../lib/competition-api';
 import { prepareNextRound } from '../lib/continuity-api';
+import { SectionPanel } from '../ui';
 
 function readyForNextRound(draw: DrawWorkspace, results: ResultsWorkspace): boolean {
   if (draw.execution?.status !== 'CONFIRMED' || results.matches.length === 0) return false;
@@ -42,11 +43,8 @@ export function NextRoundPanel({
 
   const nextRound = draw.configuration?.formatCode === 'KNOCKOUT' ? draw.configuration.roundNumber + 1 : 1;
 
-  return <Card className="setup-card" aria-labelledby="next-round-title">
-    <Card.Content>
-      <div className="section-title"><div><span className="eyebrow eyebrow--dark">Continuidad</span><h3 id="next-round-title">Siguiente ronda eliminatoria</h3></div><Chip color="accent" size="sm" variant="soft">Ronda {nextRound}</Chip></div>
-      <p>Todos los avances necesarios están confirmados. El servidor construirá el conjunto elegible y congelará la ronda {nextRound}; no se seleccionan equipos manualmente.</p>
-      {canOperate ? <Button isDisabled={submitting} onPress={() => void prepare()} variant="primary">{submitting ? 'Preparando…' : `Preparar ronda ${String(nextRound)}`}</Button> : <p className="readonly-note">Un administrador debe preparar la siguiente ronda.</p>}
-    </Card.Content>
-  </Card>;
+  return <SectionPanel className="next-round-panel" eyebrow="Continuidad" title="Siguiente ronda eliminatoria" status={<Chip color="accent" size="sm" variant="soft">Ronda {nextRound}</Chip>}>
+    <p>Todos los avances necesarios están confirmados. El servidor construirá el conjunto elegible y congelará la ronda {nextRound}; no se seleccionan equipos manualmente.</p>
+    {canOperate ? <Button isDisabled={submitting} onPress={() => void prepare()} variant="primary">{submitting ? 'Preparando…' : `Preparar ronda ${String(nextRound)}`}</Button> : <p className="readonly-note">Un administrador debe preparar la siguiente ronda.</p>}
+  </SectionPanel>;
 }
