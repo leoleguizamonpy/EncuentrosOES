@@ -5,6 +5,8 @@ const ROOTS = ['apps', 'packages'];
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs'];
 const SOURCE_EXTENSION_SET = new Set(SOURCE_EXTENSIONS);
 const IGNORED_DIRS = new Set(['node_modules', '.next', 'dist', 'coverage', 'generated', 'artifacts']);
+const WEB_COMPONENTS_ROOT = 'apps/web/components';
+const WORKSPACE_STANDARD_IMPORT = "composes: workspace from './workspace-standard.module.css'";
 
 const errors = [];
 const warnings = [];
@@ -33,6 +35,18 @@ async function walk(directory) {
   return files;
 }
 
+async function walkCssModules(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    if (IGNORED_DIRS.has(entry.name)) continue;
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await walkCssModules(absolute));
+    else if (entry.name.endsWith('.module.css')) files.push(absolute);
+  }
+  return files;
+}
+
 function relative(file) {
   return file.split(path.sep).join('/');
 }
@@ -52,6 +66,19 @@ function checkBoundaries(file, content) {
 
   if (rel.startsWith('packages/') && !rel.startsWith('packages/database/') && /@prisma\/client/.test(content)) {
     errors.push(`${rel}: Prisma client is restricted to the database package or application adapters`);
+  }
+}
+
+function checkWorkspaceStyleContract(file, content) {
+  const rel = relative(file);
+  if (rel.endsWith('/workspace-standard.module.css')) return;
+
+  if (/\.workspace\s*\{/.test(content) && !content.includes(WORKSPACE_STANDARD_IMPORT)) {
+    errors.push(`${rel}: admin .workspace must compose workspace-standard.module.css instead of defining independent page geometry`);
+  }
+
+  if (rel.endsWith('/dashboard-client.module.css') && /\.page\s*\{/.test(content) && !content.includes(WORKSPACE_STANDARD_IMPORT)) {
+    errors.push(`${rel}: dashboard outer .page must compose workspace-standard.module.css`);
   }
 }
 
@@ -130,6 +157,17 @@ for (const file of files) {
   graph.set(absolute, importSpecifiers(content)
     .map((specifier) => resolveRelativeImport(absolute, specifier))
     .filter((dependency) => dependency !== null));
+}
+
+try {
+  const styleRootInfo = await stat(WEB_COMPONENTS_ROOT);
+  if (styleRootInfo.isDirectory()) {
+    for (const styleFile of await walkCssModules(WEB_COMPONENTS_ROOT)) {
+      checkWorkspaceStyleContract(styleFile, await readFile(styleFile, 'utf8'));
+    }
+  }
+} catch {
+  // Web components are optional in partial package execution.
 }
 
 findCycles();
