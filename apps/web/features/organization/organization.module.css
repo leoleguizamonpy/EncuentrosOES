@@ -1,0 +1,132 @@
+.workspace {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-9) 0 72px;
+}
+
+.form {
+  display: grid;
+  gap: 17px;
+  min-width: 0;
+}
+
+.form label,
+.fieldLabel {
+  color: var(--muted-foreground);
+  display: grid;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  gap: 7px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.form select {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--foreground);
+  min-height: 46px;
+  min-width: 0;
+  outline: none;
+  padding: 0 var(--space-3);
+  width: 100%;
+}
+
+.form select:focus-visible {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
+}
+
+.checkRow {
+  align-items: center;
+  color: var(--foreground);
+  display: flex;
+  font-size: var(--text-body-sm);
+  gap: var(--space-2);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.assetBox {
+  align-items: center;
+  background: #f7f8f4;
+  border: 1px dashed #c7cdb9;
+  border-radius: var(--radius-panel);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 82px minmax(0, 1fr);
+  padding: var(--space-4);
+}
+
+.assetPreview {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  display: flex;
+  height: 76px;
+  justify-content: center;
+  overflow: hidden;
+  width: 76px;
+}
+
+.assetPreview img {
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  width: 100%;
+}
+
+.assetMeta {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.assetMeta input {
+  font-size: var(--text-caption);
+  max-width: 100%;
+}
+
+.assetMeta small,
+.helper {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+
+.relations {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.relationIntro {
+  color: var(--muted-foreground);
+  font-size: var(--text-row-meta);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.relationGroup {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+
+.relationGroupTitle {
+  color: var(--brand);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 620px) {
+  .workspace { padding: var(--space-6) 0 42px; }
+  .assetBox { grid-template-columns: 68px minmax(0, 1fr); }
+  .assetPreview { height: 62px; width: 62px; }
+}
+
+@media (max-width: 420px) {
+  .assetBox { align-items: start; grid-template-columns: 1fr; }
+}
