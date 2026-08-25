@@ -50,7 +50,7 @@ function stateLabel(group: StandingGroup['group']): string {
 
 function columnsFor(setBased: boolean): readonly DataTableColumn<StandingRowView>[] {
   const common: DataTableColumn<StandingRowView>[] = [
-    { id: 'position', label: 'Pos.', render: (row) => `${row.position}${row.tied ? '=' : ''}` },
+    { id: 'position', label: 'Pos.', render: (row) => `${String(row.position)}${row.tied ? '=' : ''}` },
     { id: 'participant', label: 'Participante', render: (row) => row.participant.displayName },
     { align: 'right', id: 'played', label: 'J', render: (row) => row.played },
     { align: 'right', id: 'wins', label: 'G', render: (row) => row.wins },
@@ -111,8 +111,8 @@ function StandingsWorkspace(): React.JSX.Element {
 
   return <PageLayout>
     <PageHeader description="Consulta las tablas calculadas por el motor competitivo y el estado oficial de los clasificados desde la misma fuente de verdad." eyebrow="Competencia" title="Clasificación" />
-    {failedCompetitionCount === 0 ? null : <Notice description={`No fue posible recuperar tablas de ${failedCompetitionCount} ${failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Las tablas disponibles de las demás competencias siguen visibles.`} title="Tablas parciales" tone="warning" />}
-    <div aria-label="Resumen de clasificación" className={standingsStyles.summary}><StatusBadge label={`${confirmed} grupos confirmados`} tone="success" /><StatusBadge label={`${pending} por confirmar`} tone={pending > 0 ? 'warning' : 'default'} /></div>
+    {failedCompetitionCount === 0 ? null : <Notice description={`No fue posible recuperar tablas de ${String(failedCompetitionCount)} ${failedCompetitionCount === 1 ? 'competencia' : 'competencias'}. Las tablas disponibles de las demás competencias siguen visibles.`} title="Tablas parciales" tone="warning" />}
+    <div aria-label="Resumen de clasificación" className={standingsStyles.summary}><StatusBadge label={`${String(confirmed)} grupos confirmados`} tone="success" /><StatusBadge label={`${String(pending)} por confirmar`} tone={pending > 0 ? 'warning' : 'default'} /></div>
     <ListToolbar count={filtered.length} onQueryChange={setQuery} onStatusChange={setFilter} query={query} searchLabel="Buscar clasificación" searchPlaceholder="Buscar competencia, grupo o participante…" status={filter} statusLabel="Filtrar clasificación por estado" statusOptions={FILTER_OPTIONS} total={groups.length} />
     {filtered.length === 0 ? <Panel><div className={standingsStyles.qualification}><strong>{groups.length === 0 ? 'Aún no hay tablas de grupos.' : 'No encontramos clasificaciones.'}</strong><small>{groups.length === 0 ? 'Las tablas aparecerán cuando existan encuentros de fase de grupos.' : 'Ajusta la búsqueda o el filtro.'}</small></div></Panel> : <PanelStack>{filtered.map(({ competition, group, resultProfile }) => {
       const setBased = resultProfile === 'SET_BASED'; const qualification = group.qualification;
