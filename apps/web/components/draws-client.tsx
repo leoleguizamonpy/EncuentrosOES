@@ -10,7 +10,7 @@ import {
   type DrawWorkspace,
 } from '../lib/competition-api';
 import { AppShell } from './app-shell';
-import styles from './institutions.module.css';
+import styles from './draws-client.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
@@ -102,11 +102,11 @@ function DrawsWorkspace(): React.JSX.Element {
 
   return <div className={styles.workspace}>
     <section className={styles.heading}>
-      <div><span className="eyebrow eyebrow--dark">Competencia</span><h2>Sorteos</h2><p>Consulta qué competencias están listas para sortear, cuáles esperan confirmación y cuáles ya fueron publicadas oficialmente.</p></div>
+      <div><span className="eyebrow eyebrow--dark">Control de sorteos</span><h2>Sorteos oficiales.</h2><p>Identifica rápidamente qué competencias están listas, cuáles requieren confirmación y cuáles ya tienen evidencia pública.</p></div>
     </section>
     {failedCount === 0 ? null : <Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Estado parcial</Alert.Title><Alert.Description>No fue posible recuperar el estado de {failedCount} {failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.</Alert.Description></Alert.Content></Alert>}
     <section aria-label="Filtros de sorteos" className={styles.toolbar}>
-      <Input aria-label="Buscar sorteo" placeholder="Buscar por edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
+      <Input aria-label="Buscar sorteo" placeholder="Buscar edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
       <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as DrawFilter)}>
         <option value="ALL">Todos los estados</option>
         <option value="PENDING">Pendientes</option>
@@ -115,20 +115,19 @@ function DrawsWorkspace(): React.JSX.Element {
         <option value="PUBLISHED">Publicados</option>
         <option value="NOT_READY">No listos</option>
       </select>
-      <span />
       <span className={styles.counter}>{filtered.length} de {rows.length}</span>
     </section>
-    <section aria-label="Listado de sorteos" className={styles.tableCard}>
-      <div className={styles.tableHeader}><span>Formato</span><span>Competencia</span><span>Contexto</span><span>Estado</span><span>Acción</span></div>
+    <section aria-label="Listado de sorteos" className={styles.board}>
+      <div className={styles.boardHeader}><span>Formato</span><span>Competencia</span><span>Contexto</span><span>Estado</span><span>Acción</span></div>
       {filtered.length === 0 ? <div className={styles.empty}><strong>{rows.length === 0 ? 'No hay competencias todavía.' : 'No encontramos sorteos.'}</strong><p>{rows.length === 0 ? 'Crea y configura una competencia antes de preparar su sorteo oficial.' : 'Ajusta la búsqueda o el filtro para ver otros sorteos.'}</p></div> : filtered.map((row) => {
         const state = stateOf(row);
         const publication = row.workspace?.publication ?? null;
         return <article className={styles.row} key={row.competition.id}>
-          <span className={styles.logo}>{row.competition.formatCode === 'GROUP_STAGE' ? 'GR' : row.competition.formatCode === 'KNOCKOUT' ? 'KO' : '—'}</span>
+          <span className={styles.badge}>{row.competition.formatCode === 'GROUP_STAGE' ? 'GR' : row.competition.formatCode === 'KNOCKOUT' ? 'KO' : '—'}</span>
           <div className={styles.identity}><strong>{row.competition.sport.name} · {row.competition.modality.name}</strong><small>{row.competition.edition.name} / {row.competition.event.name}</small></div>
-          <span className={styles.eventName}>{formatLabel(row.competition.formatCode)} · {row.competition.participantCount} participantes</span>
+          <span className={styles.context}>{formatLabel(row.competition.formatCode)} · {row.competition.participantCount} participantes</span>
           <Chip color={chipColor(state.filter)} size="sm" variant="soft">{state.label}</Chip>
-          <span style={{ display: 'grid', gap: 6 }}><a className={styles.editButton} href={`/competitions/${row.competition.id}`} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center', textDecoration: 'none' }}>Operar</a>{publication === null ? null : <a href={`/draws/${publication.id}`} style={{ fontSize: 9, textAlign: 'center' }}>Ver publicación</a>}</span>
+          <span className={styles.actions}><a className={styles.operate} href={`/competitions/${row.competition.id}`}>Operar</a>{publication === null ? null : <a className={styles.publicLink} href={`/draws/${publication.id}`}>Ver publicación</a>}</span>
         </article>;
       })}
     </section>
@@ -136,5 +135,5 @@ function DrawsWorkspace(): React.JSX.Element {
 }
 
 export function DrawsClient(): React.JSX.Element {
-  return <SessionBoundary allowedRoles={WORKSPACE_ROLES}>{(actor) => <AppShell actor={actor} active="draws" title="Sorteos"><DrawsWorkspace /></AppShell>}</SessionBoundary>;
+  return <SessionBoundary allowedRoles={WORKSPACE_ROLES}>{(actor) => <AppShell actor={actor} active="draws" eyebrow="Competencia" title="Sorteos"><DrawsWorkspace /></AppShell>}</SessionBoundary>;
 }
