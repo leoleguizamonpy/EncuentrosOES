@@ -56,10 +56,10 @@ describe('DrawsClient', () => {
 
     render(<DrawsClient />);
 
-    expect(await screen.findByRole('heading', { name: 'Sorteos', level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sorteos oficiales', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Sorteos/ })).toHaveAttribute('href', '/draws');
     expect(screen.getByText('Preparado')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Operar' })).toHaveAttribute('href', '/competitions/competition-1');
+    expect(screen.getByRole('link', { name: 'Operar Futsal Masculina' })).toHaveAttribute('href', '/competitions/competition-1');
   });
 
   it('exposes the public publication when a draw is already published', async () => {
@@ -88,7 +88,7 @@ describe('DrawsClient', () => {
     render(<DrawsClient />);
 
     await waitFor(() => expect(screen.getByText('Publicado')).toBeInTheDocument());
-    expect(screen.getByRole('link', { name: 'Ver publicación' })).toHaveAttribute('href', '/draws/publication-1');
+    expect(screen.getByRole('link', { name: 'Publicación' })).toHaveAttribute('href', '/draws/publication-1');
   });
 
   it('does not disguise a failed draw workspace as a competition without a draw', async () => {
@@ -98,6 +98,6 @@ describe('DrawsClient', () => {
 
     expect(await screen.findByText('Estado no disponible')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('No fue posible recuperar el estado de 1 competencia');
-    expect(screen.getByRole('link', { name: 'Operar' })).toHaveAttribute('href', '/competitions/competition-1');
+    expect(screen.getByRole('link', { name: 'Operar Futsal Masculina' })).toHaveAttribute('href', '/competitions/competition-1');
   });
 });

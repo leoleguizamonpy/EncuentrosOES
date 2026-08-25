@@ -72,7 +72,7 @@ describe('CompetitionSetupClient', () => {
 
   it('restores participants and adds another institution with the current revision', async () => {
     render(<CompetitionSetupClient competitionId="competition-1" />);
-    expect(await screen.findByRole('heading', { name: 'Preparar la competencia.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: /Futsal.*Masculina/ })).toBeInTheDocument();
     expect(screen.getByText('Colegio A')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Institución'), { target: { value: 'institution-2' } });
 
@@ -84,7 +84,7 @@ describe('CompetitionSetupClient', () => {
 
   it('persists the selected valid group count', async () => {
     render(<CompetitionSetupClient competitionId="competition-1" />);
-    expect(await screen.findByRole('heading', { name: 'Preparar la competencia.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: /Futsal.*Masculina/ })).toBeInTheDocument();
     const saveButton = screen.getByRole('button', { name: 'Guardar formato' });
     if (!(saveButton instanceof HTMLButtonElement) || saveButton.form === null) throw new Error('Expected format form');
     fireEvent.submit(saveButton.form);
