@@ -2,6 +2,8 @@
 
 import { Alert, Button, Card, Skeleton } from '@heroui/react';
 
+import styles from './workspace-state.module.css';
+
 interface WorkspaceStateProps {
   readonly actionLabel?: string;
   readonly detail: string;
@@ -26,10 +28,10 @@ export function WorkspaceState({ actionLabel = 'Reintentar', detail, onAction, t
 
   return (
     <Card variant="tertiary" role="status" aria-live="polite">
-      <Card.Content style={{ display: 'grid', gap: 12, padding: 24 }}>
-        <Skeleton style={{ borderRadius: 999, height: 8, maxWidth: 140, width: '32%' }} />
+      <Card.Content className={styles.content ?? ''}>
+        <Skeleton className={styles.line ?? ''} />
         <strong>{title}</strong>
-        <p style={{ color: 'var(--muted-foreground)', margin: 0 }}>{detail}</p>
+        <p className={styles.detail}>{detail}</p>
         {onAction === undefined ? null : <Button onPress={onAction} size="sm" variant="secondary">{actionLabel}</Button>}
       </Card.Content>
     </Card>
