@@ -1,10 +1,11 @@
 'use client';
 
-import { Alert, Card, Chip, Skeleton } from '@heroui/react';
+import { Alert, Card, Chip } from '@heroui/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { publicDraw, publicDrawActUrl, type PublicDrawPublication } from '../lib/competition-api';
+import { LoadingPanel } from '../ui';
 import { OesMark } from './oes-mark';
 
 export function PublicDrawClient({ publicationId }: { readonly publicationId: string }): React.JSX.Element {
@@ -13,7 +14,7 @@ export function PublicDrawClient({ publicationId }: { readonly publicationId: st
   useEffect(() => { let active = true; void publicDraw(publicationId).then((loaded) => active && setPublication(loaded)).catch(() => active && setError('El acta solicitada no existe, fue revocada o no pudo verificarse.')); return () => { active = false; }; }, [publicationId]);
 
   if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Acta no disponible</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert></main>;
-  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><Card variant="tertiary"><Card.Content style={{ display: 'grid', gap: 12, padding: 24 }}><Skeleton style={{ height: 10, width: '35%' }} /><strong>Verificando acta oficial…</strong></Card.Content></Card></main>;
+  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><LoadingPanel label="Verificando acta oficial…" /></main>;
   const { act } = publication;
   return <main id="main-content" className="public-draw-shell">
     <header className="public-draw-header"><OesMark /><div><span>Acta oficial de sorteo</span><h1>{act.competition.sport} · {act.competition.modality}</h1><p>{act.competition.edition} / {act.competition.event}</p></div><Chip color={publication.verified ? 'success' : 'danger'} size="sm" variant="soft">{publication.verified ? '✓ Verificada' : 'No verificable'}</Chip></header>
