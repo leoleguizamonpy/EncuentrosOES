@@ -4,19 +4,32 @@
 :root,
 [data-theme="oes"] {
   color-scheme: light;
-  --background: #f4f6f8;
-  --foreground: #0b1424;
+
+  /* OES brand */
+  --oes-brand: #1f2e43;
+  --oes-brand-strong: #172335;
+  --oes-brand-soft: #30445f;
+  --oes-brand-muted: #596a80;
+  --oes-signal: #d7ff3f;
+  --oes-signal-soft: #efffb4;
+  --oes-signal-foreground: #172335;
+
+  /* Product neutrals */
+  --background: #f6f8fa;
+  --foreground: #17202c;
   --surface: #ffffff;
-  --surface-foreground: #0b1424;
+  --surface-foreground: #17202c;
   --overlay: #ffffff;
-  --overlay-foreground: #0b1424;
-  --muted: #eef1f4;
-  --muted-foreground: #667085;
-  --accent: #dfff46;
-  --accent-foreground: #0b1424;
-  --border: #dfe4ea;
-  --focus: #9ab52f;
-  --danger: #d83b3b;
+  --overlay-foreground: #17202c;
+  --muted: #eef2f5;
+  --muted-foreground: #687386;
+  --border: #e2e7ec;
+
+  /* HeroUI semantic roles */
+  --accent: var(--oes-signal);
+  --accent-foreground: var(--oes-signal-foreground);
+  --focus: #8fab22;
+  --danger: #c93c43;
   --danger-foreground: #ffffff;
   --radius: 0.875rem;
 }
@@ -27,6 +40,6 @@ body {
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--accent-foreground);
+  background: var(--oes-signal);
+  color: var(--oes-signal-foreground);
 }
