@@ -18,7 +18,8 @@
 }
 
 .introCopy {
-  max-width: 760px;
+  max-width: 780px;
+  min-width: 0;
 }
 
 .eyebrow {
@@ -33,11 +34,13 @@
 
 .introCopy h2 {
   color: var(--brand);
-  font-size: clamp(38px, 5vw, 66px);
-  letter-spacing: -.06em;
-  line-height: .98;
-  margin: 0 0 18px;
-  max-width: 720px;
+  font-family: var(--display-font);
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: .96;
+  margin: 0 0 20px;
+  max-width: 760px;
 }
 
 .introCopy p {
@@ -66,8 +69,9 @@
 
 .metric strong {
   color: #fff;
+  font-family: var(--display-font);
   font-size: 30px;
-  letter-spacing: -.055em;
+  letter-spacing: -.025em;
   line-height: 1;
 }
 
@@ -85,6 +89,7 @@
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  min-width: 0;
 }
 
 .listPanel {
@@ -102,16 +107,19 @@
 .sectionHeader h3,
 .createHeader h3 {
   color: var(--brand);
+  font-family: var(--display-font);
   font-size: 19px;
-  letter-spacing: -.03em;
+  font-weight: 600;
+  letter-spacing: -.015em;
   margin: 0;
 }
 
 .sectionCount {
   color: var(--brand);
+  font-family: var(--display-font);
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -.05em;
+  font-weight: 700;
+  letter-spacing: -.02em;
 }
 
 .rows {
@@ -151,8 +159,9 @@
   border-radius: 10px;
   color: #fff;
   display: flex;
+  font-family: var(--display-font);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
   height: 44px;
   justify-content: center;
   position: relative;
@@ -177,7 +186,7 @@
 .rowCopy h4 {
   color: var(--brand);
   font-size: 14px;
-  letter-spacing: -.015em;
+  letter-spacing: -.005em;
   margin: 0 0 6px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -207,6 +216,7 @@
 
 .count strong {
   color: var(--brand);
+  font-family: var(--display-font);
   font-size: 17px;
   line-height: 1;
 }
@@ -229,14 +239,22 @@
   transform: translateX(3px);
 }
 
+.createPanel,
+.createPanel * {
+  box-sizing: border-box;
+}
+
 .createPanel {
   background: var(--brand);
   border-radius: 16px;
   color: #fff;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
-  padding: 26px;
+  padding: 28px;
   position: sticky;
   top: 112px;
+  width: 100%;
 }
 
 .createPanel::after {
@@ -255,8 +273,13 @@
   align-items: center;
   display: flex;
   gap: 14px;
+  min-width: 0;
   position: relative;
   z-index: 1;
+}
+
+.createHeader > div {
+  min-width: 0;
 }
 
 .createNumber {
@@ -266,6 +289,7 @@
   color: var(--brand-strong);
   display: flex;
   flex: 0 0 auto;
+  font-family: var(--display-font);
   font-size: 24px;
   font-weight: 500;
   height: 44px;
@@ -281,6 +305,8 @@
 .createHeader h3 {
   color: #fff;
   font-size: 22px;
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
 }
 
 .createLead,
@@ -289,6 +315,8 @@
   font-size: 12px;
   line-height: 1.65;
   margin: 20px 0 22px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   position: relative;
   z-index: 1;
 }
@@ -300,8 +328,10 @@
 
 .form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
   position: relative;
+  width: 100%;
   z-index: 1;
 }
 
@@ -311,6 +341,7 @@
   font-weight: 850;
   letter-spacing: .1em;
   margin-top: 5px;
+  min-width: 0;
   text-transform: uppercase;
 }
 
@@ -325,8 +356,13 @@
   border-radius: 10px;
   color: #fff;
   font: inherit;
+  max-width: 100%;
   min-height: 48px;
+  min-width: 0;
+  overflow: hidden;
   padding: 0 38px 0 13px;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .form select:focus {
@@ -341,7 +377,9 @@
   display: flex;
   gap: 10px;
   margin-top: 8px;
+  min-width: 0;
   padding-top: 16px;
+  width: 100%;
 }
 
 .proofMark {
@@ -359,9 +397,12 @@
 
 .proof p {
   color: rgba(255, 255, 255, .5);
+  flex: 1 1 auto;
   font-size: 9px;
   line-height: 1.55;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .proof strong {
@@ -373,6 +414,8 @@
 
 .submitButton {
   margin-top: 6px;
+  max-width: 100%;
+  min-width: 0;
   width: 100%;
 }
 
@@ -394,9 +437,10 @@
 
 .emptyIndex {
   color: #c2c9d2;
+  font-family: var(--display-font);
   font-size: 42px;
-  font-weight: 800;
-  letter-spacing: -.06em;
+  font-weight: 700;
+  letter-spacing: -.025em;
   margin-bottom: 20px;
 }
 
@@ -467,6 +511,7 @@
 
   .introCopy h2 {
     font-size: 40px;
+    letter-spacing: -.025em;
   }
 
   .metrics {
@@ -495,6 +540,6 @@
 
   .createPanel {
     border-radius: 14px;
-    padding: 22px;
+    padding: 24px;
   }
 }
