@@ -1,0 +1,12 @@
+.searchInput {
+  color: var(--foreground);
+}
+
+.searchInput::placeholder {
+  color: var(--muted-foreground);
+  opacity: .82;
+}
+
+.searchInput:focus::placeholder {
+  opacity: .58;
+}
