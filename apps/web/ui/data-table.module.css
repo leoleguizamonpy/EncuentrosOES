@@ -1,0 +1,48 @@
+.scroller {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  color: var(--foreground);
+  font-size: var(--text-row-meta);
+  width: 100%;
+}
+
+.medium { min-width: 680px; }
+.wide { min-width: 820px; }
+
+.table thead {
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.table th,
+.table td {
+  padding: 14px;
+  text-align: left;
+}
+
+.table tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--brand) 3%, transparent);
+}
+
+.table tbody th,
+.table tbody td {
+  font-weight: 400;
+}
+
+.table strong {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.right { text-align: right !important; }
