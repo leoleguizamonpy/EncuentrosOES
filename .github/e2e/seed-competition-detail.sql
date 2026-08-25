@@ -35,7 +35,23 @@ INSERT INTO competition_participants (id, competition_id, event_id, institution_
 ('97000000-0000-4000-8000-000000000005', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000005', 'UTCD San Ignacio', 'ENABLED', now(), :'admin_id', 1);
 
 INSERT INTO competition_rule_sets (id, competition_id, schema_version, revision_number, result_profile, profile_config, knockout_resolution_code, status, canonical_hash, frozen_at, frozen_by, revision, created_by, updated_at, updated_by)
-VALUES ('98000000-0000-4000-8000-000000000001', '96000000-0000-4000-8000-000000000001', 1, 1, 'SCORE_BASED', '{"allowDraws":false}'::jsonb, 'HIGHER_SCORE', 'FROZEN', repeat('a', 64), now(), :'admin_id', 2, :'admin_id', now(), :'admin_id');
+VALUES (
+  '98000000-0000-4000-8000-000000000001',
+  '96000000-0000-4000-8000-000000000001',
+  1,
+  1,
+  'SCORE_BASED',
+  '{"allowDraws":false,"profile":"SCORE_BASED"}'::jsonb,
+  'HIGHER_SCORE',
+  'FROZEN',
+  '1203a0340ebe68c8cf458e5e9ce18ce52da205176dd5c7bde417286d3dfc77c2',
+  now(),
+  :'admin_id',
+  2,
+  :'admin_id',
+  now(),
+  :'admin_id'
+);
 
 INSERT INTO rule_set_outcomes (rule_set_id, outcome_code, table_points, description) VALUES
 ('98000000-0000-4000-8000-000000000001', 'WIN', 3, 'Victoria'),
