@@ -46,7 +46,8 @@
   grid-template-columns: minmax(240px, 1fr) 190px auto;
 }
 
-.toolbar select {
+.toolbar select,
+.field select {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
@@ -58,7 +59,8 @@
   width: 100%;
 }
 
-.toolbar select:focus-visible {
+.toolbar select:focus-visible,
+.field select:focus-visible {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
 }
@@ -81,18 +83,24 @@
 
 .row {
   align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
   border-bottom: 1px solid var(--border);
   color: inherit;
   counter-increment: oes-row;
   cursor: pointer;
   display: grid;
+  font-family: var(--body-font);
   gap: var(--space-4);
   grid-template-columns: 34px 44px minmax(220px, 1.5fr) minmax(150px, .8fr) auto 20px;
   min-height: var(--row-height);
   outline: none;
   padding: 0 var(--space-2);
+  text-align: left;
   text-decoration: none;
   transition: background-color .16s ease, padding .16s ease;
+  width: 100%;
 }
 
 .row::before {
@@ -258,6 +266,16 @@
   display: grid;
   gap: var(--space-5);
   min-width: 0;
+}
+
+.field {
+  color: var(--muted-foreground);
+  display: grid;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  gap: 7px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .formActions {
