@@ -14,12 +14,13 @@ interface SectionPanelProps {
 
 export function SectionPanel({ children, className, eyebrow, id, status, title }: SectionPanelProps): React.JSX.Element {
   const headingId = id === undefined ? undefined : `${id}-title`;
+  const panelClass = styles.panel ?? '';
   const cardProps = {
     ...(id === undefined ? {} : { id }),
     ...(headingId === undefined ? {} : { 'aria-labelledby': headingId }),
   };
-  return <Card className={className === undefined ? styles.panel : `${styles.panel} ${className}`} {...cardProps}>
-    <Card.Content className={styles.content}>
+  return <Card className={className === undefined ? panelClass : `${panelClass} ${className}`} {...cardProps}>
+    <Card.Content className={styles.content ?? ''}>
       <header className={styles.header}>
         <div>{eyebrow === undefined ? null : <span className={styles.eyebrow}>{eyebrow}</span>}<h3 {...(headingId === undefined ? {} : { id: headingId })}>{title}</h3></div>
         {status === undefined ? null : <div className={styles.status}>{status}</div>}
