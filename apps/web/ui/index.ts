@@ -10,3 +10,4 @@ export { PageHeader } from './page-header';
 export { PageLayout } from './page-layout';
 export { Panel, PanelStack } from './panel';
 export { StatusBadge } from './status-badge';
+export { StatusSummary } from './status-summary';
