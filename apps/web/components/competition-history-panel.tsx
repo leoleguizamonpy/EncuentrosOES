@@ -8,6 +8,9 @@ import type {
   HistoryMatchView,
   HistoryResultView,
 } from '../lib/competition-history-api';
+import { DataTable, type DataTableColumn, SectionPanel } from '../ui';
+
+type HistoryStanding = HistoryExecutionView['groups'][number]['standings'][number];
 
 function numberField(value: unknown, field: string): number | null {
   if (typeof value !== 'object' || value === null || !(field in value)) return null;
@@ -65,15 +68,43 @@ function scoreLabel(execution: HistoryExecutionView, result: HistoryResultView):
   return penaltyA === null || penaltyB === null ? `${String(a)} — ${String(b)}` : `${String(a)} — ${String(b)} · penales ${String(penaltyA)} — ${String(penaltyB)}`;
 }
 
-function HistoricalMatch({ execution, match }: { readonly execution: HistoryExecutionView; readonly match: HistoryMatchView }): React.JSX.Element {
-  const result = latestVisibleResult(match);
-  const annulledCount = match.results.filter(({ status }) => status === 'ANNULLED').length;
-  return <tr><td>{match.groupLabel === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.groupLabel}`}</td><th>{match.participantA.displayName}</th><td>{result === null ? '—' : scoreLabel(execution, result)}</td><th>{match.participantB.displayName}</th><td>{result?.status === 'CONFIRMED' ? 'Confirmado' : result?.status === 'PENDING_CONFIRMATION' ? 'Pendiente' : result?.status === 'ANNULLED' ? 'Anulado' : 'Sin resultado'}{annulledCount > 0 ? ` · ${String(annulledCount)} anulado(s)` : ''}</td></tr>;
+function standingColumns(setBased: boolean): readonly DataTableColumn<HistoryStanding>[] {
+  const columns: DataTableColumn<HistoryStanding>[] = [
+    { id: 'position', label: 'Pos.', render: (row) => <>{row.position}{row.tied ? '=' : ''}</> },
+    { id: 'participant', label: 'Participante', render: (row) => <strong>{row.participant.displayName}</strong> },
+    { id: 'played', label: 'J', render: (row) => row.played },
+    { id: 'wins', label: 'G', render: (row) => row.wins },
+  ];
+  if (!setBased) columns.push({ id: 'draws', label: 'E', render: (row) => row.draws });
+  columns.push(
+    { id: 'losses', label: 'P', render: (row) => row.losses },
+    { id: 'points', label: 'Pts.', render: (row) => <strong>{row.tablePoints}</strong> },
+  );
+  if (setBased) columns.push(
+    { id: 'sets', label: 'SG', render: (row) => row.setDifference },
+    { id: 'difference', label: 'DP', render: (row) => row.sportPointDifference },
+  );
+  else columns.push(
+    { id: 'for', label: 'GF', render: (row) => row.scoreFor },
+    { id: 'against', label: 'GC', render: (row) => row.scoreAgainst },
+    { id: 'difference', label: 'DG', render: (row) => row.scoreDifference },
+  );
+  return columns;
+}
+
+function matchColumns(execution: HistoryExecutionView): readonly DataTableColumn<HistoryMatchView>[] {
+  return [
+    { id: 'phase', label: 'Fase', render: (match) => match.groupLabel === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.groupLabel}` },
+    { id: 'participantA', label: 'Participante A', render: (match) => <strong>{match.participantA.displayName}</strong> },
+    { id: 'result', label: 'Resultado', render: (match) => { const result = latestVisibleResult(match); return result === null ? '—' : scoreLabel(execution, result); } },
+    { id: 'participantB', label: 'Participante B', render: (match) => <strong>{match.participantB.displayName}</strong> },
+    { id: 'status', label: 'Estado', render: (match) => { const result = latestVisibleResult(match); const annulledCount = match.results.filter(({ status }) => status === 'ANNULLED').length; const state = result?.status === 'CONFIRMED' ? 'Confirmado' : result?.status === 'PENDING_CONFIRMATION' ? 'Pendiente' : result?.status === 'ANNULLED' ? 'Anulado' : 'Sin resultado'; return `${state}${annulledCount > 0 ? ` · ${String(annulledCount)} anulado(s)` : ''}`; } },
+  ];
 }
 
 function GroupStandingTable({ execution, group }: { readonly execution: HistoryExecutionView; readonly group: HistoryExecutionView['groups'][number] }): React.JSX.Element {
   const setBased = execution.resultProfile === 'SET_BASED';
-  return <div className="standing-scroll"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J</th><th>G</th>{setBased ? null : <th>E</th>}<th>P</th><th>Pts.</th>{setBased ? <><th>SG</th><th>DP</th></> : <><th>GF</th><th>GC</th><th>DG</th></>}</tr></thead><tbody>{group.standings.map((row) => <tr key={row.participant.id}><td>{row.position}{row.tied ? '=' : ''}</td><th>{row.participant.displayName}</th><td>{row.played}</td><td>{row.wins}</td>{setBased ? null : <td>{row.draws}</td>}<td>{row.losses}</td><td><strong>{row.tablePoints}</strong></td>{setBased ? <><td>{row.setDifference}</td><td>{row.sportPointDifference}</td></> : <><td>{row.scoreFor}</td><td>{row.scoreAgainst}</td><td>{row.scoreDifference}</td></>}</tr>)}</tbody></table></div>;
+  return <DataTable columns={standingColumns(setBased)} getRowKey={(row) => row.participant.id} label={`Tabla final del grupo ${group.label}`} rows={group.standings} width={setBased ? 'medium' : 'wide'} />;
 }
 
 function ExecutionHistory({ execution }: { readonly execution: HistoryExecutionView }): React.JSX.Element {
@@ -83,18 +114,15 @@ function ExecutionHistory({ execution }: { readonly execution: HistoryExecutionV
     <Card.Content>
       {execution.status === 'ANNULLED' && execution.annulmentReason !== null ? <p className="readonly-note">Motivo: {execution.annulmentReason}</p> : null}
       {execution.bye === null ? null : <p className="format-proof format-proof--ready"><strong>BYE:</strong> {execution.bye.participant.displayName} · pases libres previos: {execution.bye.priorByeCount}</p>}
-      {execution.groups.map((group) => <section key={group.id} className="competition-history__group" aria-label={`Historial del grupo ${group.label}`}><div className="section-title"><div><span className="eyebrow eyebrow--dark">Tabla final</span><h3>Grupo {group.label}</h3></div><Chip size="sm" variant="soft">{group.standings.length}</Chip></div><GroupStandingTable execution={execution} group={group} />{group.qualified.length === 0 ? null : <p className="format-proof format-proof--ready">Clasificados: {group.qualified.map(({ displayName }) => displayName).join(' · ')}</p>}</section>)}
-      {execution.matches.length === 0 ? <p className="setup-empty">Esta ejecución no materializó encuentros.</p> : <div className="standing-scroll"><table><thead><tr><th>Fase</th><th>Participante A</th><th>Resultado</th><th>Participante B</th><th>Estado</th></tr></thead><tbody>{execution.matches.map((match) => <HistoricalMatch execution={execution} key={match.id} match={match} />)}</tbody></table></div>}
+      {execution.groups.map((group) => <section key={group.id} className="competition-history__group" aria-label={`Historial del grupo ${group.label}`}><header><span>Tabla final</span><h4>Grupo {group.label}</h4><Chip size="sm" variant="soft">{group.standings.length}</Chip></header><GroupStandingTable execution={execution} group={group} />{group.qualified.length === 0 ? null : <p className="format-proof format-proof--ready">Clasificados: {group.qualified.map(({ displayName }) => displayName).join(' · ')}</p>}</section>)}
+      {execution.matches.length === 0 ? <p className="setup-empty">Esta ejecución no materializó encuentros.</p> : <DataTable columns={matchColumns(execution)} getRowKey={(match) => match.id} label={`Encuentros históricos de ${title}`} rows={execution.matches} width="wide" />}
     </Card.Content>
   </Card>;
 }
 
 export function CompetitionHistoryPanel({ history }: { readonly history: CompetitionHistoryView }): React.JSX.Element {
-  return <Card className="setup-card competition-history" id="competition-history" aria-labelledby="competition-history-title">
-    <Card.Content>
-      <div className="section-title"><div><span className="eyebrow eyebrow--dark">Historial</span><h3 id="competition-history-title">Recorrido completo</h3></div><Chip size="sm" variant="soft">{history.executions.length}</Chip></div>
-      <p className="readonly-note">Las rondas anteriores permanecen consultables aunque la competencia avance a un nuevo sorteo.</p>
-      {history.executions.length === 0 ? <div className="setup-empty">El historial aparecerá después del primer sorteo oficial confirmado.</div> : <div className="competition-history__list">{history.executions.map((execution) => <ExecutionHistory execution={execution} key={execution.id} />)}</div>}
-    </Card.Content>
-  </Card>;
+  return <SectionPanel className="competition-history" id="competition-history" eyebrow="Historial" title="Recorrido completo" status={<Chip size="sm" variant="soft">{history.executions.length}</Chip>}>
+    <p className="readonly-note">Las rondas anteriores permanecen consultables aunque la competencia avance a un nuevo sorteo.</p>
+    {history.executions.length === 0 ? <div className="setup-empty">El historial aparecerá después del primer sorteo oficial confirmado.</div> : <div className="competition-history__list">{history.executions.map((execution) => <ExecutionHistory execution={execution} key={execution.id} />)}</div>}
+  </SectionPanel>;
 }
