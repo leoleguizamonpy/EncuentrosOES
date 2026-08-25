@@ -6,4 +6,5 @@ export { Field, TextField } from './form-field';
 export { ListToolbar } from './list-toolbar';
 export { Notice } from './notice';
 export { PageHeader } from './page-header';
+export { Panel, PanelStack } from './panel';
 export { StatusBadge } from './status-badge';
