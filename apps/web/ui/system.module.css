@@ -129,6 +129,20 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
+.rowStatic {
+  cursor: default;
+}
+
+.rowStatic:hover {
+  background: transparent;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.rowStatic .arrow {
+  visibility: hidden;
+}
+
 .stretchedLink {
   border-radius: inherit;
   inset: 0;
@@ -233,6 +247,62 @@
 .rowLinked:focus-within .arrow {
   color: var(--brand);
   transform: translateX(3px);
+}
+
+.tableScroller {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dataTable {
+  border-collapse: collapse;
+  color: var(--foreground);
+  font-size: var(--text-row-meta);
+  width: 100%;
+}
+
+.tableMedium {
+  min-width: 680px;
+}
+
+.tableWide {
+  min-width: 820px;
+}
+
+.dataTable thead {
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 14px;
+  text-align: left;
+}
+
+.dataTable tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+.dataTable tbody tr:hover {
+  background: color-mix(in srgb, var(--brand) 3%, transparent);
+}
+
+.dataTable tbody th,
+.dataTable tbody td {
+  font-weight: 400;
+}
+
+.dataTable strong {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.tableRight {
+  text-align: right;
 }
 
 .empty {
@@ -356,6 +426,10 @@
     align-items: start;
     grid-template-columns: 28px 42px minmax(0, 1fr) 20px;
     gap: var(--space-3);
+  }
+  .rowStatic:hover {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
   }
   .visual { height: 40px; width: 40px; }
   .formActions { grid-template-columns: 1fr; }
