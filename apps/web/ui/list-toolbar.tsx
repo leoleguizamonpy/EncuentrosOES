@@ -1,0 +1,29 @@
+'use client';
+
+import { Input } from '@heroui/react';
+import type { ChangeEvent } from 'react';
+
+import styles from './system.module.css';
+
+interface ListToolbarProps<TStatus extends string> {
+  readonly count: number;
+  readonly onQueryChange: (value: string) => void;
+  readonly onStatusChange: (value: TStatus) => void;
+  readonly query: string;
+  readonly searchLabel: string;
+  readonly searchPlaceholder: string;
+  readonly status: TStatus;
+  readonly statusLabel: string;
+  readonly statusOptions: readonly { readonly label: string; readonly value: TStatus }[];
+  readonly total: number;
+}
+
+export function ListToolbar<TStatus extends string>({ count, onQueryChange, onStatusChange, query, searchLabel, searchPlaceholder, status, statusLabel, statusOptions, total }: ListToolbarProps<TStatus>): React.JSX.Element {
+  return <section aria-label="Filtros" className={styles.toolbar}>
+    <Input aria-label={searchLabel} placeholder={searchPlaceholder} value={query} onChange={(event) => onQueryChange(event.target.value)} variant="secondary" />
+    <select aria-label={statusLabel} onChange={(event: ChangeEvent<HTMLSelectElement>) => onStatusChange(event.target.value as TStatus)} value={status}>
+      {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+    <span className={styles.listCounter}>{count} de {total}</span>
+  </section>;
+}
