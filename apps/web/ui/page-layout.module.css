@@ -1,0 +1,16 @@
+.page {
+  display: grid;
+  gap: var(--space-7);
+  padding: var(--space-9) 0 72px;
+}
+
+.compact {
+  gap: var(--space-5);
+}
+
+@media (max-width: 620px) {
+  .page {
+    gap: var(--space-5);
+    padding: var(--space-6) 0 42px;
+  }
+}
