@@ -192,7 +192,9 @@ UI-SHELL-UX-001
 ├── [x] Build de producción
 ├── [x] Chromium responsive
 ├── [x] Evidencia visual revisada
-└── [x] CI #679 exact-head sobre `2f6f6c7166a1714d71f4553dc1428177f706204a`
+├── [x] CI #679 exact-head sobre `2f6f6c7166a1714d71f4553dc1428177f706204a`
+├── [x] PR #82 integrado en `main` — `286f75793c6b723b5e643e4f293ac91a86b6e8fa`
+└── [x] CI #681 en `main` exact-head sobre `286f75793c6b723b5e643e4f293ac91a86b6e8fa`
 ```
 
 ## COMPETITION-HISTORY-001 — CERRADO
