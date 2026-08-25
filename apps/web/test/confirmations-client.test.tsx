@@ -100,11 +100,11 @@ describe('ConfirmationsClient', () => {
     expect(screen.getByRole('link', { name: /Confirmaciones/ })).toHaveAttribute('href', '/admin/confirmations');
     expect(screen.getByText('Sorteo oficial pendiente')).toBeInTheDocument();
     expect(screen.getByText('Resultado pendiente')).toBeInTheDocument();
-    expect(screen.getByText('Otra autoridad debe confirmar')).toBeInTheDocument();
+    expect(screen.getByText('Requiere otra autoridad')).toBeInTheDocument();
     expect(screen.getByText('1 disponibles para confirmar')).toBeInTheDocument();
     expect(screen.getByText('1 requieren otra autoridad')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar sorteo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
     expect(competitionApi.confirmOfficialDraw).toHaveBeenCalledWith('draw-1', 2);
     expect(competitionApi.confirmMatchResult).not.toHaveBeenCalled();
   });
