@@ -20,7 +20,14 @@ interface TextFieldProps {
 }
 
 export function TextField({ disabled = false, label, max, maxLength, min, minLength, onChange, placeholder, required = false, type = 'text', value }: TextFieldProps): React.JSX.Element {
-  return <label className={styles.field}><span>{label}</span><Input isDisabled={disabled} max={max} maxLength={maxLength} min={min} minLength={minLength} onChange={onChange} placeholder={placeholder} required={required} type={type} value={value} variant="secondary" /></label>;
+  const optionalProps = {
+    ...(max === undefined ? {} : { max }),
+    ...(maxLength === undefined ? {} : { maxLength }),
+    ...(min === undefined ? {} : { min }),
+    ...(minLength === undefined ? {} : { minLength }),
+    ...(placeholder === undefined ? {} : { placeholder }),
+  };
+  return <label className={styles.field}><span>{label}</span><Input disabled={disabled} onChange={onChange} required={required} type={type} value={value} variant="secondary" {...optionalProps} /></label>;
 }
 
 export function Field({ children, label }: { readonly children: ReactNode; readonly label: string }): React.JSX.Element {
