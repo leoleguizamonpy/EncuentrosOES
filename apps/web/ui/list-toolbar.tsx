@@ -22,7 +22,7 @@ interface ListToolbarProps<TStatus extends string> {
 
 export function ListToolbar<TStatus extends string>({ count, extraFilter, onQueryChange, onStatusChange, query, searchLabel, searchPlaceholder, status, statusLabel, statusOptions, total }: ListToolbarProps<TStatus>): React.JSX.Element {
   return <section aria-label="Filtros" className={extraFilter === undefined ? styles.toolbar : `${styles.toolbar} ${styles.toolbarExtended}`}>
-    <Input aria-label={searchLabel} className={searchStyles.searchInput} placeholder={searchPlaceholder} value={query} onChange={(event) => onQueryChange(event.target.value)} variant="secondary" />
+    <Input aria-label={searchLabel} className={searchStyles.searchInput ?? ''} placeholder={searchPlaceholder} value={query} onChange={(event) => onQueryChange(event.target.value)} variant="secondary" />
     {extraFilter}
     <select aria-label={statusLabel} onChange={(event: ChangeEvent<HTMLSelectElement>) => onStatusChange(event.target.value as TStatus)} value={status}>
       {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
