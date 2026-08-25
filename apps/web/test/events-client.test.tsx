@@ -70,7 +70,7 @@ describe('EventsClient', () => {
     render(<EventsClient />);
 
     expect(await screen.findByText('Colegiales')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Configurar' }));
+    fireEvent.click(screen.getByRole('button', { name: /Colegiales/ }));
     const relation = screen.getByRole('checkbox', { name: 'Futsal · Masculina' });
     expect(relation).not.toBeChecked();
     fireEvent.click(relation);
