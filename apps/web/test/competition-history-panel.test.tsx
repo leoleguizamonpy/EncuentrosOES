@@ -69,7 +69,8 @@ describe('CompetitionHistoryPanel', () => {
     expect(screen.getByText('Tabla final de grupos')).toBeInTheDocument();
     expect(screen.getByText('Resultados de la fase')).toBeInTheDocument();
     expect(screen.getByText('Resultados eliminatorios')).toBeInTheDocument();
-    expect(screen.getByText(/Clasificados:/)).toHaveTextContent('Colegio A · Colegio B');
+    const qualifierLabel = screen.getByText('Clasificados:');
+    expect(qualifierLabel.parentElement).toHaveTextContent('Clasificados: Colegio A · Colegio B');
     expect(screen.getByText(/BYE:/)).toBeInTheDocument();
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('2 — 0')).toBeInTheDocument();
