@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001/api/v1';
 const email = process.env.E2E_SUPERADMIN_EMAIL;
 const password = process.env.E2E_SUPERADMIN_PASSWORD;
 const outputDir = process.env.E2E_SCREENSHOT_DIR ?? 'artifacts/visual-e2e';
@@ -80,6 +81,23 @@ async function assertCompetitionRulesGeometry(page) {
   assert(geometry.panelWidth >= geometry.gridWidth - 4, `Rules panel must span the competition grid: ${geometry.panelWidth}px of ${geometry.gridWidth}px.`);
 }
 
+async function assertCompetitionReadModels(page) {
+  const paths = [
+    `/competitions/${competitionFixtureId}`,
+    `/competitions/${competitionFixtureId}/draw-workspace`,
+    `/competitions/${competitionFixtureId}/results-workspace`,
+    `/competitions/${competitionFixtureId}/history`,
+    `/competitions/${competitionFixtureId}/champion`,
+  ];
+  const results = await page.evaluate(async ({ root, requestedPaths }) => Promise.all(requestedPaths.map(async (path) => {
+    const response = await fetch(`${root}${path}`, { cache: 'no-store', credentials: 'include' });
+    return { body: (await response.text()).slice(0, 800), path, status: response.status };
+  })), { requestedPaths: paths, root: apiUrl });
+  for (const result of results) {
+    assert(result.status >= 200 && result.status < 300, `Competition read model ${result.path} failed with HTTP ${result.status}: ${result.body}`);
+  }
+}
+
 async function screenshot(page, name) {
   await page.screenshot({ fullPage: true, path: `${outputDir}/${name}.png` });
 }
@@ -137,7 +155,9 @@ try {
   assert(await usersLink.count() === 1, 'SUPERADMIN must see Usuarios navigation.');
   assert(await settingsLink.count() === 1, 'SUPERADMIN must see Configuración navigation.');
 
+  await assertCompetitionReadModels(page);
   await page.goto(`${baseUrl}/competitions/${competitionFixtureId}`, { waitUntil: 'networkidle' });
+  await screenshot(page, 'competition-detail-before-assertions');
   await page.getByRole('heading', { name: 'Puntuación y desempates' }).waitFor();
   await page.getByRole('heading', { name: 'Perfil de puntuación' }).waitFor();
   await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
