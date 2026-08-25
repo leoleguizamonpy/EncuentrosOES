@@ -64,7 +64,7 @@ describe('CompetitionsClient', () => {
     fireEvent.submit(button.form);
 
     await waitFor(() => expect(competitionApi.createCompetition).toHaveBeenCalledOnce());
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Futsal · Masculina' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Abrir Futsal · Masculina' })).toBeInTheDocument());
     expect(screen.getByText('OES 2026 / Colegiales')).toBeInTheDocument();
     expect(competitionApi.createCompetition).toHaveBeenCalledWith({
       editionId: 'edition-1',
