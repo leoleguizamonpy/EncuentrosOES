@@ -1,0 +1,12 @@
+.searchInput :global(input) {
+  color: var(--foreground);
+}
+
+.searchInput :global(input)::placeholder {
+  color: var(--muted-foreground);
+  opacity: .82;
+}
+
+.searchInput:focus-within :global(input)::placeholder {
+  opacity: .58;
+}
