@@ -51,7 +51,7 @@ try {
     return navigation.getBoundingClientRect().x >= -1;
   });
   await screenshot(page, 'mobile-navigation');
-  await page.locator('button[aria-label="Cerrar navegación"]:not([aria-controls])').click();
+  await closeToggle.click();
 
   await page.goto(`${baseUrl}/admin/users`, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { level: 2, name: 'Usuarios' }).waitFor();
