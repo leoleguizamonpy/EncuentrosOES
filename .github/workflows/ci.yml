@@ -58,6 +58,9 @@ jobs:
       - name: Architecture gate
         run: pnpm architecture:check
 
+      - name: UI architecture gate
+        run: pnpm architecture:ui
+
       - name: Lint
         run: pnpm lint
 
