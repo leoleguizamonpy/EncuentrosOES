@@ -101,6 +101,7 @@
   min-height: var(--row-height);
   outline: none;
   padding: 0 var(--space-2);
+  position: relative;
   text-align: left;
   text-decoration: none;
   transition: background-color .16s ease, padding .16s ease;
@@ -116,14 +117,47 @@
 }
 
 .row:hover,
-.row:focus-visible {
+.row:focus-visible,
+.rowLinked:focus-within {
   background: color-mix(in srgb, var(--brand) 4%, transparent);
   padding-left: var(--space-3);
   padding-right: var(--space-3);
 }
 
-.row:focus-visible {
+.row:focus-visible,
+.rowLinked:focus-within {
   box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.stretchedLink {
+  border-radius: inherit;
+  inset: 0;
+  outline: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.visual,
+.identity,
+.rowMeta,
+.endCell,
+.arrow {
+  pointer-events: none;
+}
+
+.endCell {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.endCell a,
+.endCell button {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .visual {
@@ -195,7 +229,8 @@
 }
 
 .row:hover .arrow,
-.row:focus-visible .arrow {
+.row:focus-visible .arrow,
+.rowLinked:focus-within .arrow {
   color: var(--brand);
   transform: translateX(3px);
 }
