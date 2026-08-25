@@ -22,6 +22,10 @@
   min-width: 0;
 }
 
+.padded {
+  padding: var(--space-6);
+}
+
 .footer {
   background: var(--muted);
   border-top: 1px solid var(--border);
