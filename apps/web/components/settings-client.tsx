@@ -1,11 +1,10 @@
 'use client';
 
-import { Card, Chip } from '@heroui/react';
 import { useEffect, useState } from 'react';
 
 import { runtimeSettings, type SafeRuntimeSettings } from '../lib/settings-api';
+import { DataList, DataRow, PageHeader, PageLayout, Panel, StatusBadge, StatusSummary } from '../ui';
 import { AppShell } from './app-shell';
-import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
@@ -41,26 +40,24 @@ function SettingsWorkspace(): React.JSX.Element {
   if (loading) return <WorkspaceState detail="Consultando la política operativa segura del sistema." title="Cargando configuración…" />;
   if (settings === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor.'} onAction={() => void reload()} title="No fue posible cargar Configuración." tone="error" />;
 
-  return <div className={styles.workspace}>
-    <section className={styles.heading}>
-      <div><span className="eyebrow eyebrow--dark">Control · Superadministración</span><h2>Configuración</h2><p>Política operativa efectiva del sistema. Estos valores provienen del entorno de despliegue y son deliberadamente de solo lectura: Foundation no autoriza una segunda fuente de configuración global ni la exposición de secretos.</p></div>
-    </section>
-    <section aria-label="Estado de configuración" style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-      <Chip color={settings.runtimeMode === 'PRODUCTION' ? 'success' : 'warning'} size="sm" variant="soft">{settings.runtimeMode === 'PRODUCTION' ? 'Producción' : 'No producción'}</Chip>
-      <Chip color="default" size="sm" variant="soft">Fuente: entorno</Chip>
-      <Chip color="default" size="sm" variant="soft">Solo lectura</Chip>
-    </section>
-    <Card className={styles.tableCard ?? ''} aria-label="Política operativa">
-      <Card.Content style={{ padding: 0 }}>
-        <div className={styles.tableHeader}><span>Parámetro</span><span>Valor efectivo</span><span>Gobierno</span><span>Observación</span><span /></div>
-        <article className={styles.row}><strong>Sesión inactiva</strong><span>{settings.sessionIdleMinutes} minutos</span><Chip size="sm" variant="soft">Entorno</Chip><span>Expira una sesión sin actividad.</span><span /></article>
-        <article className={styles.row}><strong>Duración absoluta</strong><span>{settings.sessionAbsoluteMinutes} minutos</span><Chip size="sm" variant="soft">Entorno</Chip><span>Límite máximo de una sesión autenticada.</span><span /></article>
-        <article className={styles.row}><strong>Origen web</strong><span>{settings.webOrigin}</span><Chip size="sm" variant="soft">Entorno</Chip><span>Origen autorizado para la aplicación web.</span><span /></article>
-        <article className={styles.row}><strong>Puerto API</strong><span>{settings.apiPort}</span><Chip size="sm" variant="soft">Entorno</Chip><span>Puerto efectivo del servicio API.</span><span /></article>
-      </Card.Content>
-    </Card>
-    <Card variant="tertiary" style={{ marginTop: 18 }}><Card.Content style={{ padding: 24 }}><strong>Las reglas competitivas no se editan aquí.</strong><p style={{ color: 'var(--muted-foreground)', marginBottom: 0 }}>Puntuación, desempates, formato y participantes se configuran y congelan dentro de cada competencia para conservar trazabilidad y una única fuente de verdad.</p></Card.Content></Card>
-  </div>;
+  return <PageLayout>
+    <PageHeader eyebrow="Control · Superadministración" title="Configuración" description="Consulta la política operativa efectiva del sistema, gobernada exclusivamente por el entorno de despliegue." />
+    <StatusSummary label="Estado de configuración">
+      <StatusBadge label={settings.runtimeMode === 'PRODUCTION' ? 'Producción' : 'No producción'} tone={settings.runtimeMode === 'PRODUCTION' ? 'success' : 'warning'} />
+      <StatusBadge label="Fuente: entorno" />
+      <StatusBadge label="Solo lectura" />
+    </StatusSummary>
+    <DataList label="Política operativa">
+      <DataRow visual="SI" title="Sesión inactiva" description="Expira una sesión sin actividad." meta={`${String(settings.sessionIdleMinutes)} minutos`} status={<StatusBadge label="Entorno" />} />
+      <DataRow visual="DA" title="Duración absoluta" description="Límite máximo de una sesión autenticada." meta={`${String(settings.sessionAbsoluteMinutes)} minutos`} status={<StatusBadge label="Entorno" />} />
+      <DataRow visual="OW" title="Origen web" description="Origen autorizado para la aplicación web." meta={settings.webOrigin} status={<StatusBadge label="Entorno" />} />
+      <DataRow visual="AP" title="Puerto API" description="Puerto efectivo del servicio API." meta={String(settings.apiPort)} status={<StatusBadge label="Entorno" />} />
+    </DataList>
+    <Panel padded>
+      <strong>Las reglas competitivas no se editan aquí.</strong>
+      <p>Puntuación, desempates, formato y participantes se configuran y congelan dentro de cada competencia para conservar trazabilidad y una única fuente de verdad.</p>
+    </Panel>
+  </PageLayout>;
 }
 
 export function SettingsClient(): React.JSX.Element {
