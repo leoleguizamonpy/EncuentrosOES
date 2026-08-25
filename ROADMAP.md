@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 24 de agosto de 2026  
+> Estado auditado: 25 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md` 2.1.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
@@ -25,6 +25,7 @@ EncuentrosOES — PERFIL LOCAL — 100%
 ├── [x] Historial competitivo persistente
 ├── [x] Experiencia pública
 ├── [x] UX administrativa 2.0
+├── [x] UI-ARCH-001 — 100%
 ├── [x] Auditoría y seguridad
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
@@ -116,6 +117,48 @@ OES WORKSPACE
 │   ├── [x] Clasificación
 │   └── [x] Historial competitivo
 └── [x] CONTROL
+```
+
+## UI-ARCH-001 — CERRADO — 100%
+
+La migración de arquitectura visual queda cerrada con contrato único de componentes, gates automáticos, cobertura Web realineada con la UI vigente y validación responsive en Chromium.
+
+```text
+UI-ARCH-001
+├── [x] Tokens únicos
+├── [x] next/font
+├── [x] PageHeader estándar
+├── [x] DataList / DataRow estándar
+├── [x] DataTable estándar
+├── [x] Toolbar estándar
+├── [x] Drawer estándar
+├── [x] Formularios estándar
+├── [x] Feedback estándar
+├── [x] SectionPanel estándar
+├── [x] Organización migrada
+├── [x] Competencias migrada
+├── [x] Sorteos migrado
+├── [x] Encuentros migrado
+├── [x] Clasificación migrada
+├── [x] Control migrado
+├── [x] Workspace profundo migrado
+├── [x] globals.css legacy reducido
+├── [x] CSS obsoleto eliminado
+├── [x] 0 inline styles detectados por gate
+├── [x] 0 !important detectados por gate
+├── [x] 0 fuentes CSS remotas
+├── [x] UI Architecture Gate
+├── [x] UI Gate obligatorio en CI
+├── [x] Coverage Web realineado con contratos UI actuales
+├── [x] Lint
+├── [x] Typecheck
+├── [x] PostgreSQL integration
+├── [x] Backup / restore / storage guards
+├── [x] Build de producción
+├── [x] Chromium responsive
+├── [x] Evidencia visual E2E
+├── [x] CI #670 exact-head sobre `7e6bf930f1c040e5779649c8c42dfafbfebd4cd6`
+└── [x] PR #81 integrado en `main` — `e7c0e8a9dc83caa14c69adf6934892c8cc8f8b5c`
 ```
 
 ## COMPETITION-HISTORY-001 — CERRADO
@@ -260,6 +303,7 @@ Prueba final LOCAL
 ├── [x] Reinicio y recuperación
 ├── [x] Backup + restore
 ├── [x] Runtime warning protegido por test PostgreSQL
+├── [x] UI-ARCH-001 protegido por CI y Chromium
 └── [x] PERFIL LOCAL — 100%
 ```
 
