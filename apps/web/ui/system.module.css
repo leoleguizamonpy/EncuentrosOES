@@ -46,6 +46,10 @@
   grid-template-columns: minmax(240px, 1fr) 190px auto;
 }
 
+.toolbarExtended {
+  grid-template-columns: minmax(240px, 1fr) 190px 190px auto;
+}
+
 .toolbar select,
 .field select {
   background: var(--surface);
@@ -292,7 +296,8 @@
 }
 
 @media (max-width: 900px) {
-  .toolbar { grid-template-columns: 1fr 1fr; }
+  .toolbar,
+  .toolbarExtended { grid-template-columns: 1fr 1fr; }
   .listCounter { justify-self: start; }
   .row {
     gap: var(--space-3);
@@ -310,7 +315,8 @@
   }
   .pageTitle { font-size: clamp(30px, 12vw, 44px); }
   .pageDescription { white-space: normal; }
-  .toolbar { grid-template-columns: 1fr; }
+  .toolbar,
+  .toolbarExtended { grid-template-columns: 1fr; }
   .row {
     align-items: start;
     grid-template-columns: 28px 42px minmax(0, 1fr) 20px;
