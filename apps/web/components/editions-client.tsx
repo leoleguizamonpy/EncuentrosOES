@@ -1,6 +1,5 @@
 'use client';
 
-import { Alert, Button, Card, Chip, Input } from '@heroui/react';
 import { type SyntheticEvent, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -10,21 +9,21 @@ import {
   type AdminCatalog,
   type AdminEdition,
 } from '../lib/catalog-admin-api';
+import { ActionButton, DataList, DataRow, EntityDrawer, Field, FormActions, ListToolbar, Notice, PageHeader, StatusBadge, TextField } from '../ui';
+import organizationStyles from '../features/organization/organization.module.css';
 import { AppShell } from './app-shell';
-import styles from './institutions.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
 const ADMIN_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 type EditionStatusFilter = 'ALL' | 'CLOSED' | 'OPEN';
+const STATUS_OPTIONS: readonly { readonly label: string; readonly value: EditionStatusFilter }[] = [
+  { label: 'Todos los estados', value: 'ALL' },
+  { label: 'Abiertas', value: 'OPEN' },
+  { label: 'Cerradas', value: 'CLOSED' },
+];
 
-interface EditionDrawerProps {
-  readonly edition: AdminEdition | null;
-  readonly onClose: () => void;
-  readonly onSaved: (message: string) => Promise<void>;
-}
-
-function EditionDrawer({ edition, onClose, onSaved }: EditionDrawerProps): React.JSX.Element {
+function EditionDrawer({ edition, onClose, onSaved }: { readonly edition: AdminEdition | null; readonly onClose: () => void; readonly onSaved: (message: string) => Promise<void> }): React.JSX.Element {
   const [name, setName] = useState(edition?.name ?? '');
   const [year, setYear] = useState(edition?.year ?? new Date().getFullYear());
   const [status, setStatus] = useState<'CLOSED' | 'OPEN'>(edition?.status ?? 'OPEN');
@@ -41,19 +40,15 @@ function EditionDrawer({ edition, onClose, onSaved }: EditionDrawerProps): React
     finally { setSaving(false); }
   }
 
-  return <>
-    <button aria-label="Cerrar formulario" className={styles.backdrop} onClick={onClose} type="button" />
-    <aside aria-labelledby="edition-drawer-title" aria-modal="true" className={styles.drawer} role="dialog">
-      <div className={styles.drawerHeader}><div><span className="eyebrow eyebrow--dark">Organización</span><h3 id="edition-drawer-title">{edition === null ? 'Nueva edición' : 'Editar edición'}</h3></div><Button aria-label="Cerrar" isIconOnly onPress={onClose} variant="ghost">×</Button></div>
-      {error === null ? null : <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert>}
-      <form className={styles.form} onSubmit={(event) => void submit(event)}>
-        <label>Nombre *<Input required value={name} onChange={(event) => setName(event.target.value)} placeholder="OES 2027" variant="secondary" /></label>
-        <label>Año *<Input max="2100" min="2020" required type="number" value={String(year)} onChange={(event) => setYear(Number(event.target.value))} variant="secondary" /></label>
-        <label>Estado *<select value={status} onChange={(event) => setStatus(event.target.value as 'CLOSED' | 'OPEN')}><option value="OPEN">Abierta</option><option value="CLOSED">Cerrada</option></select></label>
-        <div className={styles.actions}><Button onPress={onClose} type="button" variant="secondary">Cancelar</Button><Button isDisabled={saving} type="submit" variant="primary">{saving ? 'Guardando…' : 'Guardar edición'}</Button></div>
-      </form>
-    </aside>
-  </>;
+  return <EntityDrawer eyebrow="Organización" onClose={onClose} title={edition === null ? 'Nueva edición' : 'Editar edición'}>
+    {error === null ? null : <Notice description={error} tone="danger" />}
+    <form className={organizationStyles.form} onSubmit={(event) => void submit(event)}>
+      <TextField label="Nombre *" onChange={(event) => setName(event.target.value)} placeholder="OES 2027" required value={name} />
+      <TextField label="Año *" max="2100" min="2020" onChange={(event) => setYear(Number(event.target.value))} required type="number" value={String(year)} />
+      <Field label="Estado *"><select onChange={(event) => setStatus(event.target.value as 'CLOSED' | 'OPEN')} value={status}><option value="OPEN">Abierta</option><option value="CLOSED">Cerrada</option></select></Field>
+      <FormActions onCancel={onClose} submitLabel={saving ? 'Guardando…' : 'Guardar edición'} submitting={saving} />
+    </form>
+  </EntityDrawer>;
 }
 
 function EditionsWorkspace(): React.JSX.Element {
@@ -72,7 +67,7 @@ function EditionsWorkspace(): React.JSX.Element {
   const filtered = useMemo(() => {
     if (catalog === null) return [];
     const normalized = query.trim().toLocaleLowerCase('es-PY');
-    return catalog.editions.filter((item) => { const matchesText = normalized.length === 0 || item.name.toLocaleLowerCase('es-PY').includes(normalized) || String(item.year).includes(normalized); const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter; return matchesText && matchesStatus; });
+    return catalog.editions.filter((item) => (normalized.length === 0 || item.name.toLocaleLowerCase('es-PY').includes(normalized) || String(item.year).includes(normalized)) && (statusFilter === 'ALL' || item.status === statusFilter));
   }, [catalog, query, statusFilter]);
 
   function startCreate(): void { setEditing(null); setDrawerOpen(true); setError(null); setNotice(null); }
@@ -83,11 +78,13 @@ function EditionsWorkspace(): React.JSX.Element {
   if (loading) return <WorkspaceState detail="Recuperando los ciclos OES desde el servidor." title="Cargando ediciones…" />;
   if (catalog === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar este módulo." tone="error" />;
 
-  return <div className={styles.workspace}>
-    <section className={styles.heading}><div><span className="eyebrow eyebrow--dark">Organización</span><h2>Ediciones</h2><p>Administra los ciclos anuales OES y controla cuándo están abiertos o cerrados.</p></div><Button onPress={startCreate} variant="primary">+ Nueva edición</Button></section>
-    {error === null ? null : <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert>}{notice === null ? null : <Alert status="success" role="status"><Alert.Indicator /><Alert.Content><Alert.Description>{notice}</Alert.Description></Alert.Content></Alert>}
-    <section aria-label="Filtros de ediciones" className={styles.toolbar}><Input aria-label="Buscar edición" placeholder="Buscar por nombre o año…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" /><select aria-label="Filtrar por estado" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as EditionStatusFilter)}><option value="ALL">Todos los estados</option><option value="OPEN">Abiertas</option><option value="CLOSED">Cerradas</option></select><span /><span className={styles.counter}>{filtered.length} de {catalog.editions.length}</span></section>
-    <Card className={styles.tableCard ?? ''} aria-label="Listado de ediciones"><Card.Content style={{ padding: 0 }}><div className={styles.tableHeader}><span>Año</span><span>Edición</span><span>Ciclo</span><span>Estado</span><span aria-hidden="true" /></div>{filtered.length === 0 ? <div className={styles.empty}><strong>{catalog.editions.length === 0 ? 'No hay ediciones todavía.' : 'No encontramos resultados.'}</strong><p>{catalog.editions.length === 0 ? 'Crea la edición que agrupará los eventos y competencias de un ciclo OES.' : 'Ajusta la búsqueda o el filtro para ver otras ediciones.'}</p>{catalog.editions.length === 0 ? <Button onPress={startCreate} variant="primary">+ Nueva edición</Button> : null}</div> : filtered.map((item) => <article aria-label={`Editar ${item.name}`} className={styles.row} key={item.id} onClick={() => startEdit(item)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); startEdit(item); } }} role="button" tabIndex={0}><span className={styles.logo}>{String(item.year).slice(-2)}</span><div className={styles.identity}><strong>{item.name}</strong><small>Edición OES</small></div><span className={styles.eventName}>{item.year}</span><Chip color={item.status === 'OPEN' ? 'success' : 'default'} size="sm" variant="soft">{item.status === 'OPEN' ? 'Abierta' : 'Cerrada'}</Chip><span aria-hidden="true" className={styles.rowArrow}>→</span></article>)}</Card.Content></Card>
+  return <div className={organizationStyles.workspace}>
+    <PageHeader action={{ label: '+ Nueva edición', onPress: startCreate }} description="Administra los ciclos anuales OES y controla cuándo están abiertos o cerrados." eyebrow="Organización" title="Ediciones" />
+    {error === null ? null : <Notice description={error} tone="danger" />}{notice === null ? null : <Notice description={notice} tone="success" />}
+    <ListToolbar count={filtered.length} onQueryChange={setQuery} onStatusChange={setStatusFilter} query={query} searchLabel="Buscar edición" searchPlaceholder="Buscar por nombre o año…" status={statusFilter} statusLabel="Filtrar por estado" statusOptions={STATUS_OPTIONS} total={catalog.editions.length} />
+    <DataList empty={{ action: <ActionButton onPress={startCreate}>+ Nueva edición</ActionButton>, description: catalog.editions.length === 0 ? 'Crea la edición que agrupará los eventos y competencias de un ciclo OES.' : 'Ajusta la búsqueda o el filtro para ver otras ediciones.', title: catalog.editions.length === 0 ? 'No hay ediciones todavía.' : 'No encontramos resultados.' }} isEmpty={filtered.length === 0} label="Listado de ediciones">
+      {filtered.map((item) => <DataRow description="Edición OES" key={item.id} meta={item.year} onPress={() => startEdit(item)} status={<StatusBadge label={item.status === 'OPEN' ? 'Abierta' : 'Cerrada'} tone={item.status === 'OPEN' ? 'success' : 'default'} />} title={item.name} visual={String(item.year).slice(-2)} />)}
+    </DataList>
     {drawerOpen ? <EditionDrawer edition={editing} onClose={() => setDrawerOpen(false)} onSaved={saved} /> : null}
   </div>;
 }
