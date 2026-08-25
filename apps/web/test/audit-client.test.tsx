@@ -37,7 +37,7 @@ describe('AuditClient', () => {
     expect(await screen.findByRole('heading', { name: 'Auditoría', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Auditoría/ })).toHaveAttribute('href', '/admin/audit');
     expect(screen.getByText('MATCH_RESULT_CONFIRMED')).toBeInTheDocument();
-    expect(screen.getByText('MATCH_RESULT')).toBeInTheDocument();
+    expect(screen.getByText(/MATCH_RESULT · result-1/)).toBeInTheDocument();
     expect(screen.getByText(/Admin B/)).toBeInTheDocument();
     expect(screen.getByText('2 → 3')).toBeInTheDocument();
     expect(screen.getByText('1 de 1 trazas')).toBeInTheDocument();
