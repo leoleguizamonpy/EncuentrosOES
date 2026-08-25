@@ -1,4 +1,5 @@
 export { ActionButton } from './action-button';
+export { ActionLink } from './action-link';
 export { DataList, DataRow } from './data-list';
 export { DataTable, type DataTableColumn } from './data-table';
 export { EntityDrawer, FormActions } from './entity-drawer';
