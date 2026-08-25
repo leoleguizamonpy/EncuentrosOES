@@ -74,7 +74,7 @@ function CompetitionsWorkspace({ actor }: { readonly actor: Actor }): React.JSX.
       <section className={competitionStyles.listBlock} aria-labelledby="competition-list-title">
         <div className={competitionStyles.listHeading}><div className={competitionStyles.listHeadingCopy}><span>Workspace</span><h3 id="competition-list-title">Competencias registradas</h3></div><span className={competitionStyles.listCount}>{String(items.length).padStart(2, '0')}</span></div>
         <DataList empty={{ description: 'Crea la primera unidad competitiva para iniciar participantes, reglas, sorteo y resultados.', title: 'Aún no hay competencias.' }} isEmpty={items.length === 0} label="Competencias registradas">
-          {items.map((item) => <DataRow description={`${item.edition.name} / ${item.event.name}`} href={`/competitions/${item.id}`} key={item.id} meta={`${item.participantCount} participantes`} status={<StatusBadge label={statusLabels[item.status]} tone={statusTones[item.status]} />} title={`${item.sport.name} · ${item.modality.name}`} visual={item.sport.name.charAt(0)} />)}
+          {items.map((item) => <DataRow description={`${item.edition.name} / ${item.event.name}`} href={`/competitions/${item.id}`} key={item.id} meta={`${String(item.participantCount)} participantes`} status={<StatusBadge label={statusLabels[item.status]} tone={statusTones[item.status]} />} title={`${item.sport.name} · ${item.modality.name}`} visual={item.sport.name.charAt(0)} />)}
         </DataList>
       </section>
 
