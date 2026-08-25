@@ -1,5 +1,6 @@
 export { ActionButton } from './action-button';
 export { DataList, DataRow } from './data-list';
+export { DataTable, type DataTableColumn } from './data-table';
 export { EntityDrawer, FormActions } from './entity-drawer';
 export { Field, TextField } from './form-field';
 export { ListToolbar } from './list-toolbar';
