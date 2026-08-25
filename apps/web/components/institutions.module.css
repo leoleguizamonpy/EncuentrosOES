@@ -31,6 +31,7 @@
 .heading p {
   color: var(--muted-foreground);
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.75;
   margin: 0;
   max-width: 900px;
@@ -111,19 +112,8 @@
   padding: 0 6px;
 }
 
-.tableHeader::before {
-  content: '';
-}
-
 .tableHeader {
-  background: transparent;
-  border-bottom: 1px solid var(--border);
-  color: var(--brand-muted);
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: .09em;
-  min-height: 46px;
-  text-transform: uppercase;
+  display: none;
 }
 
 .row {
@@ -133,6 +123,10 @@
   min-height: 92px;
   outline: none;
   transition: background-color .16s ease, padding .16s ease;
+}
+
+.row:first-of-type {
+  border-top: 1px solid var(--border);
 }
 
 .row::before {
@@ -152,10 +146,6 @@
 
 .row:focus-visible {
   box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.row:last-child {
-  border-bottom: 1px solid var(--border);
 }
 
 .logo {
@@ -204,7 +194,7 @@
 .identity strong {
   color: var(--brand);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -.005em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -215,6 +205,7 @@
 .eventName {
   color: var(--muted-foreground);
   font-size: 11px;
+  font-weight: 400;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -255,6 +246,7 @@
 .empty {
   align-items: center;
   border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
   color: var(--muted-foreground);
   display: flex;
   flex-direction: column;
@@ -494,10 +486,6 @@
 
   .counter {
     justify-self: start;
-  }
-
-  .tableHeader {
-    display: none;
   }
 
   .row {
