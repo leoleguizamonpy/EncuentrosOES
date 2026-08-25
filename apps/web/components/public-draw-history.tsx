@@ -1,10 +1,11 @@
 'use client';
 
-import { Alert, Card, Chip, Skeleton } from '@heroui/react';
+import { Alert, Card, Chip } from '@heroui/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { publicDrawHistory, type PublicDrawHistoryItem } from '../lib/public-competition-api';
+import { LoadingPanel } from '../ui/loading-panel';
 
 function publicationLabel(item: PublicDrawHistoryItem): string {
   return item.formatCode === 'GROUP_STAGE' ? 'Fase de grupos' : `Ronda eliminatoria ${String(item.roundNumber)}`;
@@ -23,7 +24,7 @@ export function PublicDrawHistory({ competitionId }: { readonly competitionId: s
   }, [competitionId]);
 
   if (error !== null) return <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Historial público</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert>;
-  if (items === null) return <Card className="public-draw-verification" role="status" aria-live="polite"><Card.Content style={{ display: 'grid', gap: 12 }}><h2 className="public-round-heading">Historial público</h2><Skeleton style={{ height: 10, width: '40%' }} /><p>Cargando publicaciones y verificaciones…</p></Card.Content></Card>;
+  if (items === null) return <LoadingPanel label="Cargando historial público y verificaciones…" />;
   if (items.length === 0) return <Card className="public-draw-verification"><Card.Content><h2 className="public-round-heading">Historial público</h2><p>Aún no existen publicaciones oficiales para esta competencia.</p></Card.Content></Card>;
 
   return <Card className="public-draw-verification" aria-labelledby="public-history-heading">
