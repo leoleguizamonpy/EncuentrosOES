@@ -45,8 +45,7 @@ function RowContent({ action, description, meta, status, title, visual }: Omit<D
 }
 
 export function DataRow(props: DataRowProps): React.JSX.Element {
-  if (props.href !== undefined) {
-    return <div className={`${styles.row} ${styles.rowLinked}`}><Link aria-label={props.ariaLabel ?? `Abrir ${String(props.title)}`} className={styles.stretchedLink} href={props.href} /><RowContent {...props} /></div>;
-  }
-  return <button className={styles.row} onClick={props.onPress} type="button"><RowContent {...props} /></button>;
+  if (props.href !== undefined) return <div className={`${styles.row} ${styles.rowLinked}`}><Link aria-label={props.ariaLabel ?? `Abrir ${String(props.title)}`} className={styles.stretchedLink} href={props.href} /><RowContent {...props} /></div>;
+  if (props.onPress !== undefined) return <button className={styles.row} onClick={props.onPress} type="button"><RowContent {...props} /></button>;
+  return <div className={`${styles.row} ${styles.rowStatic}`}><RowContent {...props} /></div>;
 }
