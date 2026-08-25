@@ -8,8 +8,9 @@
   },
   "scripts": {
     "architecture:check": "node scripts/architecture-check.mjs",
+    "architecture:ui": "node scripts/ui-architecture-check.mjs",
     "build": "turbo run build",
-    "check": "pnpm architecture:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm architecture:check && pnpm architecture:ui && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "coverage": "turbo run coverage",
     "db:backup": "sh scripts/database/backup.sh",
     "db:backup:publish": "sh scripts/database/backup-publish.sh",
