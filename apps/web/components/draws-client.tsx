@@ -1,6 +1,5 @@
 'use client';
 
-import { Alert, Chip, Input } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -9,13 +8,21 @@ import {
   type CompetitionSummary,
   type DrawWorkspace,
 } from '../lib/competition-api';
+import { ActionLink, DataList, DataRow, ListToolbar, Notice, PageHeader, PageLayout, StatusBadge } from '../ui';
 import { AppShell } from './app-shell';
-import styles from './draws-client.module.css';
 import { SessionBoundary } from './session-boundary';
 import { WorkspaceState } from './workspace-state';
 
 const WORKSPACE_ROLES = ['ADMIN', 'OPERATOR', 'SUPERADMIN'] as const;
 type DrawFilter = 'ALL' | 'CONFIRMED' | 'NOT_READY' | 'PENDING' | 'PREPARED' | 'PUBLISHED';
+const FILTER_OPTIONS: readonly { readonly label: string; readonly value: DrawFilter }[] = [
+  { label: 'Todos los estados', value: 'ALL' },
+  { label: 'Pendientes', value: 'PENDING' },
+  { label: 'Preparados', value: 'PREPARED' },
+  { label: 'Confirmados', value: 'CONFIRMED' },
+  { label: 'Publicados', value: 'PUBLISHED' },
+  { label: 'No listos', value: 'NOT_READY' },
+];
 
 interface DrawRow {
   readonly competition: CompetitionSummary;
@@ -40,7 +47,7 @@ function formatLabel(formatCode: CompetitionSummary['formatCode']): string {
   return 'Sin formato';
 }
 
-function chipColor(filter: DrawFilter): 'accent' | 'default' | 'success' | 'warning' {
+function toneOf(filter: DrawFilter): 'accent' | 'default' | 'success' | 'warning' {
   if (filter === 'PUBLISHED' || filter === 'CONFIRMED') return 'success';
   if (filter === 'PENDING') return 'warning';
   if (filter === 'PREPARED') return 'accent';
@@ -58,82 +65,41 @@ function DrawsWorkspace(): React.JSX.Element {
     const list = await competitions();
     const loaded = await Promise.all(list.map(async (competition) => {
       if (competition.status !== 'LOCKED' && competition.status !== 'FINALIZED') return { competition, loadFailed: false, workspace: null } satisfies DrawRow;
-      try {
-        return { competition, loadFailed: false, workspace: await drawWorkspace(competition.id) } satisfies DrawRow;
-      } catch {
-        return { competition, loadFailed: true, workspace: null } satisfies DrawRow;
-      }
+      try { return { competition, loadFailed: false, workspace: await drawWorkspace(competition.id) } satisfies DrawRow; }
+      catch { return { competition, loadFailed: true, workspace: null } satisfies DrawRow; }
     }));
     setRows(loaded);
   }
 
-  useEffect(() => {
-    let mounted = true;
-    void reload()
-      .catch((caught: unknown) => { if (mounted) setError(caught instanceof Error ? caught.message : 'No fue posible cargar los sorteos.'); })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
-  }, []);
+  useEffect(() => { let mounted = true; void reload().catch((caught: unknown) => { if (mounted) setError(caught instanceof Error ? caught.message : 'No fue posible cargar los sorteos.'); }).finally(() => { if (mounted) setLoading(false); }); return () => { mounted = false; }; }, []);
 
   const filtered = useMemo(() => {
     if (rows === null) return [];
     const normalized = query.trim().toLocaleLowerCase('es-PY');
     return rows.filter((row) => {
       const identity = `${row.competition.edition.name} ${row.competition.event.name} ${row.competition.sport.name} ${row.competition.modality.name}`.toLocaleLowerCase('es-PY');
-      const matchesText = normalized.length === 0 || identity.includes(normalized);
       const state = stateOf(row);
-      const matchesState = filter === 'ALL' || state.filter === filter;
-      return matchesText && matchesState;
+      return (normalized.length === 0 || identity.includes(normalized)) && (filter === 'ALL' || state.filter === filter);
     });
   }, [filter, query, rows]);
 
-  async function retry(): Promise<void> {
-    setLoading(true);
-    setError(null);
-    try { await reload(); }
-    catch (caught: unknown) { setRows(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); }
-    finally { setLoading(false); }
-  }
+  async function retry(): Promise<void> { setLoading(true); setError(null); try { await reload(); } catch (caught: unknown) { setRows(null); setError(caught instanceof Error ? caught.message : 'No fue posible reintentar.'); } finally { setLoading(false); } }
 
   if (loading) return <WorkspaceState detail="Recuperando el estado oficial de las competencias." title="Cargando sorteos…" />;
   if (rows === null) return <WorkspaceState detail={error ?? 'Revisa la conexión con el servidor e inténtalo nuevamente.'} onAction={() => void retry()} title="No fue posible cargar Sorteos." tone="error" />;
 
   const failedCount = rows.filter((row) => row.loadFailed).length;
-
-  return <div className={styles.workspace}>
-    <section className={styles.heading}>
-      <div><span className="eyebrow eyebrow--dark">Control de sorteos</span><h2>Sorteos oficiales.</h2><p>Identifica rápidamente qué competencias están listas, cuáles requieren confirmación y cuáles ya tienen evidencia pública.</p></div>
-    </section>
-    {failedCount === 0 ? null : <Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Estado parcial</Alert.Title><Alert.Description>No fue posible recuperar el estado de {failedCount} {failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.</Alert.Description></Alert.Content></Alert>}
-    <section aria-label="Filtros de sorteos" className={styles.toolbar}>
-      <Input aria-label="Buscar sorteo" placeholder="Buscar edición, evento, deporte o modalidad…" value={query} onChange={(event) => setQuery(event.target.value)} variant="secondary" />
-      <select aria-label="Filtrar por estado" value={filter} onChange={(event) => setFilter(event.target.value as DrawFilter)}>
-        <option value="ALL">Todos los estados</option>
-        <option value="PENDING">Pendientes</option>
-        <option value="PREPARED">Preparados</option>
-        <option value="CONFIRMED">Confirmados</option>
-        <option value="PUBLISHED">Publicados</option>
-        <option value="NOT_READY">No listos</option>
-      </select>
-      <span className={styles.counter}>{filtered.length} de {rows.length}</span>
-    </section>
-    <section aria-label="Listado de sorteos" className={styles.board}>
-      <div className={styles.boardHeader}><span>Formato</span><span>Competencia</span><span>Contexto</span><span>Estado</span><span>Acción</span></div>
-      {filtered.length === 0 ? <div className={styles.empty}><strong>{rows.length === 0 ? 'No hay competencias todavía.' : 'No encontramos sorteos.'}</strong><p>{rows.length === 0 ? 'Crea y configura una competencia antes de preparar su sorteo oficial.' : 'Ajusta la búsqueda o el filtro para ver otros sorteos.'}</p></div> : filtered.map((row) => {
-        const state = stateOf(row);
-        const publication = row.workspace?.publication ?? null;
-        return <article className={styles.row} key={row.competition.id}>
-          <span className={styles.badge}>{row.competition.formatCode === 'GROUP_STAGE' ? 'GR' : row.competition.formatCode === 'KNOCKOUT' ? 'KO' : '—'}</span>
-          <div className={styles.identity}><strong>{row.competition.sport.name} · {row.competition.modality.name}</strong><small>{row.competition.edition.name} / {row.competition.event.name}</small></div>
-          <span className={styles.context}>{formatLabel(row.competition.formatCode)} · {row.competition.participantCount} participantes</span>
-          <Chip color={chipColor(state.filter)} size="sm" variant="soft">{state.label}</Chip>
-          <span className={styles.actions}><a className={styles.operate} href={`/competitions/${row.competition.id}`}>Operar</a>{publication === null ? null : <a className={styles.publicLink} href={`/draws/${publication.id}`}>Ver publicación</a>}</span>
-        </article>;
+  return <PageLayout>
+    <PageHeader description="Identifica qué competencias están listas, cuáles requieren confirmación y cuáles ya tienen evidencia pública." eyebrow="Control de sorteos" title="Sorteos oficiales" />
+    {failedCount === 0 ? null : <Notice description={`No fue posible recuperar el estado de ${failedCount} ${failedCount === 1 ? 'competencia' : 'competencias'}. Esas filas se muestran como “Estado no disponible” en lugar de asumir que no tienen sorteo.`} title="Estado parcial" tone="warning" />}
+    <ListToolbar count={filtered.length} onQueryChange={setQuery} onStatusChange={setFilter} query={query} searchLabel="Buscar sorteo" searchPlaceholder="Buscar edición, evento, deporte o modalidad…" status={filter} statusLabel="Filtrar por estado" statusOptions={FILTER_OPTIONS} total={rows.length} />
+    <DataList empty={{ description: rows.length === 0 ? 'Crea y configura una competencia antes de preparar su sorteo oficial.' : 'Ajusta la búsqueda o el filtro para ver otros sorteos.', title: rows.length === 0 ? 'No hay competencias todavía.' : 'No encontramos sorteos.' }} isEmpty={filtered.length === 0} label="Listado de sorteos">
+      {filtered.map((row) => {
+        const state = stateOf(row); const publication = row.workspace?.publication ?? null;
+        return <DataRow action={publication === null ? undefined : <ActionLink href={`/draws/${publication.id}`}>Publicación</ActionLink>} ariaLabel={`Operar ${row.competition.sport.name} ${row.competition.modality.name}`} description={`${row.competition.edition.name} / ${row.competition.event.name}`} href={`/competitions/${row.competition.id}`} key={row.competition.id} meta={`${formatLabel(row.competition.formatCode)} · ${row.competition.participantCount} participantes`} status={<StatusBadge label={state.label} tone={toneOf(state.filter)} />} title={`${row.competition.sport.name} · ${row.competition.modality.name}`} visual={row.competition.formatCode === 'GROUP_STAGE' ? 'GR' : row.competition.formatCode === 'KNOCKOUT' ? 'KO' : '—'} />;
       })}
-    </section>
-  </div>;
+    </DataList>
+  </PageLayout>;
 }
 
-export function DrawsClient(): React.JSX.Element {
-  return <SessionBoundary allowedRoles={WORKSPACE_ROLES}>{(actor) => <AppShell actor={actor} active="draws" eyebrow="Competencia" title="Sorteos"><DrawsWorkspace /></AppShell>}</SessionBoundary>;
-}
+export function DrawsClient(): React.JSX.Element { return <SessionBoundary allowedRoles={WORKSPACE_ROLES}>{(actor) => <AppShell actor={actor} active="draws" eyebrow="Competencia" title="Sorteos"><DrawsWorkspace /></AppShell>}</SessionBoundary>; }
