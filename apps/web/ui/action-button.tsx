@@ -13,5 +13,6 @@ interface ActionButtonProps {
 }
 
 export function ActionButton({ children, disabled = false, onPress, size = 'md', type = 'button', variant = 'primary' }: ActionButtonProps): React.JSX.Element {
-  return <Button isDisabled={disabled} onPress={onPress} size={size} type={type} variant={variant}>{children}</Button>;
+  const pressProps = onPress === undefined ? {} : { onPress };
+  return <Button isDisabled={disabled} size={size} type={type} variant={variant} {...pressProps}>{children}</Button>;
 }
