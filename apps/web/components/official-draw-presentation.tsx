@@ -1,11 +1,12 @@
 'use client';
 
-import { Alert, Button, Card, Chip, Skeleton } from '@heroui/react';
+import { Alert, Button, Card, Chip } from '@heroui/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { publicDraw, type PublicDrawPublication } from '../lib/competition-api';
 import { drawPresentationItems, normalizedPresentationStep } from '../lib/draw-presentation';
+import { LoadingPanel } from '../ui';
 import { OesMark } from './oes-mark';
 
 export function OfficialDrawPresentation({ publicationId }: { readonly publicationId: string }): React.JSX.Element {
@@ -34,7 +35,7 @@ export function OfficialDrawPresentation({ publicationId }: { readonly publicati
   }
 
   if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Presentación no disponible</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert></main>;
-  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><Card variant="tertiary"><Card.Content style={{ display: 'grid', gap: 12, padding: 24 }}><Skeleton style={{ height: 10, width: '35%' }} /><strong>Cargando sorteo oficial…</strong></Card.Content></Card></main>;
+  if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><LoadingPanel label="Cargando sorteo oficial…" /></main>;
 
   const act = publication.act;
   return <main id="main-content" className="public-draw-shell">
