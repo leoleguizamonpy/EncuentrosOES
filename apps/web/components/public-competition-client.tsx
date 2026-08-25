@@ -1,9 +1,10 @@
 'use client';
 
-import { Alert, Card, Chip, Skeleton } from '@heroui/react';
+import { Alert, Card, Chip } from '@heroui/react';
 import { useEffect, useState } from 'react';
 
 import { publicCompetitionJourney, type PublicCompetitionJourney } from '../lib/public-competition-api';
+import { LoadingPanel } from '../ui';
 import { OesMark } from './oes-mark';
 import { PublicDrawHistory } from './public-draw-history';
 import { PublicStandings } from './public-standings';
@@ -24,7 +25,7 @@ export function PublicCompetitionClient({ competitionId }: { readonly competitio
   useEffect(() => { let active = true; void publicCompetitionJourney(competitionId).then((loaded) => { if (active) setJourney(loaded); }).catch(() => { if (active) setError('La competencia no pudo restaurarse desde la evidencia pública.'); }); return () => { active = false; }; }, [competitionId]);
 
   if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Competencia no disponible</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert></main>;
-  if (journey === undefined) return <main id="main-content" className="public-draw-shell"><OesMark /><Card variant="tertiary"><Card.Content style={{ display: 'grid', gap: 12, padding: 24 }}><Skeleton style={{ height: 10, width: '35%' }} /><strong>Restaurando competencia oficial…</strong></Card.Content></Card></main>;
+  if (journey === undefined) return <main id="main-content" className="public-draw-shell"><OesMark /><LoadingPanel label="Restaurando competencia oficial…" /></main>;
   if (journey === null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="warning" role="status"><Alert.Indicator /><Alert.Content><Alert.Title>Aún sin publicación oficial</Alert.Title><Alert.Description>La competencia aparecerá aquí cuando al menos una ronda haya sido publicada oficialmente.</Alert.Description></Alert.Content></Alert></main>;
 
   const finalized = journey.competition.status === 'FINALIZED';
