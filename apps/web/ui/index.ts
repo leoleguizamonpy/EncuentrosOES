@@ -7,6 +7,7 @@ export { Field, TextField } from './form-field';
 export { FormStack } from './form-layout';
 export { InlineActions } from './inline-actions';
 export { ListToolbar } from './list-toolbar';
+export { LoadingPanel } from './loading-panel';
 export { Notice } from './notice';
 export { PageHeader } from './page-header';
 export { PageLayout } from './page-layout';
