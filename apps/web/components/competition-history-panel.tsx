@@ -186,9 +186,10 @@ function ExecutionHistory({ execution }: { readonly execution: HistoryExecutionV
   </Card>;
 }
 
-export function CompetitionHistoryPanel({ history }: { readonly history: CompetitionHistoryView }): React.JSX.Element {
+export function CompetitionHistoryPanel({ history, showDocumentActions = true }: { readonly history: CompetitionHistoryView; readonly showDocumentActions?: boolean }): React.JSX.Element {
   const groupExecutions = history.executions.filter(({ formatCode }) => formatCode === 'GROUP_STAGE').length;
   const knockoutExecutions = history.executions.filter(({ formatCode }) => formatCode === 'KNOCKOUT').length;
+  const documentUrl = `/competitions/${history.competitionId}/history/print`;
 
   return <SectionPanel className={styles.panel ?? ''} id="competition-history" eyebrow="Historial" title="Recorrido completo" status={<Chip size="sm" variant="soft">{history.executions.length}</Chip>}>
     <div className={styles.intro ?? ''}>
@@ -198,6 +199,11 @@ export function CompetitionHistoryPanel({ history }: { readonly history: Competi
         {knockoutExecutions > 0 ? <Chip size="sm" variant="soft">{knockoutExecutions} {knockoutExecutions === 1 ? 'ronda eliminatoria' : 'rondas eliminatorias'}</Chip> : null}
       </div>
     </div>
+
+    {showDocumentActions && history.executions.length > 0 ? <div className={styles.documentActions ?? ''} aria-label="Acciones del historial">
+      <a className={styles.documentAction ?? ''} href={`${documentUrl}?print=1`} rel="noreferrer" target="_blank">Imprimir historial</a>
+      <a className={styles.documentActionPrimary ?? ''} href={`${documentUrl}?print=1`} rel="noreferrer" target="_blank">Descargar PDF</a>
+    </div> : null}
 
     {history.executions.length === 0 ? <p className={styles.empty ?? ''}>El historial aparecerá después del primer sorteo oficial confirmado.</p> : <>
       <ol className={styles.sequence ?? ''} aria-label="Secuencia competitiva histórica">
