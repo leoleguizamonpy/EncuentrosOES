@@ -1,0 +1,263 @@
+.groupStageList {
+  display: grid;
+  gap: 18px;
+}
+
+.groupCard {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.groupCard > [data-slot="header"] {
+  align-items: center;
+  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.groupTitle {
+  display: grid;
+  gap: 4px;
+}
+
+.groupTitle span,
+.subsectionTitle span {
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.groupTitle strong {
+  color: var(--brand);
+  font-family: var(--display-font);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -.035em;
+}
+
+.groupMeta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.groupContent {
+  display: grid;
+  gap: 22px;
+  padding: 20px;
+}
+
+.subsection {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.subsection + .subsection {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.subsectionHeader {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.subsectionTitle {
+  display: grid;
+  gap: 3px;
+}
+
+.subsectionTitle strong {
+  color: var(--brand);
+  font-size: var(--text-body-sm);
+  font-weight: 650;
+}
+
+.matchList {
+  display: grid;
+  gap: 10px;
+}
+
+.matchCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.matchCard > [data-slot="header"] {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-tertiary);
+  display: flex;
+  font-size: var(--text-caption);
+  gap: 12px;
+  justify-content: space-between;
+  letter-spacing: .04em;
+  padding: 12px 14px;
+  text-transform: uppercase;
+}
+
+.scoreline {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  min-height: 48px;
+}
+
+.scoreline b {
+  color: var(--brand);
+  font-size: var(--text-body-sm);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scoreline b:last-child {
+  text-align: right;
+}
+
+.scoreline i,
+.scoreline > strong {
+  align-items: center;
+  background: color-mix(in srgb, var(--brand) 5%, var(--surface));
+  border-radius: 999px;
+  color: var(--brand);
+  display: inline-flex;
+  font-size: var(--text-body-sm);
+  font-style: normal;
+  font-weight: 750;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 62px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.standingsTable {
+  max-width: 100%;
+  overflow-x: visible;
+}
+
+.standingsTable table {
+  min-width: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.standingsTable th,
+.standingsTable td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.positionColumn {
+  text-align: center;
+  width: 52px;
+}
+
+.participantColumn {
+  width: auto;
+}
+
+.numericColumn {
+  text-align: center;
+  width: 52px;
+}
+
+.pointsColumn {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  text-align: center;
+  width: 62px;
+}
+
+.differenceColumn {
+  text-align: center;
+  width: 58px;
+}
+
+.emptyTable {
+  color: var(--muted-foreground);
+  font-size: var(--text-body-sm);
+  margin: 4px 0 0;
+}
+
+.knockoutList {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .hideTablet {
+    display: none;
+  }
+
+  .groupContent {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .groupCard > [data-slot="header"],
+  .subsectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .groupMeta {
+    justify-content: flex-start;
+  }
+
+  .groupContent {
+    gap: 18px;
+    padding: 14px;
+  }
+
+  .hideMobile {
+    display: none;
+  }
+
+  .standingsTable th,
+  .standingsTable td {
+    padding: 11px 6px;
+  }
+
+  .positionColumn {
+    width: 38px;
+  }
+
+  .numericColumn,
+  .differenceColumn {
+    width: 42px;
+  }
+
+  .pointsColumn {
+    width: 48px;
+  }
+
+  .scoreline {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .scoreline b {
+    font-size: var(--text-caption);
+  }
+
+  .scoreline i,
+  .scoreline > strong {
+    min-width: 48px;
+    padding-inline: 8px;
+  }
+}
