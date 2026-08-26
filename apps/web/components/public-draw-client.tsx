@@ -2,7 +2,7 @@
 
 import { Alert, Card, Chip } from '@heroui/react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { publicDraw, publicDrawActUrl, type PublicDrawPublication } from '../lib/competition-api';
 import { LoadingPanel } from '../ui';
@@ -13,7 +13,17 @@ import { PrintDocumentFooter } from './print-document-footer';
 export function PublicDrawClient({ publicationId }: { readonly publicationId: string }): React.JSX.Element {
   const [publication, setPublication] = useState<PublicDrawPublication | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const printRequested = useRef(false);
+
   useEffect(() => { let active = true; void publicDraw(publicationId).then((loaded) => active && setPublication(loaded)).catch(() => active && setError('El acta solicitada no existe, fue revocada o no pudo verificarse.')); return () => { active = false; }; }, [publicationId]);
+
+  useEffect(() => {
+    if (publication === null || printRequested.current) return;
+    const parameters = new URLSearchParams(window.location.search);
+    if (parameters.get('print') !== '1') return;
+    printRequested.current = true;
+    window.setTimeout(() => window.print(), 0);
+  }, [publication]);
 
   if (error !== null) return <main id="main-content" className="public-draw-shell"><OesMark /><Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Title>Acta no disponible</Alert.Title><Alert.Description>{error}</Alert.Description></Alert.Content></Alert></main>;
   if (publication === null) return <main id="main-content" className="public-draw-shell"><OesMark /><LoadingPanel label="Verificando acta oficial…" /></main>;
