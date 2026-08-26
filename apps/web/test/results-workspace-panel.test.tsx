@@ -36,7 +36,7 @@ describe('ResultsWorkspacePanel', () => {
     render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
     expect(screen.getByText('Resultados y fase de grupos')).toBeInTheDocument();
     const match = screen.getByLabelText('Colegio A contra Colegio B');
-    expect(match).toHaveTextContent('3 — 1');
+    expect(match).toHaveTextContent('3—1');
     expect(screen.getByText('Confirmado')).toBeInTheDocument();
     expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
     const table = screen.getByRole('table', { name: 'Tabla del grupo A' });
