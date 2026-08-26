@@ -20,7 +20,7 @@ const administrativeLabels: Readonly<Record<AdministrativeOutcome, string>> = {
 
 type EntryMode = 'PLAYED' | AdministrativeOutcome;
 
-function cx(...classes: Array<string | undefined>): string {
+function cx(...classes: (string | undefined)[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
@@ -91,7 +91,7 @@ function MatchCard({ actorId, canAnnul, canOperate, canSelfConfirm, match, onCha
   const ownPendingResult = match.result?.status === 'PENDING_CONFIRMATION' && match.result.recordedBy.id === actorId;
   const invalidPenaltyTie = entryMode === 'PLAYED' && knockout && tiedScore && penaltiesA === penaltiesB;
 
-  return <Card className={`result-match ${styles.matchCard}`}>
+  return <Card className={cx('result-match', styles.matchCard)}>
     <Card.Header><span>{match.group === null ? `Ronda ${String(match.roundNumber)}` : `Grupo ${match.group.label}`} · Encuentro {match.ordinal}</span><Chip color={matchStatusColor(match.status)} size="sm" variant="soft">{statusLabels[match.status]}</Chip></Card.Header>
     <Card.Content>
       <div className={styles.scoreline}><b>{match.participantA.displayName}</b>{match.result === null ? <i>VS</i> : <ResultScore result={match.result} />}<b>{match.participantB.displayName}</b></div>
@@ -174,7 +174,7 @@ function GroupStage({ actorId, canAnnul, canOperate, canSelfConfirm, onChange, o
     {workspace.groups.map((group) => {
       const matches = workspace.matches.filter((match) => match.group?.id === group.id);
       const confirmedMatches = matches.filter((match) => match.status === 'RESULT_CONFIRMED').length;
-      return <Card className={`standing-card ${styles.groupCard}`} key={group.id}>
+      return <Card className={cx('standing-card', styles.groupCard)} key={group.id}>
         <Card.Header>
           <div className={styles.groupTitle}><span>Fase de grupos</span><strong>Grupo {group.label}</strong></div>
           <div className={styles.groupMeta}><Chip size="sm" variant="soft">{confirmedMatches}/{matches.length} resultados</Chip><Chip color={group.complete ? 'success' : 'default'} size="sm" variant="soft">{group.complete ? 'Completo' : 'En curso'}</Chip></div>
