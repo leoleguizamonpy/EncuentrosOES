@@ -78,11 +78,12 @@ describe('OfficialDrawPanel', () => {
     await waitFor(() => expect(api.confirmOfficialDraw).toHaveBeenCalledWith('execution-1', 1));
   });
 
-  it('publishes the confirmed result and exposes its public evidence', async () => {
+  it('publishes the confirmed result and exposes its public evidence and print action', async () => {
     if (pending.execution === null) throw new Error('Expected execution');
     const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Dos', id: 'actor-2' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
     const published: DrawWorkspace = { ...confirmed, publication: { id: 'publication-1', publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: '6'.repeat(64) } };
     api.publishOfficialDraw.mockResolvedValue(published);
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const onChange = vi.fn();
     const { rerender } = render(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={confirmed} />);
     fireEvent.click(screen.getByRole('button', { name: 'Publicar sorteo y acta' }));
@@ -90,6 +91,9 @@ describe('OfficialDrawPanel', () => {
     rerender(<OfficialDrawPanel actorId="actor-2" canAnnul={false} canOperate detail={detail} onChange={onChange} onError={vi.fn()} workspace={published} />);
     expect(screen.getByRole('link', { name: 'Abrir vista pública' })).toHaveAttribute('href', '/draws/publication-1');
     expect(screen.getByRole('link', { name: 'Descargar acta JSON' })).toHaveAttribute('href', '/act/publication-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir acta' }));
+    expect(open).toHaveBeenCalledWith('/draws/publication-1?print=1', '_blank', 'noopener,noreferrer');
+    open.mockRestore();
   });
 
   it('requires a formal reason and lets only a superadministrator annul', async () => {
