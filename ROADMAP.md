@@ -1,6 +1,6 @@
 # ROADMAP — Sistema Web de Competencias OES
 
-> Estado auditado: 25 de agosto de 2026  
+> Estado auditado: 26 de agosto de 2026  
 > Fuente de verdad funcional: `FOUNDATION.md` 2.1.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
@@ -27,6 +27,7 @@ EncuentrosOES — PERFIL LOCAL — 100%
 ├── [x] UX administrativa 2.0
 ├── [x] UI-ARCH-001 — 100%
 ├── [x] UI-SHELL-UX-001 — 100%
+├── [x] COMPETITION-DETAIL-UX-001 — 100%
 ├── [x] Auditoría y seguridad
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
@@ -197,6 +198,45 @@ UI-SHELL-UX-001
 └── [x] CI #681 en `main` exact-head sobre `286f75793c6b723b5e643e4f293ac91a86b6e8fa`
 ```
 
+## COMPETITION-DETAIL-UX-001 — CERRADO — 100%
+
+Optimización del detalle competitivo, resultados y fase de grupos. La fase de grupos deja de depender de un layout horizontal: cada grupo se presenta como una unidad vertical con sus encuentros, tabla y clasificación dentro del mismo contexto. El comportamiento está protegido por un fixture competitivo real y geometría Chromium, no solo por snapshots.
+
+```text
+COMPETITION-DETAIL-UX-001
+├── [x] Panel de puntuación y desempates reorganizado
+├── [x] Jerarquía de plantilla inmutable simplificada
+├── [x] Historial separa clasificación final de resultados de partidos
+├── [x] Eliminatorias organizadas por ronda
+├── [x] Grupo A → Grupo B en flujo vertical
+├── [x] Cada grupo contiene sus propios encuentros
+├── [x] Cada grupo contiene su propia tabla
+├── [x] Resultados y clasificación permanecen en el mismo contexto visual
+├── [x] Tablas responsive sin ancho mínimo forzado de 820 px
+├── [x] Columnas secundarias reducidas progresivamente en tablet/mobile
+├── [x] Posición, participante, jugados, puntos y diferencia priorizados
+├── [x] Sin scroll horizontal en tablas de grupos
+├── [x] E2E crea fixture real de 6 participantes / 2 grupos
+├── [x] E2E ejecuta y confirma sorteo oficial
+├── [x] E2E registra y confirma resultado real por grupo
+├── [x] Chromium comprueba Grupo B físicamente debajo de Grupo A
+├── [x] Chromium comprueba `scrollWidth <= clientWidth` en cada tabla
+├── [x] Desktop 1440 px revisado visualmente
+├── [x] Mobile 390 px revisado visualmente
+├── [x] Architecture Gate
+├── [x] UI Architecture Gate
+├── [x] Lint
+├── [x] Typecheck
+├── [x] PostgreSQL integration
+├── [x] Backup / restore / storage guards
+├── [x] Coverage
+├── [x] Build de producción
+├── [x] Chromium responsive
+├── [x] Evidencia visual E2E — artifact `9589574439`
+├── [x] CI #701 exact-head sobre `06b909b0e3190bc25025e40df5f64ea5519c63f8`
+└── [x] Integración gobernada por PR #83
+```
+
 ## COMPETITION-HISTORY-001 — CERRADO
 
 ```text
@@ -341,6 +381,7 @@ Prueba final LOCAL
 ├── [x] Runtime warning protegido por test PostgreSQL
 ├── [x] UI-ARCH-001 protegido por CI y Chromium
 ├── [x] UI-SHELL-UX-001 protegido por CI y geometría Chromium
+├── [x] COMPETITION-DETAIL-UX-001 protegido por CI y geometría real de grupos
 └── [x] PERFIL LOCAL — 100%
 ```
 
