@@ -78,7 +78,7 @@ describe('OfficialDrawPanel', () => {
     await waitFor(() => expect(api.confirmOfficialDraw).toHaveBeenCalledWith('execution-1', 1));
   });
 
-  it('publishes the confirmed result and exposes its public evidence and print action', async () => {
+  it('publishes the confirmed result and exposes public, print and PDF actions', async () => {
     if (pending.execution === null) throw new Error('Expected execution');
     const confirmed: DrawWorkspace = { ...pending, execution: { ...pending.execution, confirmedAt: '2026-08-13T18:03:00.000Z', confirmedBy: { displayName: 'Administrador Dos', id: 'actor-2' }, matchCount: 3, revision: 2, seedHex: '5'.repeat(64), status: 'CONFIRMED' } };
     const published: DrawWorkspace = { ...confirmed, publication: { id: 'publication-1', publishedAt: '2026-08-13T18:04:00.000Z', verificationCode: '6'.repeat(64) } };
@@ -92,7 +92,9 @@ describe('OfficialDrawPanel', () => {
     expect(screen.getByRole('link', { name: 'Abrir vista pública' })).toHaveAttribute('href', '/draws/publication-1');
     expect(screen.getByRole('link', { name: 'Descargar acta JSON' })).toHaveAttribute('href', '/act/publication-1');
     fireEvent.click(screen.getByRole('button', { name: 'Imprimir acta' }));
-    expect(open).toHaveBeenCalledWith('/draws/publication-1?print=1', '_blank', 'noopener,noreferrer');
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar PDF' }));
+    expect(open).toHaveBeenNthCalledWith(1, '/draws/publication-1?print=1', '_blank', 'noopener,noreferrer');
+    expect(open).toHaveBeenNthCalledWith(2, '/draws/publication-1?print=1', '_blank', 'noopener,noreferrer');
     open.mockRestore();
   });
 
