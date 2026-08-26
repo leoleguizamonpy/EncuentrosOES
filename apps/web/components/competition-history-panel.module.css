@@ -323,23 +323,31 @@
     -webkit-print-color-adjust: exact;
   }
 
-  :global(body *) {
-    visibility: hidden;
+  :global(body *:not(#competition-history):not(#competition-history *):not(:has(#competition-history))) {
+    display: none;
   }
 
-  .panel,
-  .panel * {
-    visibility: visible;
+  :global(body *:has(#competition-history)) {
+    background: transparent;
+    height: auto;
+    margin: 0;
+    max-width: none;
+    min-height: 0;
+    overflow: visible;
+    padding: 0;
+    position: static;
+    transform: none;
+    width: auto;
   }
 
   .panel {
     background: #fff;
     color: #111827;
-    inset: 0 auto auto 0;
+    grid-column: auto;
     margin: 0;
     max-width: none;
     padding: 0;
-    position: absolute;
+    position: static;
     width: 100%;
   }
 
