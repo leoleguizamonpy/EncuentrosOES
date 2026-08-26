@@ -24,6 +24,54 @@
   gap: var(--space-2);
 }
 
+.documentActions {
+  align-items: center;
+  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin: calc(var(--space-2) * -1) 0 var(--space-5);
+  padding: var(--space-3);
+}
+
+.documentAction,
+.documentActionPrimary {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  font-size: var(--text-body-sm);
+  font-weight: 750;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  text-decoration: none;
+}
+
+.documentAction {
+  background: var(--surface);
+  color: var(--brand);
+}
+
+.documentActionPrimary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.documentAction:hover,
+.documentActionPrimary:hover {
+  text-decoration: none;
+}
+
+.documentAction:focus-visible,
+.documentActionPrimary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 2px;
+}
+
 .sequence {
   border-bottom: 1px solid var(--border);
   border-top: 1px solid var(--border);
@@ -263,6 +311,11 @@
 @media (max-width: 760px) {
   .intro,
   .zoneHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .documentActions {
     align-items: stretch;
     flex-direction: column;
   }
