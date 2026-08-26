@@ -20,7 +20,7 @@ SELECT
   id,
   id
 FROM users
-WHERE email = 'e2e-superadmin@oes.test';
+WHERE email_normalized = 'e2e-superadmin@oes.test';
 
 INSERT INTO general_championship_scoring_rules (championship_id, placement, label, points) VALUES
   ('99000000-0000-4000-8000-000000000001', 1, 'Campeón', 100),
@@ -48,7 +48,7 @@ SELECT
   id,
   CURRENT_TIMESTAMP,
   id
-FROM users WHERE email = 'e2e-superadmin@oes.test';
+FROM users WHERE email_normalized = 'e2e-superadmin@oes.test';
 
 INSERT INTO general_championship_contributions (
   id, championship_id, institution_id, source_type, title, description,
@@ -67,7 +67,7 @@ SELECT
   id,
   CURRENT_TIMESTAMP,
   id
-FROM users WHERE email = 'e2e-superadmin@oes.test';
+FROM users WHERE email_normalized = 'e2e-superadmin@oes.test';
 
 INSERT INTO general_championship_contributions (
   id, championship_id, institution_id, source_type, title, description,
@@ -86,7 +86,7 @@ SELECT
   id,
   CURRENT_TIMESTAMP,
   id
-FROM users WHERE email = 'e2e-superadmin@oes.test';
+FROM users WHERE email_normalized = 'e2e-superadmin@oes.test';
 
 INSERT INTO general_championship_contributions (
   id, championship_id, institution_id, source_type, title, description,
@@ -103,4 +103,4 @@ SELECT
   false,
   'PENDING_CONFIRMATION',
   id
-FROM users WHERE email = 'e2e-superadmin@oes.test';
+FROM users WHERE email_normalized = 'e2e-superadmin@oes.test';
