@@ -39,15 +39,15 @@ try {
     const printHeading = [...document.querySelectorAll('*')].find((element) => element.textContent === 'Historial competitivo');
     if (!(history instanceof HTMLElement) || !(sidebar instanceof HTMLElement) || !(printHeading instanceof HTMLElement)) return null;
     return {
-      historyVisibility: getComputedStyle(history).visibility,
+      historyDisplay: getComputedStyle(history).display,
       printHeadingDisplay: getComputedStyle(printHeading).display,
-      sidebarVisibility: getComputedStyle(sidebar).visibility,
+      sidebarDisplay: getComputedStyle(sidebar).display,
     };
   });
 
   assert(printState !== null, 'Printable history elements must be measurable.');
-  assert(printState.historyVisibility === 'visible', 'Competition history must remain visible in print media.');
-  assert(printState.sidebarVisibility === 'hidden', 'Workspace navigation must be hidden in print media.');
+  assert(printState.historyDisplay !== 'none', 'Competition history must remain in the print layout.');
+  assert(printState.sidebarDisplay === 'none', 'Workspace navigation must be removed from the print layout.');
   assert(printState.printHeadingDisplay !== 'none', 'Printable document heading must be visible.');
 
   await page.pdf({
