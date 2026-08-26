@@ -208,9 +208,13 @@ async function assertSportsOperationsGeometry(page, label) {
 
   const pendingCard = page.locator('.result-match').filter({ has: page.getByRole('button', { name: 'Cargar resultado' }) }).first();
   await pendingCard.waitFor();
-  const loadButton = pendingCard.getByRole('button', { name: 'Cargar resultado' });
+  const scoreboard = pendingCard.locator('[aria-label*=" contra "]').first();
+  const matchLabel = await scoreboard.getAttribute('aria-label');
+  assert(matchLabel !== null && matchLabel.length > 0, `${label} pending match must expose a stable accessible identity.`);
+  const stableCard = page.locator('.result-match').filter({ has: page.getByLabel(matchLabel, { exact: true }) }).first();
+  const loadButton = stableCard.getByRole('button', { name: 'Cargar resultado' });
   await loadButton.click();
-  const inputs = pendingCard.locator('input[type="number"][aria-label^="Marcador de "]');
+  const inputs = stableCard.locator('input[type="number"][aria-label^="Marcador de "]');
   await inputs.first().waitFor();
   const inputCount = await inputs.count();
   assert(inputCount === 2, `${label} score editor must expose exactly two numeric score inputs, received ${inputCount}.`);
