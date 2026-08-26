@@ -1,0 +1,85 @@
+.scopeBar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(220px, 1.2fr); gap: 16px; align-items: end; }
+.scopeBar label, .formGrid label { display: grid; gap: 7px; color: var(--text-muted); font-size: 0.78rem; font-weight: 700; }
+.scopeBar select, .formGrid select, .formGrid input, .formGrid textarea, .ruleRow input { width: 100%; min-height: 44px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); padding: 0 12px; font: inherit; }
+.formGrid textarea { min-height: 88px; padding-block: 10px; resize: vertical; }
+.scopeBar select:focus-visible, .formGrid select:focus-visible, .formGrid input:focus-visible, .formGrid textarea:focus-visible, .ruleRow input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.scopeContext { display: grid; gap: 4px; padding: 4px 0 3px 18px; border-left: 1px solid var(--border); }
+.scopeContext span, .panelIdentity span, .operationCard span, .formHeader span, .heroEyebrow { color: var(--text-muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.scopeContext strong, .panelIdentity strong { color: var(--text); }
+.hero { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding: 28px 30px; border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 18px; background: linear-gradient(135deg, #071d31 0%, #0b2940 65%, #0e3a43 100%); box-shadow: var(--shadow-sm); color: white; overflow: hidden; }
+.hero h2 { margin: 6px 0 3px; color: white; font-size: clamp(1.55rem, 2.5vw, 2.2rem); letter-spacing: -0.035em; }
+.hero p { margin: 0; color: rgba(255,255,255,.68); }
+.heroEyebrow { color: color-mix(in srgb, var(--success) 80%, white); }
+.heroStatus { display: grid; min-width: 220px; justify-items: end; gap: 7px; text-align: right; }
+.heroStatus > strong { color: #d9ff58; font-size: 1.05rem; }
+.heroStatus > small { color: rgba(255,255,255,.72); }
+.panelIdentity { display: grid; gap: 3px; }
+.supportText { max-width: 760px; margin: 0 0 18px; color: var(--text-muted); line-height: 1.55; }
+.ruleGrid { display: grid; gap: 9px; margin-bottom: 18px; }
+.ruleRow { display: grid; grid-template-columns: 54px minmax(160px, 1fr) minmax(130px, 180px); gap: 10px; align-items: center; }
+.ruleRow > span { display: grid; place-items: center; min-height: 44px; border-radius: 10px; background: var(--surface-muted); font-weight: 800; }
+.ruleRow label { position: relative; }
+.ruleRow label input { padding-right: 42px; text-align: right; font-weight: 800; }
+.ruleRow label span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: .74rem; }
+.positionColumn { width: 58px; }
+.institutionColumn { width: auto; }
+.sourceColumn { width: 150px; }
+.pointsColumn { width: 110px; }
+.institutionCell { display: grid; gap: 2px; }
+.institutionCell small { color: var(--text-muted); font-size: .74rem; }
+.totalPoints { display: inline-grid; min-width: 64px; place-items: center; padding: 7px 10px; border-radius: 999px; background: color-mix(in srgb, var(--success) 13%, transparent); color: var(--success); font-size: .92rem; }
+.emptyBlock, .emptyState { color: var(--text-muted); }
+.emptyBlock { display: grid; gap: 5px; padding: 18px 4px; }
+.emptyBlock strong, .emptyState strong { color: var(--text); }
+.emptyState { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; padding: 12px 4px; }
+.emptyState p { max-width: 720px; margin: 5px 0 0; line-height: 1.5; }
+.trophy { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 14px; background: #0b2940; color: #d9ff58; font-size: 1.2rem; }
+.operationGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.operationCard { border: 1px solid var(--border); box-shadow: none; }
+.operationCard :global([data-slot="content"]) { display: grid; align-content: start; gap: 7px; height: 100%; }
+.operationCard strong { font-size: .98rem; }
+.operationCard p { min-height: 62px; margin: 0 0 5px; color: var(--text-muted); font-size: .82rem; line-height: 1.48; }
+.inlineForm { display: grid; gap: 16px; margin-top: 16px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-muted); }
+.formHeader { display: grid; gap: 3px; }
+.formGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.wideField { grid-column: 1 / -1; }
+.ledger { display: grid; }
+.ledgerRow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.ledgerRow:last-child { border-bottom: 0; }
+.ledgerSource { display: grid; gap: 3px; min-width: 0; }
+.ledgerSource span { color: var(--text-muted); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.ledgerSource strong { overflow-wrap: anywhere; }
+.ledgerSource small { color: var(--text-muted); line-height: 1.45; }
+.ledgerState { display: grid; justify-items: end; gap: 5px; }
+.ledgerState > strong, .ledgerTotal { color: var(--success); font-weight: 900; font-variant-numeric: tabular-nums; }
+.ledgerActions { display: flex; gap: 6px; }
+.finalizeRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.finalizeRow > div { display: grid; gap: 4px; }
+.finalizeRow small { color: var(--text-muted); }
+
+@media (max-width: 980px) {
+  .scopeBar { grid-template-columns: 1fr 1fr; }
+  .scopeContext { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); padding: 12px 0 0; }
+  .operationGrid { grid-template-columns: 1fr; }
+  .operationCard p { min-height: 0; }
+}
+
+@media (max-width: 720px) {
+  .scopeBar, .formGrid, .hero, .emptyState, .finalizeRow { grid-template-columns: 1fr; }
+  .hero { padding: 22px 20px; }
+  .heroStatus { min-width: 0; justify-items: start; text-align: left; }
+  .ruleRow { grid-template-columns: 44px minmax(0, 1fr) 102px; gap: 7px; }
+  .sourceColumn { display: none; }
+  .pointsColumn { width: 84px; }
+  .ledgerRow { grid-template-columns: minmax(0, 1fr) auto; }
+  .ledgerActions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+
+@media (max-width: 460px) {
+  .ruleRow { grid-template-columns: 42px minmax(0, 1fr); }
+  .ruleRow label { grid-column: 2; }
+  .institutionCell small { display: none; }
+  .positionColumn { width: 42px; }
+  .pointsColumn { width: 76px; }
+  .totalPoints { min-width: 54px; padding-inline: 7px; }
+}

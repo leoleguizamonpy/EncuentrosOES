@@ -33,6 +33,18 @@ export {
   type ChampionSourceMatch,
 } from './competition/champion.js';
 export {
+  deriveGeneralChampion,
+  deriveGeneralStandings,
+  pointsForGeneralPlacement,
+  validateGeneralScoringRules,
+  type GeneralChampionshipStatus,
+  type GeneralContributionSourceType,
+  type GeneralContributionStatus,
+  type GeneralScoringRule,
+  type GeneralStandingContribution,
+  type GeneralStandingRow,
+} from './general-championship/general-championship.js';
+export {
   DomainError,
   type DomainErrorCode,
 } from './errors/domain-error.js';

@@ -195,6 +195,8 @@ jobs:
           LIBPQ_URL="${DATABASE_URL%%\?*}"
           docker run --rm --network host -v "${{ github.workspace }}:/workspace:ro" postgres:17-alpine \
             psql "$LIBPQ_URL" --file=/workspace/.github/e2e/seed-competition-detail.sql
+          docker run --rm --network host -v "${{ github.workspace }}:/workspace:ro" postgres:17-alpine \
+            psql "$LIBPQ_URL" --file=/workspace/.github/e2e/seed-general-championship.sql
 
       - name: Build application for browser drill
         run: pnpm build
@@ -223,7 +225,9 @@ jobs:
           exit 1
 
       - name: Exercise responsive workspace in Chromium
-        run: node .github/e2e/admin-responsive.mjs
+        run: |
+          node .github/e2e/admin-responsive.mjs
+          node .github/e2e/general-championship-responsive.mjs
 
       - name: Upload visual E2E evidence
         if: always()
