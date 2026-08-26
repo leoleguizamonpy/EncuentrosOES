@@ -285,7 +285,7 @@ export class GeneralChampionshipService {
         const finalMatches = matches.filter((match) => match.roundNumber === topRound);
         if (finalMatches.length !== 1) continue;
         const final = finalMatches[0];
-        if (final === undefined || final.winnerParticipantId === null) continue;
+        if (final?.winnerParticipantId == null) continue;
         const loserParticipantId = final.participantAId === final.winnerParticipantId ? final.participantBId : final.participantAId;
         const participants = await tx.competitionParticipant.findMany({ select: { id: true, institutionId: true }, where: { id: { in: [final.winnerParticipantId, loserParticipantId] } } });
         const institutionByParticipant = new Map(participants.map((participant) => [participant.id, participant.institutionId]));
