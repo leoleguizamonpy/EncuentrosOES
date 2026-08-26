@@ -6,6 +6,12 @@ const MAX_BYTE_LENGTH = 106;
 
 type Matrix = boolean[][];
 
+function rowAt(matrix: Matrix, y: number): boolean[] {
+  const row = matrix[y];
+  if (row === undefined) throw new Error('QR matrix row is out of bounds.');
+  return row;
+}
+
 function gfMultiply(left: number, right: number): number {
   let a = left;
   let b = right;
@@ -84,8 +90,8 @@ function emptyMatrix(): { matrix: Matrix; functionModules: Matrix } {
 
 function setFunction(matrix: Matrix, functionModules: Matrix, x: number, y: number, value: boolean): void {
   if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return;
-  matrix[y]![x] = value;
-  functionModules[y]![x] = true;
+  rowAt(matrix, y)[x] = value;
+  rowAt(functionModules, y)[x] = true;
 }
 
 function drawFinder(matrix: Matrix, functionModules: Matrix, centerX: number, centerY: number): void {
@@ -98,7 +104,7 @@ function drawFinder(matrix: Matrix, functionModules: Matrix, centerX: number, ce
 }
 
 function drawAlignment(matrix: Matrix, functionModules: Matrix, centerX: number, centerY: number): void {
-  if (functionModules[centerY]![centerX]) return;
+  if (rowAt(functionModules, centerY)[centerX]) return;
   for (let dy = -2; dy <= 2; dy += 1) {
     for (let dx = -2; dx <= 2; dx += 1) {
       setFunction(matrix, functionModules, centerX + dx, centerY + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
@@ -157,11 +163,13 @@ function drawCodewords(matrix: Matrix, functionModules: Matrix, codewords: reado
     const upward = ((right + 1) & 2) === 0;
     for (let vertical = 0; vertical < SIZE; vertical += 1) {
       const y = upward ? SIZE - 1 - vertical : vertical;
+      const functionRow = rowAt(functionModules, y);
+      const matrixRow = rowAt(matrix, y);
       for (let offset = 0; offset < 2; offset += 1) {
         const x = right - offset;
-        if (functionModules[y]![x]) continue;
+        if (functionRow[x]) continue;
         const raw = (bits[bitIndex] ?? 0) !== 0;
-        matrix[y]![x] = raw !== masked(mask, x, y);
+        matrixRow[x] = raw !== masked(mask, x, y);
         bitIndex += 1;
       }
     }
@@ -181,8 +189,10 @@ export function verificationQrPath(value: string): string {
   const matrix = verificationQrMatrix(value);
   const commands: string[] = [];
   for (let y = 0; y < matrix.length; y += 1) {
-    for (let x = 0; x < (matrix[y]?.length ?? 0); x += 1) {
-      if (matrix[y]?.[x]) commands.push(`M${String(x)} ${String(y)}h1v1h-1z`);
+    const row = matrix[y];
+    if (row === undefined) continue;
+    for (let x = 0; x < row.length; x += 1) {
+      if (row[x]) commands.push(`M${String(x)} ${String(y)}h1v1h-1z`);
     }
   }
   return commands.join('');
