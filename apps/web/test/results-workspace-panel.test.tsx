@@ -36,9 +36,11 @@ describe('ResultsWorkspacePanel', () => {
     render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
     expect(screen.getByText('Resultados y fase de grupos')).toBeInTheDocument();
     const match = screen.getByLabelText('Colegio A contra Colegio B');
+    const matchCard = match.closest('.result-match');
+    expect(matchCard).not.toBeNull();
     expect(match).toHaveTextContent('3—1');
     expect(screen.getByText('Confirmado')).toBeInTheDocument();
-    expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
+    expect(matchCard).toHaveTextContent('Registrado por Autoridad Uno · confirmado por Autoridad Dos');
     const table = screen.getByRole('table', { name: 'Tabla del grupo A' });
     expect(within(table).getByText('Colegio A')).toBeInTheDocument();
     expect(within(table).getByText('PTS')).toBeInTheDocument();
