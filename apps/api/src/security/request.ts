@@ -1,7 +1,9 @@
 import type { Request } from 'express';
 
 import type { AuthenticatedActor } from '../identity/auth.service.js';
-import type { SessionRecord } from '../identity/identity-store.js';
+import type { AccountRole, SessionRecord } from '../identity/identity-store.js';
+
+export type ActorRole = AccountRole;
 
 export interface AuthenticatedRequest extends Request {
   actor?: AuthenticatedActor;
