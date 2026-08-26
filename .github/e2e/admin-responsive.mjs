@@ -206,16 +206,19 @@ async function assertSportsOperationsGeometry(page, label) {
   assert(scoreboardMetrics.scrollWidth <= scoreboardMetrics.clientWidth + 1, `${label} scoreboard must not overflow horizontally.`);
   assert(scoreboardMetrics.width <= scoreboardMetrics.parentWidth + 1, `${label} scoreboard must fit inside its match card.`);
 
-  const loadButton = page.getByRole('button', { name: 'Cargar resultado' }).first();
-  await loadButton.waitFor();
+  const pendingCard = page.locator('.result-match').filter({ has: page.getByRole('button', { name: 'Cargar resultado' }) }).first();
+  await pendingCard.waitFor();
+  const loadButton = pendingCard.getByRole('button', { name: 'Cargar resultado' });
   await loadButton.click();
-  const editor = page.getByLabel('Marcador reglamentario');
+  const editor = pendingCard.locator('[aria-label="Marcador reglamentario"]');
   await editor.waitFor();
-  const inputMetrics = await editor.locator('input[type="number"]').evaluateAll((inputs) => inputs.map((input) => {
+  const inputs = editor.locator('input[type="number"]');
+  const inputCount = await inputs.count();
+  assert(inputCount === 2, `${label} score editor must expose exactly two numeric score inputs, received ${inputCount}.`);
+  const inputMetrics = await inputs.evaluateAll((elements) => elements.map((input) => {
     const rect = input.getBoundingClientRect();
     return { height: rect.height, width: rect.width };
   }));
-  assert(inputMetrics.length === 2, `${label} score editor must expose exactly two numeric score inputs.`);
   for (const metrics of inputMetrics) {
     assert(metrics.height >= 50, `${label} score input height is too small: ${metrics.height}px.`);
     assert(metrics.width >= 44, `${label} score input width is too small: ${metrics.width}px.`);
@@ -224,7 +227,9 @@ async function assertSportsOperationsGeometry(page, label) {
 }
 
 async function closeResultEntry(page) {
-  const cancel = page.getByRole('button', { name: 'Cancelar' }).first();
+  const openCard = page.locator('.result-match').filter({ has: page.locator('[aria-label="Marcador reglamentario"]') }).first();
+  await openCard.waitFor();
+  const cancel = openCard.getByRole('button', { name: 'Cancelar' });
   await cancel.waitFor();
   await cancel.click();
 }
