@@ -50,7 +50,11 @@ export class GeneralChampionshipController {
   public create(@Body() body: unknown, @Headers('idempotency-key') key: string | undefined, @Headers('x-correlation-id') correlationId: string | undefined, @Req() request: AuthenticatedRequest): ReturnType<GeneralChampionshipService['create']> {
     const parsed = createBody.safeParse(body);
     if (!parsed.success) throw new BadRequestException('General championship configuration is invalid.');
-    return this.service.create({ ...this.context(request, key, correlationId), ...parsed.data });
+    const context = this.context(request, key, correlationId);
+    const { editionId, eventId, name, rules } = parsed.data;
+    return rules === undefined
+      ? this.service.create({ ...context, editionId, eventId, name })
+      : this.service.create({ ...context, editionId, eventId, name, rules });
   }
 
   @Patch(':championshipId/scoring')
