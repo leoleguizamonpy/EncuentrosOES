@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 interface PrintDocumentFooterProps {
   readonly documentId: string;
-  readonly verificationCode?: string;
+  readonly verificationCode?: string | undefined;
 }
 
 function formatIssuedAt(value: Date): string {
