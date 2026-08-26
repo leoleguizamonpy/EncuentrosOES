@@ -61,6 +61,33 @@
   text-align: right;
 }
 
+.print-document-footer__origin {
+  align-items: start;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.print-document-footer__origin > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.verification-qr {
+  color: #000;
+  height: 88px;
+  width: 88px;
+}
+
+.verification-qr__background {
+  fill: #fff;
+}
+
+.verification-qr path {
+  fill: currentColor;
+}
+
 @page {
   margin: 14mm;
   size: A4 portrait;
@@ -210,6 +237,11 @@
     color: #000;
   }
 
+  .verification-qr {
+    height: 22mm;
+    width: 22mm;
+  }
+
   table,
   thead,
   tbody,
@@ -236,5 +268,9 @@
 
   .print-document-footer > div:last-child {
     text-align: left;
+  }
+
+  .print-document-footer__origin {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
