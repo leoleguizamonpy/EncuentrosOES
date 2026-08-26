@@ -121,11 +121,9 @@ export class GeneralChampionshipService {
     const name = input.name.trim();
     if (name.length < 3 || name.length > 160) throw new GeneralChampionshipError('INVALID', 'General championship name must contain between 3 and 160 characters.');
     return this.mutate(input, 'general-championship:create', { editionId: input.editionId, eventId: input.eventId, name, rules }, async (tx) => {
-      const [edition, event] = await Promise.all([
-        tx.edition.findUnique({ where: { id: input.editionId } }),
-        tx.event.findUnique({ where: { id: input.eventId } }),
-      ]);
-      if (edition === null || event === null || !event.active) throw new GeneralChampionshipError('INVALID', 'Edition or event is invalid.');
+      const edition = await tx.edition.findUnique({ where: { id: input.editionId } });
+      const event = await tx.event.findUnique({ where: { id: input.eventId } });
+      if (edition === null || !event?.active) throw new GeneralChampionshipError('INVALID', 'Edition or event is invalid.');
       const id = randomUUID();
       await tx.generalChampionship.create({ data: {
         createdById: input.actorId,
