@@ -309,7 +309,7 @@
 
 @media print {
   @page {
-    margin: 10mm;
+    margin: 9mm;
     size: A4 landscape;
   }
 
@@ -329,6 +329,7 @@
 
   :global(body *:has(#competition-history)) {
     background: transparent;
+    display: block;
     height: auto;
     margin: 0;
     max-width: none;
@@ -337,12 +338,13 @@
     padding: 0;
     position: static;
     transform: none;
-    width: auto;
+    width: 100%;
   }
 
   .panel {
     background: #fff;
     color: #111827;
+    display: block;
     grid-column: auto;
     margin: 0;
     max-width: none;
@@ -358,14 +360,14 @@
   .printHeader {
     border-bottom: 2px solid #172335;
     display: grid;
-    gap: 2px;
-    margin-bottom: 8mm;
-    padding-bottom: 4mm;
+    gap: 1mm;
+    margin-bottom: 4mm;
+    padding-bottom: 3mm;
   }
 
   .printHeader span {
     color: #64748b;
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 800;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -373,19 +375,21 @@
 
   .printHeader strong {
     color: #172335;
-    font-size: 20pt;
+    font-size: 18pt;
     letter-spacing: -.03em;
   }
 
   .printHeader small {
     color: #64748b;
-    font-size: 8.5pt;
+    font-size: 8pt;
   }
 
   .intro {
-    align-items: flex-start;
-    gap: 5mm;
-    margin-bottom: 5mm;
+    align-items: start;
+    display: grid;
+    gap: 4mm;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-bottom: 3mm;
   }
 
   .intro p,
@@ -393,8 +397,8 @@
   .contextNote,
   .qualifiers {
     color: #475569;
-    font-size: 8pt;
-    line-height: 1.35;
+    font-size: 7.5pt;
+    line-height: 1.3;
   }
 
   .summary {
@@ -404,20 +408,20 @@
   .sequence {
     break-inside: avoid;
     grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
-    margin-bottom: 5mm;
+    margin-bottom: 3mm;
   }
 
   .sequence li {
-    padding: 2.5mm 3mm;
+    padding: 2mm 3mm;
   }
 
   .sequence strong {
-    font-size: 8pt;
+    font-size: 7.5pt;
     white-space: normal;
   }
 
   .list {
-    gap: 5mm;
+    display: block;
   }
 
   .executionCard {
@@ -425,14 +429,17 @@
     border-radius: 0;
     box-shadow: none;
     break-inside: auto;
+    display: block;
+    margin-bottom: 4mm;
     overflow: visible;
+    width: 100%;
   }
 
   .executionHeader {
     background: #f8fafc;
     border-bottom-color: #cbd5e1;
     break-after: avoid;
-    padding: 3mm 4mm;
+    padding: 2.5mm 4mm;
   }
 
   .executionTitle span,
@@ -440,7 +447,7 @@
   .groupHeader span,
   .resultGroupTitle span {
     color: #64748b;
-    font-size: 7pt;
+    font-size: 6.7pt;
   }
 
   .executionTitle strong,
@@ -451,62 +458,98 @@
 
   .executionTitle strong,
   .zoneHeaderCopy h4 {
-    font-size: 11pt;
+    font-size: 10.5pt;
   }
 
   .executionContent {
-    gap: 4mm;
-    padding: 4mm;
+    display: block;
+    padding: 3mm 4mm;
+  }
+
+  .contextNote {
+    margin-bottom: 3mm;
+    padding: 2mm 3mm;
   }
 
   .zone {
     break-inside: auto;
-    gap: 3mm;
+    display: block;
+  }
+
+  .zone + .zone {
+    margin-top: 4mm;
+    padding-top: 4mm;
   }
 
   .zoneHeader {
     break-after: avoid;
+    margin-bottom: 3mm;
   }
 
   .groupsGrid {
-    gap: 3mm;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: block;
   }
 
   .groupBlock,
   .resultGroup {
     break-inside: avoid;
+    width: 100%;
   }
 
   .groupBlock {
     border-color: #cbd5e1;
     border-radius: 0;
-    padding: 3mm;
+    display: block;
+    margin-bottom: 3mm;
+    padding: 2.5mm 3mm;
+  }
+
+  .groupHeader {
+    break-after: avoid;
+    margin-bottom: 2mm;
+  }
+
+  .qualifiers {
+    margin-top: 2mm;
   }
 
   .resultsStack {
-    gap: 3mm;
+    display: block;
+  }
+
+  .resultGroup {
+    margin-bottom: 3mm;
+  }
+
+  .resultGroupTitle {
+    break-after: avoid;
+    margin-bottom: 2mm;
   }
 
   .score {
     color: #172335;
-    font-size: 9pt;
+    font-size: 8.5pt;
   }
 
   .panel :global([class*="tableScroller"]) {
+    max-width: 100%;
     overflow: visible;
+    width: 100%;
   }
 
   .panel :global(table) {
-    font-size: 7.5pt;
+    font-size: 7pt;
     min-width: 0;
-    table-layout: auto;
+    table-layout: fixed;
     width: 100%;
   }
 
   .panel :global(th),
   .panel :global(td) {
-    padding: 1.8mm 2mm;
+    overflow-wrap: anywhere;
+    padding: 1.4mm 1.7mm;
+    vertical-align: top;
+    white-space: normal;
   }
 
   .panel :global(thead) {
