@@ -4,9 +4,9 @@
 > Fuente de verdad funcional: `FOUNDATION.md` 2.2.0  
 > Contrato operativo de agentes: `AGENTS.md`  
 > Rama funcional consolidada: `main`  
-> Perfil operativo actual: `LOCAL`
+> Perfil operativo seleccionado: `LOCAL`
 
-El perfil LOCAL conserva su salida de aceptación y Foundation 2.2 incorpora formalmente el Campeonato General como agregado competitivo transversal. El bloque `GENERAL-CHAMPIONSHIP-001` está implementado y certificado en rama; su integración final exige PR + CI sobre el SHA exacto de `main` antes de considerarse cierre global definitivo.
+Este ROADMAP expresa el estado certificado del producto. Un bloque solo se marca cerrado cuando su implementación está integrada y existe evidencia automatizada suficiente sobre el código correspondiente.
 
 ## Estado ejecutivo
 
@@ -15,16 +15,18 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Foundation 2.2
 ├── [x] Núcleo competitivo
 ├── [x] Persistencia PostgreSQL
-├── [x] Sorteos verificables
+├── [x] Sorteos oficiales verificables
 ├── [x] Autoridad SUPERADMIN 2.1
-├── [x] Resultados y tablas
+├── [x] Resultados SCORE_BASED / SET_BASED
 ├── [x] Clasificación
 ├── [x] Continuidad eliminatoria
 ├── [x] Resoluciones administrativas y penales
 ├── [x] Campeón y finalización deportiva
 ├── [x] Historial competitivo persistente
-├── [x] Campeonato General — implementación certificada en rama
+├── [x] GENERAL-CHAMPIONSHIP-001 — 100%
 ├── [x] Experiencia pública
+├── [x] PRINT-OUTPUT-001 — 100%
+├── [x] PRINT-OUTPUT-002 — 100%
 ├── [x] UX administrativa 2.0
 ├── [x] UI-ARCH-001 — 100%
 ├── [x] UI-SHELL-UX-001 — 100%
@@ -35,75 +37,89 @@ EncuentrosOES — PERFIL LOCAL
 ├── [x] Restore drill aislado
 ├── [x] Recuperación tras reinicio
 ├── [x] Engineering Hardening — 100%
-├── [x] LOCAL-RUNTIME-001 — cerrado y protegido por regresión
-└── [ ] GENERAL-CHAMPIONSHIP-001 — pendiente solo de integración/certificación exact-main
+└── [x] LOCAL-RUNTIME-001 — cerrado y protegido por regresión
 ```
 
 ## Gates del producto
 
 ### Gate 0 — Fundación y arquitectura — CERRADO
-- [x] Foundation 2.2.0 vigente en la rama del bloque.
-- [x] Monorepo TypeScript con dominio, PostgreSQL/Prisma, API NestJS y web Next.js.
-- [x] CI obligatorio con Architecture Gate, UI Architecture Gate, lint, typecheck, PostgreSQL, backup/restore, coverage, build y visual E2E.
+
+- [x] Foundation 2.2.0 vigente.
+- [x] Monorepo TypeScript.
+- [x] Dominio desacoplado de infraestructura.
+- [x] PostgreSQL/Prisma como persistencia autoritativa.
+- [x] API NestJS y frontend Next.js.
+- [x] Architecture Gate y UI Architecture Gate obligatorios.
+- [x] CI con lint, typecheck, PostgreSQL, backup/restore, coverage, build y Chromium E2E.
 
 ### Gate 1 — Persistencia competitiva — CERRADO
+
 - [x] Edición, evento, institución, deporte y modalidad persistentes.
-- [x] Competencia, participantes, reglas, sorteos, encuentros y resultados restaurables.
+- [x] Competencias, participantes, reglas, sorteos, encuentros y resultados restaurables.
 - [x] Campeonato General, reglas y contribuciones persistentes.
 - [x] Revisión optimista e idempotencia en mutaciones críticas.
 
 ### Gate 2 — Sorteo oficial verificable — CERRADO
+
 - [x] Motor determinista `oes-draw-v1`.
 - [x] Semilla criptográfica y compromiso previo.
 - [x] Grupos 3–4, eliminación directa y BYE auditable.
-- [x] Confirmación SUPERADMIN según Foundation.
-- [x] Publicación, acta y evidencia SHA-256.
+- [x] Confirmación de autoridad según Foundation.
+- [x] Publicación y evidencia SHA-256.
 
 ### Gate 3 — Resultados y tablas — CERRADO
+
 - [x] `SCORE_BASED` y `SET_BASED`.
 - [x] Confirmación y anulación trazables.
 - [x] Penales separados del marcador reglamentario.
 - [x] Resoluciones administrativas sin goles/sets ficticios.
-- [x] Tablas recalculadas desde resultados confirmados.
+- [x] Tablas derivadas de resultados confirmados.
 - [x] Desempates ordenados y enfrentamiento directo.
 
 ### Gate 4 — Clasificación — CERRADO
-- [x] Dos clasificados propuestos automáticamente.
+
+- [x] Clasificados propuestos automáticamente.
 - [x] Empate no resuelto bloquea propuesta.
 - [x] Confirmación auditable y fuentes persistidas.
 
 ### Gate 5 — Continuidad eliminatoria — CERRADO
+
 - [x] Grupos → eliminación desde clasificados confirmados.
 - [x] Eliminación → nueva ronda desde ganadores confirmados/BYE.
-- [x] Re-sorteo obligatorio por ronda.
+- [x] Re-sorteo por ronda.
 - [x] BYE preservado como avance explícito.
 - [x] `NO_SHOW_BOTH` excluye a ambos.
-- [x] Menos de dos elegibles no fabrica una ronda inválida.
+- [x] No se fabrican rondas inválidas.
 
 ### Gate 6 — Finalización deportiva — CERRADO
+
 - [x] Final detectada desde evidencia confirmada.
 - [x] Campeón propuesto y confirmado.
 - [x] `LOCKED → FINALIZED` transaccional.
-- [x] No se prepara una ronda posterior a la final.
+- [x] No se prepara ronda posterior a la final.
 
 ### Gate 7L — Operación LOCAL — CERRADO
+
 - [x] PostgreSQL real.
 - [x] Backup custom + SHA-256.
 - [x] Restore aislado.
 - [x] Recuperación tras reinicio.
 - [x] Read-models críticos serializados donde `@prisma/adapter-pg` lo exige.
-- [x] Regresión automática contra `Calling client.query() when the client is already executing a query`.
-- [x] Última base estable previa: PR #78 integrado en `main` — `aaa67f8a06c5151bb2d3668cc3f2eee554c22862`.
+- [x] Regresión automática contra concurrencia inválida del cliente PostgreSQL.
 
 ### Gate 8 — Experiencia pública — CERRADO
-- [x] Grupos, tablas, rondas y cruces publicados.
+
+- [x] Sorteos publicados.
+- [x] Grupos, tablas, rondas y cruces públicos.
 - [x] Evidencia histórica preservada.
+- [x] Campeonato público derivado del estado autoritativo.
 
 ### Gate 9 — Saneamiento técnico — CERRADO
-- [x] Árbol limpio de artefactos generados.
+
+- [x] Árbol sin artefactos generados accidentales.
 - [x] Persistencia y servicios transaccionales consolidados.
 - [x] Architecture Gate evita regresiones estructurales conocidas.
-- [x] UI Architecture Gate evita inline layout styles, `!important`, fuentes remotas y dialectos CSS cruzados.
+- [x] UI Architecture Gate evita inline layout styles, `!important`, fuentes remotas y CSS cruzado.
 - [x] Read-models operativos críticos sin fan-out inseguro conocido.
 
 ### Gate 10 — UX administrativa 2.0 — CERRADO
@@ -122,147 +138,155 @@ OES WORKSPACE
 └── [x] CONTROL
 ```
 
-## GENERAL-CHAMPIONSHIP-001 — IMPLEMENTACIÓN CERTIFICADA EN RAMA
+### Gate 11 — Salida documental / impresión — CERRADO
+
+- [x] Impresión explícita mediante acción de usuario.
+- [x] Hoja A4 portrait y reglas `@media print` dedicadas.
+- [x] Salida ink-safe.
+- [x] Acta pública de sorteo imprimible.
+- [x] Competencia pública imprimible.
+- [x] Controles interactivos excluidos del papel.
+- [x] Identidad documental persistente en impresión.
+- [x] ID documental visible.
+- [x] SHA-256 visible cuando existe.
+- [x] URL canónica del origen público visible.
+- [x] Fecha de emisión visible.
+- [x] QR Model 2 local y determinista, sin servicio externo.
+- [x] QR codifica la misma URL canónica de la evidencia pública.
+- [x] Sin modelo paralelo de datos para PDF.
+- [x] PDF generado desde el mismo read-model público mediante Chromium.
+- [x] Chromium verifica `media: print`.
+- [x] Chromium verifica ausencia de overflow horizontal.
+- [x] Chromium verifica que el QR sobreviva en modo impresión.
+- [x] Chromium genera PNG y PDF de sorteo y competencia.
+
+## GENERAL-CHAMPIONSHIP-001 — CERRADO — 100%
 
 Objetivo: determinar el Campeón General de cada `Edición + Evento` desde un ledger persistente y auditable, sin sumar manualmente tablas deportivas ni mezclar Colegiales con Universitarios.
 
 ```text
 GENERAL-CHAMPIONSHIP-001
-├── [x] Foundation 2.2 define el agregado y sus invariantes
+├── [x] Foundation 2.2 define agregado e invariantes
 ├── [x] Unidad única por Edición + Evento
-├── [x] Colegiales / Universitarios completamente independientes
-├── [x] Estado DRAFT → ACTIVE → FINALIZED
-├── [x] Plantilla general configurable por posición
-├── [x] Plantilla congelada al activar
-├── [x] Valores iniciales 100 / 70 / 50 / 25 configurables
-├── [x] Ledger de contribuciones persistente
-├── [x] Aporte deportivo por ubicación oficial
-├── [x] Sincronización desde competencias finalizadas demostrables
-├── [x] Sincronización idempotente
-├── [x] Aportes especiales — Mejor Hinchada / Fair Play / actividades oficiales
+├── [x] Colegiales / Universitarios independientes
+├── [x] DRAFT → ACTIVE → FINALIZED
+├── [x] Plantilla de puntos configurable y congelable
+├── [x] Ledger persistente
+├── [x] Sincronización idempotente desde competencias finalizadas
+├── [x] Aportes especiales
 ├── [x] PENDING_CONFIRMATION no suma
-├── [x] CONFIRMED suma exactamente una vez
+├── [x] CONFIRMED suma una vez
 ├── [x] ANNULLED conserva historia y deja de sumar
-├── [x] Total general derivado — no editable
-├── [x] Posición general derivada — no editable
-├── [x] ADMIN no confirma aporte propio
-├── [x] SUPERADMIN puede originar y confirmar mediante doble transición explícita
-├── [x] Solo SUPERADMIN anula aporte confirmado con motivo formal
-├── [x] Revisión optimista en mutaciones
-├── [x] Auditoría de acciones críticas
-├── [x] Cierre exige cero aportes pendientes
-├── [x] Cierre exige líder único
-├── [x] Empate en primer puesto bloquea cierre; no existe desempate oculto
-├── [x] Campeón General y puntaje final persistidos
-├── [x] PostgreSQL con constraints, índices y FKs
-├── [x] Servicio de mutaciones reducido a 433 líneas
-├── [x] Read-model/proyección separado del servicio de mutaciones
-├── [x] Transacción de creación sin Promise.all concurrente
+├── [x] Total y posición derivados
+├── [x] Autoridad y anulación auditables
+├── [x] Líder único obligatorio para cierre
+├── [x] Empate en primer lugar bloquea cierre
+├── [x] Campeón General persistido
 ├── [x] API NestJS autoritativa
-├── [x] UI administrativa integrada al workspace
-├── [x] Hero/estado/tabla/operaciones/ledger/cierre
-├── [x] DataTable compartido extendido con variante `compact`
-├── [x] Desktop conserva posición + institución + fuentes + puntos
-├── [x] Mobile prioriza posición + institución + puntos
-├── [x] Mobile oculta columna secundaria Fuentes
-├── [x] Sin scroll horizontal en tabla general a 390 px
-├── [x] Test de suma 100 + 100 + 70 = 270
-├── [x] Fixture E2E con aportes confirmados y Mejor Hinchada pendiente
-├── [x] E2E demuestra que aporte pendiente no altera el total
-├── [x] Chromium desktop 1440 px
-├── [x] Chromium mobile 390 px
-├── [x] Revisión visual manual desktop/mobile
-├── [x] Architecture Gate
-├── [x] UI Architecture Gate
-├── [x] Lint
-├── [x] Typecheck
-├── [x] Prisma validate
-├── [x] Migraciones PostgreSQL
-├── [x] PostgreSQL integration
-├── [x] REAL-STORAGE guards
-├── [x] Backup SHA-256
-├── [x] Restore aislado
-├── [x] External roundtrip contract
-├── [x] Coverage
-├── [x] Build de producción
-├── [x] CI #744 exact-head sobre `601d9fd2a9d30fdec501d9d8ddb76f892bd88df4`
-├── [x] Visual E2E #744 exact-head sobre `601d9fd2a9d30fdec501d9d8ddb76f892bd88df4`
-├── [x] Evidencia visual — artifact `9594372267`
-├── [x] Artifact digest `sha256:b6a71c55d16cb65ca4b25c9084b9901389f6c39d22b54309a7402391e45d1eb8`
-├── [x] CI #746 exact-head documental sobre `139bf584fb80da64530b07f5dbce60498fe8f48e`
-├── [x] Quality + visual-e2e verdes en el head documental
-├── [ ] PR #85 ready + merge
-└── [ ] CI exacto del SHA final de main
+├── [x] UI integrada al workspace
+├── [x] PostgreSQL + constraints + índices + FKs
+├── [x] Coverage y E2E desktop/mobile
+├── [x] PR #85 integrado
+└── [x] Integración posterior estable en main
 ```
 
-El bloque **no se declarará 100% cerrado** hasta que PR #85 se integre y el SHA resultante de `main` pase nuevamente `quality` + `visual-e2e`.
+PR #85 figura oficialmente `merged`; el antiguo estado “pendiente de integración” queda retirado por ser obsoleto.
+
+## PRINT-OUTPUT-001 — CERRADO — 100%
+
+Referencia: `docs/16-print-output.md`.
+
+```text
+PRINT-OUTPUT-001
+├── [x] Acción reutilizable de impresión
+├── [x] Acta pública imprimible
+├── [x] Competencia pública imprimible
+├── [x] A4 portrait
+├── [x] Estilos específicos para papel
+├── [x] Controles screen-only excluidos
+├── [x] SHA-256 preservado
+├── [x] Test de acción explícita
+└── [x] Integrado en main
+```
+
+## PRINT-OUTPUT-002 — CERRADO — 100%
+
+Referencia: `docs/17-print-output-002.md`.
+
+```text
+PRINT-OUTPUT-002
+├── [x] Identidad documental
+├── [x] URL canónica impresa
+├── [x] Fecha de emisión
+├── [x] QR local determinista
+├── [x] Sin dependencia QR externa
+├── [x] Tests unitarios del encoder QR
+├── [x] Test del footer documental
+├── [x] Chromium responsive previo
+├── [x] Chromium media:print
+├── [x] Validación ID / SHA / URL
+├── [x] Validación QR visible y operativo
+├── [x] Validación sin overflow
+├── [x] PNG acta pública
+├── [x] PDF acta pública
+├── [x] PNG competencia pública
+├── [x] PDF competencia pública
+├── [x] PR #93 integrado
+├── [x] CI #779 — attempt 2 — exact-main
+├── [x] SHA exacto `21da33c552d62eeb1d899a2883a71acdee873d41`
+├── [x] quality — success
+├── [x] visual-e2e — success
+├── [x] `Certify print output in Chromium` — success
+├── [x] Artifact `9626759549`
+└── [x] Artifact digest `sha256:7e14476ced324aa99c9ac5bb1cb6c735c4c085265338e068186e7be1f08df7b5`
+```
+
+La evidencia del artifact contiene explícitamente:
+
+- `print-public-draw.png`
+- `print-public-draw.pdf`
+- `print-public-competition.png`
+- `print-public-competition.pdf`
 
 ## UI-ARCH-001 — CERRADO — 100%
 
-```text
-UI-ARCH-001
-├── [x] Tokens y primitives compartidos
-├── [x] PageHeader / DataList / DataRow / DataTable / Toolbar / Drawer / formularios / feedback
-├── [x] 0 inline layout styles por gate
-├── [x] 0 `!important` por gate
-├── [x] 0 fuentes CSS remotas
-├── [x] UI Architecture Gate obligatorio en CI
-├── [x] Chromium responsive y evidencia visual
-├── [x] CI #670 exact-head sobre `7e6bf930f1c040e5779649c8c42dfafbfebd4cd6`
-└── [x] PR #81 integrado en `main` — `e7c0e8a9dc83caa14c69adf6934892c8cc8f8b5c`
-```
+- [x] Tokens y primitives compartidos.
+- [x] Componentes estructurales compartidos.
+- [x] 0 inline layout styles por gate.
+- [x] 0 `!important` por gate.
+- [x] 0 fuentes CSS remotas.
+- [x] Chromium responsive y evidencia visual.
 
 ## UI-SHELL-UX-001 — CERRADO — 100%
 
-```text
-UI-SHELL-UX-001
-├── [x] Sidebar desktop vertical/anclada
-├── [x] Main renderiza al costado
-├── [x] Navegación mobile en una columna
-├── [x] Sin overflow horizontal en 390 / 820 / 1024 / 1440 px
-├── [x] Geometría desktop/mobile protegida por Chromium
-├── [x] CI #679 exact-head sobre `2f6f6c7166a1714d71f4553dc1428177f706204a`
-├── [x] PR #82 integrado en `main` — `286f75793c6b723b5e643e4f293ac91a86b6e8fa`
-└── [x] CI #681 en `main` exact-head
-```
+- [x] Sidebar desktop anclada.
+- [x] Navegación mobile en una columna.
+- [x] Sin overflow horizontal en viewports certificados.
+- [x] Geometría protegida por Chromium.
 
 ## COMPETITION-DETAIL-UX-001 — CERRADO — 100%
 
-```text
-COMPETITION-DETAIL-UX-001
-├── [x] Puntuación/desempates reorganizados
-├── [x] Historial separa clasificación y resultados
-├── [x] Grupo A → Grupo B vertical
-├── [x] Cada grupo contiene encuentros + tabla
-├── [x] Tablas sin scroll horizontal
-├── [x] E2E real 6 participantes / 2 grupos
-├── [x] Geometría y tablas protegidas por Chromium
-├── [x] Artifact `9589574439`
-├── [x] CI #701 exact-head sobre `06b909b0e3190bc25025e40df5f64ea5519c63f8`
-└── [x] PR #83 integrado
-```
+- [x] Puntuación y desempates reorganizados.
+- [x] Historial separa clasificación y resultados.
+- [x] Grupos verticales con encuentros + tabla.
+- [x] Tablas sin scroll horizontal.
+- [x] E2E real de fase de grupos.
 
 ## SPORTS-OPERATIONS-UX-001 — CERRADO — 100%
 
-```text
-SPORTS-OPERATIONS-UX-001
-├── [x] Partido como unidad deportiva
-├── [x] Marcador y participantes con jerarquía explícita
-├── [x] Carga de resultados ligada al partido correcto
-├── [x] Penales/resoluciones administrativas separados
-├── [x] Nombres largos y campos protegidos por tests
-├── [x] Sin overflow durante carga
-├── [x] Chromium desktop/mobile
-├── [x] Artifact `9592109241`
-└── [x] CI #711 exact-head sobre `89e05cfdc3109fc63cff98823b2f71de70556132`
-```
+- [x] Partido como unidad deportiva.
+- [x] Marcador y participantes con jerarquía explícita.
+- [x] Carga de resultados ligada al partido.
+- [x] Penales y resoluciones administrativas separados.
+- [x] Nombres largos y campos protegidos.
+- [x] Chromium desktop/mobile.
 
 ## COMPETITION-HISTORY-001 — CERRADO
 
 - [x] Ejecuciones oficiales confirmadas/anuladas.
 - [x] Tablas finales de grupos.
 - [x] Clasificados.
-- [x] Encuentros/resultados históricos.
+- [x] Encuentros y resultados históricos.
 - [x] BYE y rondas eliminatorias.
 - [x] Resultados anulados preservados.
 
@@ -273,62 +297,57 @@ Referencia: `docs/13-match-resolution.md`.
 - [x] Marcador y resolución separados.
 - [x] Penales fuera del marcador reglamentario.
 - [x] NO_SHOW / WITHDRAWN / ABANDONED.
-- [x] Resoluciones 0/3 y ambos ausentes 0/0.
-- [x] Métricas sin goles/sets ficticios.
+- [x] Resoluciones administrativas sin métricas ficticias.
 - [x] Historial conserva causa administrativa.
-- [x] PR #76 integrado en `main`.
 
 ## LOCAL-RUNTIME-001 — CERRADO
 
 - [x] Warning de concurrencia `pg` reproducido.
 - [x] Lecturas afectadas serializadas.
-- [x] `champion-runtime-warning.integration.test.ts` protege la regresión.
+- [x] Test de integración protege la regresión.
 - [x] PostgreSQL real verifica ausencia del warning.
-- [x] PR #78 integrado en `main`.
 
-## Engineering Refactor / Architecture Hardening — CERRADO
-
-Engineering Health de cierre previo: **88/100**. Deuda residual: **BAJA / CONTROLADA**.
+## Engineering Refactor / Architecture Hardening — CERRADO — 100%
 
 ```text
-ENGINEERING-HARDENING — 100%
+ENGINEERING-HARDENING
 ├── [x] Baseline arquitectónico
 ├── [x] Hotspots tratados
 ├── [x] Contratos explícitos de catálogo
 ├── [x] Servicios y queries separados
-├── [x] PrismaCompetitionStore / PrismaDrawStore divididos
+├── [x] Stores críticos divididos
 ├── [x] Idempotencia/persistencia/proyecciones extraídas
 ├── [x] Seguridad/autorización auditada
-├── [x] Frontend/DRY/naming auditados
+├── [x] Frontend / DRY / naming auditados
 ├── [x] Architecture Gate automatizado
 └── [x] Re-auditoría de cierre
 ```
-
-El nuevo servicio `general-championship.service.ts` fue revisado antes de integración y quedó en **433 líneas**, por debajo del umbral de revisión >500; su proyección de lectura se mantiene separada.
 
 ## Salida final de aceptación LOCAL
 
 ```text
 Prueba final LOCAL
-├── [x] Aplicación inicia
+├── [x] Aplicación inicia y construye
 ├── [x] Estado competitivo persiste
-├── [x] Sorteos y autoridad SUPERADMIN
+├── [x] Sorteos y autoridad
 ├── [x] Resultados SCORE_BASED / SET_BASED
 ├── [x] Penales y resoluciones administrativas
 ├── [x] Re-sorteo / BYE / elegibles
 ├── [x] Finalización deportiva y campeón
 ├── [x] Historial competitivo persistente
+├── [x] Campeonato General
 ├── [x] Reinicio y recuperación
 ├── [x] Backup + restore
-├── [x] UI Architecture / shell / competition detail / sports operations
-├── [x] Campeonato General funcional y visualmente certificado en rama
-└── [ ] Certificación exact-main de Foundation 2.2 + GENERAL-CHAMPIONSHIP-001
+├── [x] UI administrativa responsive
+├── [x] Salida documental A4
+├── [x] QR / SHA / URL verificables
+└── [x] Evidencia Chromium PNG + PDF
 ```
 
 ## Perfil EXTERNAL — OPCIONAL / NO SELECCIONADO
 
 - [x] Contrato de transporte preparado.
-- [x] Guardas de privacidad/cifrado/mínimo privilegio.
+- [x] Guardas de privacidad, cifrado y mínimo privilegio.
 - [ ] `REAL-STORAGE-DRILL` contra proveedor externo real solo si se selecciona este perfil.
 
 El perfil EXTERNAL no está seleccionado y no reduce el porcentaje del perfil LOCAL seleccionado.
