@@ -210,9 +210,8 @@ async function assertSportsOperationsGeometry(page, label) {
   await pendingCard.waitFor();
   const loadButton = pendingCard.getByRole('button', { name: 'Cargar resultado' });
   await loadButton.click();
-  const editor = pendingCard.locator('[aria-label="Marcador reglamentario"]');
-  await editor.waitFor();
-  const inputs = editor.locator('input[type="number"]');
+  const inputs = pendingCard.locator('input[type="number"][aria-label^="Marcador de "]');
+  await inputs.first().waitFor();
   const inputCount = await inputs.count();
   assert(inputCount === 2, `${label} score editor must expose exactly two numeric score inputs, received ${inputCount}.`);
   const inputMetrics = await inputs.evaluateAll((elements) => elements.map((input) => {
@@ -227,7 +226,7 @@ async function assertSportsOperationsGeometry(page, label) {
 }
 
 async function closeResultEntry(page) {
-  const openCard = page.locator('.result-match').filter({ has: page.locator('[aria-label="Marcador reglamentario"]') }).first();
+  const openCard = page.locator('.result-match').filter({ has: page.locator('input[type="number"][aria-label^="Marcador de "]') }).first();
   await openCard.waitFor();
   const cancel = openCard.getByRole('button', { name: 'Cancelar' });
   await cancel.waitFor();
