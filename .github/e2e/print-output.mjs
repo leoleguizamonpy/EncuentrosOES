@@ -69,6 +69,7 @@ async function assertPrintSurface(page, expectedId, expectedVerificationCode, pa
   await page.emulateMedia({ media: 'print' });
   const footer = page.getByRole('contentinfo', { name: 'Identidad documental de impresión' });
   await footer.waitFor();
+  await page.getByRole('img', { name: 'QR de verificación del origen público' }).waitFor();
   await page.getByText(`ID ${expectedId}`, { exact: true }).waitFor();
   if (expectedVerificationCode !== null) {
     await page.getByText(`SHA-256 ${expectedVerificationCode}`, { exact: true }).waitFor();
@@ -77,13 +78,17 @@ async function assertPrintSurface(page, expectedId, expectedVerificationCode, pa
   const metrics = await page.evaluate(() => {
     const action = document.querySelector('.print-action');
     const footerElement = document.querySelector('.print-document-footer');
+    const qr = document.querySelector('.verification-qr');
     const root = document.documentElement;
-    if (!(action instanceof HTMLElement) || !(footerElement instanceof HTMLElement)) return null;
+    if (!(action instanceof HTMLElement) || !(footerElement instanceof HTMLElement) || !(qr instanceof SVGElement)) return null;
     const footerRect = footerElement.getBoundingClientRect();
+    const qrRect = qr.getBoundingClientRect();
     return {
       actionDisplay: getComputedStyle(action).display,
       clientWidth: root.clientWidth,
       footerWidth: footerRect.width,
+      qrHeight: qrRect.height,
+      qrWidth: qrRect.width,
       scrollWidth: root.scrollWidth,
       sourceText: footerElement.textContent ?? '',
     };
@@ -93,6 +98,7 @@ async function assertPrintSurface(page, expectedId, expectedVerificationCode, pa
   assert(metrics.actionDisplay === 'none', `${pathLabel}: print action must be hidden under print media.`);
   assert(metrics.scrollWidth <= metrics.clientWidth + 1, `${pathLabel}: print layout has horizontal overflow.`);
   assert(metrics.footerWidth <= metrics.clientWidth + 1, `${pathLabel}: document footer exceeds printable width.`);
+  assert(metrics.qrWidth >= 80 && metrics.qrHeight >= 80, `${pathLabel}: verification QR is too small to be operational.`);
   assert(metrics.sourceText.includes(page.url()), `${pathLabel}: printed footer must preserve the canonical source URL.`);
 }
 
