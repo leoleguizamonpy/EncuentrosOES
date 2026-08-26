@@ -79,6 +79,14 @@ async function get<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function getNullable<T>(path: string): Promise<T | null> {
+  const response = await fetch(`${apiUrl}${path}`, { cache: 'no-store', credentials: 'include' });
+  if (!response.ok) throw await problem(response);
+  const body = await response.text();
+  if (body.trim().length === 0) return null;
+  return JSON.parse(body) as T | null;
+}
+
 async function mutate<T>(path: string, method: 'PATCH' | 'POST', body: unknown): Promise<T> {
   const response = await fetch(`${apiUrl}${path}`, {
     body: JSON.stringify(body),
@@ -95,7 +103,7 @@ async function mutate<T>(path: string, method: 'PATCH' | 'POST', body: unknown):
 }
 
 export function generalChampionshipCatalog(): Promise<GeneralChampionshipCatalogView> { return get('/general-championships/catalog'); }
-export function generalChampionshipByScope(editionId: string, eventId: string): Promise<GeneralChampionshipView | null> { return get(`/general-championships/by-scope?editionId=${encodeURIComponent(editionId)}&eventId=${encodeURIComponent(eventId)}`); }
+export function generalChampionshipByScope(editionId: string, eventId: string): Promise<GeneralChampionshipView | null> { return getNullable(`/general-championships/by-scope?editionId=${encodeURIComponent(editionId)}&eventId=${encodeURIComponent(eventId)}`); }
 export function generalChampionshipOptions(id: string): Promise<GeneralChampionshipOptionsView> { return get(`/general-championships/${id}/options`); }
 export function createGeneralChampionship(input: Readonly<{ editionId: string; eventId: string; name: string }>): Promise<GeneralChampionshipView> { return mutate('/general-championships', 'POST', input); }
 export function saveGeneralScoring(id: string, expectedRevision: number, rules: readonly GeneralScoringRuleView[]): Promise<GeneralChampionshipView> { return mutate(`/general-championships/${id}/scoring`, 'PATCH', { expectedRevision, rules }); }
