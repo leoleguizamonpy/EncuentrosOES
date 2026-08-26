@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CompetitionHistoryPanel } from '../components/competition-history-panel';
 import type { CompetitionHistoryView } from '../lib/competition-history-api';
@@ -59,6 +59,10 @@ const history: CompetitionHistoryView = {
   ],
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('CompetitionHistoryPanel', () => {
   it('separates group standings from match results while preserving previous knockout rounds', () => {
     render(<CompetitionHistoryPanel history={history} />);
@@ -81,5 +85,14 @@ describe('CompetitionHistoryPanel', () => {
     expect(within(standings).getByText('6')).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Resultados históricos del grupo A' })).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Resultados históricos de la ronda 1' })).toBeInTheDocument();
+  });
+
+  it('exposes a print action only when history exists', () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    render(<CompetitionHistoryPanel history={history} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir historial' }));
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Historial competitivo')).toBeInTheDocument();
   });
 });
