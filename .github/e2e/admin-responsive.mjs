@@ -160,7 +160,7 @@ async function assertGroupStageGeometry(page) {
     page.getByRole('table', { name: 'Tabla del grupo B' }),
   ];
   await Promise.all(tables.map((table) => table.waitFor()));
-  const groupGeometry = await page.getByLabel('Fase de grupos').evaluate((stage) => {
+  const groupGeometry = await page.getByLabel('Fase de grupos', { exact: true }).evaluate((stage) => {
     const cards = [...stage.children].filter((child) => child instanceof HTMLElement);
     return cards.map((card) => {
       const rect = card.getBoundingClientRect();
