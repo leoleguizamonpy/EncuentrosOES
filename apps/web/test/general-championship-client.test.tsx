@@ -80,4 +80,15 @@ describe('GeneralChampionshipClient', () => {
     expect(screen.getByText('Por confirmar')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmar' })).toBeInTheDocument();
   });
+
+  it('shows the creation state when the selected scope has no general championship yet', async () => {
+    generalApi.generalChampionshipByScope.mockResolvedValue(null);
+
+    render(<GeneralChampionshipClient />);
+
+    expect(await screen.findByText('No existe un Campeonato General para Colegiales.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear Campeonato General' })).toBeInTheDocument();
+    expect(screen.queryByText(/Unexpected end of JSON input/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Actualizando tabla general…')).not.toBeInTheDocument();
+  });
 });
