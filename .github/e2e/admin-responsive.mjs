@@ -98,6 +98,96 @@ async function assertCompetitionReadModels(page) {
   }
 }
 
+async function apiGet(page, path) {
+  const result = await page.evaluate(async ({ root, target }) => {
+    const response = await fetch(`${root}${target}`, { cache: 'no-store', credentials: 'include' });
+    return { body: await response.text(), status: response.status };
+  }, { root: apiUrl, target: path });
+  assert(result.status >= 200 && result.status < 300, `GET ${path} failed with HTTP ${result.status}: ${result.body.slice(0, 800)}`);
+  return result.body.trim().length === 0 ? null : JSON.parse(result.body);
+}
+
+async function apiPost(page, path, body) {
+  const result = await page.evaluate(async ({ payload, root, target }) => {
+    const prefix = 'oes_csrf=';
+    const token = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(prefix))?.slice(prefix.length);
+    if (token === undefined) return { body: 'Missing CSRF cookie', status: 0 };
+    const response = await fetch(`${root}${target}`, {
+      body: JSON.stringify(payload),
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': crypto.randomUUID(),
+        'X-CSRF-Token': decodeURIComponent(token),
+      },
+      method: 'POST',
+    });
+    return { body: await response.text(), status: response.status };
+  }, { payload: body, root: apiUrl, target: path });
+  assert(result.status >= 200 && result.status < 300, `POST ${path} failed with HTTP ${result.status}: ${result.body.slice(0, 800)}`);
+  return result.body.trim().length === 0 ? null : JSON.parse(result.body);
+}
+
+async function prepareGroupStageFixture(page) {
+  const detail = await apiGet(page, `/competitions/${competitionFixtureId}`);
+  assert(detail !== null && typeof detail.revision === 'number', 'Competition fixture must expose a revision.');
+
+  const prepared = await apiPost(page, `/competitions/${competitionFixtureId}/draw-workspace/prepare`, { expectedRevision: detail.revision });
+  const configuration = prepared?.configuration;
+  assert(configuration !== null && configuration !== undefined, 'Prepared group draw must expose a configuration.');
+
+  const executed = await apiPost(page, `/draw-configurations/${configuration.id}/execute`, { expectedRevision: configuration.revision });
+  const execution = executed?.execution;
+  assert(execution !== null && execution !== undefined, 'Executed group draw must expose an execution.');
+
+  await apiPost(page, `/official-draws/${execution.id}/confirm`, { expectedRevision: execution.revision });
+  let results = await apiGet(page, `/competitions/${competitionFixtureId}/results-workspace`);
+  assert(results !== null && Array.isArray(results.groups) && results.groups.length === 2, 'Confirmed group draw must expose exactly two groups.');
+
+  for (const group of results.groups) {
+    const match = results.matches.find((candidate) => candidate.group?.id === group.id);
+    assert(match !== undefined, `Group ${group.label} must expose at least one match.`);
+    results = await apiPost(page, `/matches/${match.id}/results`, { profile: 'SCORE_BASED', scoreA: 2, scoreB: 0 });
+    const recorded = results.matches.find((candidate) => candidate.id === match.id)?.result;
+    assert(recorded !== null && recorded !== undefined, `Group ${group.label} result must be recorded.`);
+    results = await apiPost(page, `/results/${recorded.id}/confirm`, { expectedRevision: recorded.revision });
+  }
+}
+
+async function assertGroupStageGeometry(page) {
+  const tables = [
+    page.getByRole('table', { name: 'Tabla del grupo A' }),
+    page.getByRole('table', { name: 'Tabla del grupo B' }),
+  ];
+  await Promise.all(tables.map((table) => table.waitFor()));
+  const groupGeometry = await page.getByLabel('Fase de grupos').evaluate((stage) => {
+    const cards = [...stage.children].filter((child) => child instanceof HTMLElement);
+    return cards.map((card) => {
+      const rect = card.getBoundingClientRect();
+      return { bottom: rect.bottom, left: rect.left, top: rect.top, width: rect.width };
+    });
+  });
+  assert(groupGeometry.length === 2, `Group stage must render two vertical group cards, received ${groupGeometry.length}.`);
+  assert(groupGeometry[1].top > groupGeometry[0].bottom, 'Group B must render below Group A without horizontal/carousel layout.');
+  assert(Math.abs(groupGeometry[1].left - groupGeometry[0].left) <= 2, 'Group cards must share the same left alignment.');
+
+  for (const table of tables) {
+    const metrics = await table.evaluate((element) => {
+      const wrapper = element.parentElement;
+      if (!(wrapper instanceof HTMLElement)) return null;
+      return {
+        clientWidth: wrapper.clientWidth,
+        scrollWidth: wrapper.scrollWidth,
+        tableWidth: element.getBoundingClientRect().width,
+        wrapperWidth: wrapper.getBoundingClientRect().width,
+      };
+    });
+    assert(metrics !== null, 'Group standings wrapper must be measurable.');
+    assert(metrics.scrollWidth <= metrics.clientWidth + 1, `Group table must not require horizontal scroll: ${metrics.scrollWidth}px > ${metrics.clientWidth}px.`);
+    assert(metrics.tableWidth <= metrics.wrapperWidth + 1, `Group table must fit its container: ${metrics.tableWidth}px > ${metrics.wrapperWidth}px.`);
+  }
+}
+
 async function screenshot(page, name) {
   await page.screenshot({ fullPage: true, path: `${outputDir}/${name}.png` });
 }
@@ -155,6 +245,7 @@ try {
   assert(await usersLink.count() === 1, 'SUPERADMIN must see Usuarios navigation.');
   assert(await settingsLink.count() === 1, 'SUPERADMIN must see Configuración navigation.');
 
+  await prepareGroupStageFixture(page);
   await assertCompetitionReadModels(page);
   await page.goto(`${baseUrl}/competitions/${competitionFixtureId}`, { waitUntil: 'networkidle' });
   await screenshot(page, 'competition-detail-before-assertions');
@@ -163,15 +254,20 @@ try {
   await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
   await page.getByText('Plantilla inmutable').waitFor();
   await page.getByRole('heading', { name: 'Recorrido completo' }).waitFor();
+  await page.getByText('Resultados y fase de grupos').waitFor();
   await assertNoHorizontalOverflow(page, 'desktop competition detail');
   await assertDesktopShellGeometry(page);
   await assertCompetitionRulesGeometry(page);
+  await assertGroupStageGeometry(page);
+  await screenshot(page, 'desktop-group-stage-results');
   await screenshot(page, 'desktop-competition-detail');
 
   await page.setViewportSize({ height: 844, width: 390 });
   await assertNoHorizontalOverflow(page, 'mobile competition detail');
   await page.getByRole('heading', { name: 'Perfil de puntuación' }).waitFor();
   await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
+  await assertGroupStageGeometry(page);
+  await screenshot(page, 'mobile-group-stage-results');
   await screenshot(page, 'mobile-competition-detail');
 } finally {
   await context.close();
