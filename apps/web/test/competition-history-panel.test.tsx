@@ -75,11 +75,20 @@ describe('CompetitionHistoryPanel', () => {
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('2 — 0')).toBeInTheDocument();
 
+    expect(screen.getByRole('link', { name: 'Imprimir historial' })).toHaveAttribute('href', '/competitions/competition-1/history/print?print=1');
+    expect(screen.getByRole('link', { name: 'Descargar PDF' })).toHaveAttribute('href', '/competitions/competition-1/history/print?print=1');
+
     const tables = screen.getAllByRole('table');
     expect(tables).toHaveLength(3);
     const standings = screen.getByRole('table', { name: 'Tabla final del grupo A' });
     expect(within(standings).getByText('6')).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Resultados históricos del grupo A' })).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Resultados históricos de la ronda 1' })).toBeInTheDocument();
+  });
+
+  it('can render without document actions inside the dedicated print document', () => {
+    render(<CompetitionHistoryPanel history={history} showDocumentActions={false} />);
+    expect(screen.queryByRole('link', { name: 'Imprimir historial' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Descargar PDF' })).not.toBeInTheDocument();
   });
 });
