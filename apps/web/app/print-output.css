@@ -1,0 +1,186 @@
+.public-draw-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.print-action {
+  align-items: center;
+  background: var(--brand);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-control);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--text-caption);
+  font-weight: 800;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+}
+
+.print-action:hover {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+}
+
+.print-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 3px;
+}
+
+@page {
+  margin: 14mm;
+  size: A4 portrait;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  body {
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+  }
+
+  .skip-link,
+  .no-print {
+    display: none;
+  }
+
+  .public-draw-shell {
+    background: #fff;
+    color: #000;
+    min-height: auto;
+    padding: 0;
+  }
+
+  .public-draw-header {
+    border-bottom: 2px solid #111;
+    gap: 8mm;
+    grid-template-columns: 18mm minmax(0, 1fr) auto;
+    padding-bottom: 6mm;
+  }
+
+  .public-draw-header svg {
+    height: 16mm;
+    width: 16mm;
+  }
+
+  .public-draw-header h1 {
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 22pt;
+    margin: 2mm 0;
+  }
+
+  .public-draw-header p,
+  .public-draw-header span,
+  .public-draw-meta span,
+  .public-draw-verification span {
+    color: #333;
+  }
+
+  .public-draw-actions {
+    align-items: flex-end;
+  }
+
+  .public-draw-meta {
+    gap: 3mm;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 6mm 0;
+  }
+
+  .public-draw-meta div {
+    background: #fff;
+    border: 1px solid #bbb;
+    break-inside: avoid;
+    padding: 4mm;
+  }
+
+  .public-draw-meta code,
+  .public-draw-verification code {
+    color: #000;
+    font-size: 8pt;
+    overflow-wrap: anywhere;
+  }
+
+  .public-draw-groups {
+    gap: 4mm;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .public-draw-groups article,
+  .public-draw-pairings article,
+  .public-draw-verification {
+    background: #fff;
+    border: 1px solid #999;
+    break-inside: avoid;
+    color: #000;
+  }
+
+  .public-draw-groups header {
+    background: #f1f1f1;
+    border-bottom: 1px solid #999;
+    color: #000;
+  }
+
+  .public-draw-groups li {
+    border-bottom-color: #ddd;
+  }
+
+  .public-draw-pairings {
+    gap: 3mm;
+  }
+
+  .public-draw-pairings article {
+    gap: 4mm;
+    grid-template-columns: 24mm minmax(0, 1fr) auto minmax(0, 1fr);
+    padding: 4mm;
+  }
+
+  .public-draw-pairings span,
+  .public-draw-pairings small {
+    color: #333;
+  }
+
+  .public-draw-verification {
+    margin-top: 6mm;
+    padding: 4mm;
+  }
+
+  .public-draw-verification a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .public-standings-grid {
+    gap: 4mm;
+    grid-template-columns: 1fr;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    break-inside: avoid;
+  }
+
+  a {
+    color: #000;
+  }
+}
+
+@media (max-width: 720px) {
+  .public-draw-actions {
+    align-items: flex-start;
+    grid-column: 1 / -1;
+  }
+}
