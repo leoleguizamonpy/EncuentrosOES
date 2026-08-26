@@ -31,6 +31,63 @@
   outline-offset: 3px;
 }
 
+.print-document-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  display: grid;
+  font-size: var(--text-caption);
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: var(--space-7);
+  padding-top: var(--space-4);
+}
+
+.print-document-footer > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.print-document-footer strong {
+  color: var(--foreground);
+}
+
+.print-document-footer code {
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+
+.print-document-footer > div:last-child {
+  text-align: right;
+}
+
+.print-document-footer__origin {
+  align-items: start;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.print-document-footer__origin > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.verification-qr {
+  color: #000;
+  height: 88px;
+  width: 88px;
+}
+
+.verification-qr__background {
+  fill: #fff;
+}
+
+.verification-qr path {
+  fill: currentColor;
+}
+
 @page {
   margin: 14mm;
   size: A4 portrait;
@@ -164,6 +221,27 @@
     grid-template-columns: 1fr;
   }
 
+  .print-document-footer {
+    border-top: 1px solid #777;
+    break-inside: avoid;
+    color: #333;
+    font-size: 7.5pt;
+    gap: 6mm;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    margin-top: 8mm;
+    padding-top: 3mm;
+  }
+
+  .print-document-footer strong,
+  .print-document-footer code {
+    color: #000;
+  }
+
+  .verification-qr {
+    height: 22mm;
+    width: 22mm;
+  }
+
   table,
   thead,
   tbody,
@@ -182,5 +260,17 @@
   .public-draw-actions {
     align-items: flex-start;
     grid-column: 1 / -1;
+  }
+
+  .print-document-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .print-document-footer > div:last-child {
+    text-align: left;
+  }
+
+  .print-document-footer__origin {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
