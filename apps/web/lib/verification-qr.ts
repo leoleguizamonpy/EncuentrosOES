@@ -53,7 +53,7 @@ function appendBits(target: number[], value: number, length: number): void {
 
 function dataCodewords(value: string): number[] {
   const bytes = [...new TextEncoder().encode(value)];
-  if (bytes.length > MAX_BYTE_LENGTH) throw new Error(`Verification URL exceeds ${MAX_BYTE_LENGTH} UTF-8 bytes.`);
+  if (bytes.length > MAX_BYTE_LENGTH) throw new Error(`Verification URL exceeds ${String(MAX_BYTE_LENGTH)} UTF-8 bytes.`);
 
   const bits: number[] = [];
   appendBits(bits, 0b0100, 4);
@@ -84,8 +84,8 @@ function emptyMatrix(): { matrix: Matrix; functionModules: Matrix } {
 
 function setFunction(matrix: Matrix, functionModules: Matrix, x: number, y: number, value: boolean): void {
   if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return;
-  (matrix[y] as boolean[])[x] = value;
-  (functionModules[y] as boolean[])[x] = true;
+  matrix[y]![x] = value;
+  functionModules[y]![x] = true;
 }
 
 function drawFinder(matrix: Matrix, functionModules: Matrix, centerX: number, centerY: number): void {
@@ -98,7 +98,7 @@ function drawFinder(matrix: Matrix, functionModules: Matrix, centerX: number, ce
 }
 
 function drawAlignment(matrix: Matrix, functionModules: Matrix, centerX: number, centerY: number): void {
-  if ((functionModules[centerY] as boolean[])[centerX]) return;
+  if (functionModules[centerY]![centerX]) return;
   for (let dy = -2; dy <= 2; dy += 1) {
     for (let dx = -2; dx <= 2; dx += 1) {
       setFunction(matrix, functionModules, centerX + dx, centerY + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
@@ -159,9 +159,9 @@ function drawCodewords(matrix: Matrix, functionModules: Matrix, codewords: reado
       const y = upward ? SIZE - 1 - vertical : vertical;
       for (let offset = 0; offset < 2; offset += 1) {
         const x = right - offset;
-        if ((functionModules[y] as boolean[])[x]) continue;
+        if (functionModules[y]![x]) continue;
         const raw = (bits[bitIndex] ?? 0) !== 0;
-        (matrix[y] as boolean[])[x] = raw !== masked(mask, x, y);
+        matrix[y]![x] = raw !== masked(mask, x, y);
         bitIndex += 1;
       }
     }
@@ -182,7 +182,7 @@ export function verificationQrPath(value: string): string {
   const commands: string[] = [];
   for (let y = 0; y < matrix.length; y += 1) {
     for (let x = 0; x < (matrix[y]?.length ?? 0); x += 1) {
-      if (matrix[y]?.[x]) commands.push(`M${x} ${y}h1v1h-1z`);
+      if (matrix[y]?.[x]) commands.push(`M${String(x)} ${String(y)}h1v1h-1z`);
     }
   }
   return commands.join('');
