@@ -1,0 +1,61 @@
+model GeneralChampionship {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  editionId             String   @map("edition_id") @db.Uuid
+  eventId               String   @map("event_id") @db.Uuid
+  name                  String
+  status                String   @default("DRAFT")
+  championInstitutionId String?  @map("champion_institution_id") @db.Uuid
+  championPoints        Int?     @map("champion_points")
+  finalizedAt           DateTime? @map("finalized_at") @db.Timestamptz(6)
+  finalizedById         String?  @map("finalized_by") @db.Uuid
+  revision              Int      @default(1)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById           String   @map("created_by") @db.Uuid
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById           String   @map("updated_by") @db.Uuid
+  scoringRules          GeneralChampionshipScoringRule[]
+  contributions         GeneralChampionshipContribution[]
+
+  @@unique([editionId, eventId])
+  @@index([editionId, eventId, status])
+  @@map("general_championships")
+}
+
+model GeneralChampionshipScoringRule {
+  championshipId String @map("championship_id") @db.Uuid
+  placement      Int
+  label          String
+  points         Int
+  championship   GeneralChampionship @relation(fields: [championshipId], references: [id], onDelete: Restrict)
+
+  @@id([championshipId, placement])
+  @@map("general_championship_scoring_rules")
+}
+
+model GeneralChampionshipContribution {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  championshipId      String    @map("championship_id") @db.Uuid
+  institutionId       String    @map("institution_id") @db.Uuid
+  sourceType          String    @map("source_type")
+  sourceCompetitionId String?   @map("source_competition_id") @db.Uuid
+  sourcePlacement     Int?      @map("source_placement")
+  title               String
+  description         String
+  points              Int
+  automatic           Boolean   @default(false)
+  status              String    @default("PENDING_CONFIRMATION")
+  recordedAt          DateTime  @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  recordedById        String?   @map("recorded_by") @db.Uuid
+  confirmedAt         DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  confirmedById       String?   @map("confirmed_by") @db.Uuid
+  annulledAt          DateTime? @map("annulled_at") @db.Timestamptz(6)
+  annulledById        String?   @map("annulled_by") @db.Uuid
+  annulmentReason     String?   @map("annulment_reason")
+  revision            Int       @default(1)
+  championship        GeneralChampionship @relation(fields: [championshipId], references: [id], onDelete: Restrict)
+
+  @@unique([championshipId, sourceCompetitionId, sourcePlacement])
+  @@index([championshipId, status])
+  @@index([institutionId, status])
+  @@map("general_championship_contributions")
+}
