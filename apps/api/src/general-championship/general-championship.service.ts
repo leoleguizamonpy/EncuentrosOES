@@ -13,6 +13,10 @@ import {
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
 import type { ActorRole } from '../security/request.js';
+import { GeneralChampionshipError } from './general-championship.error.js';
+import { projectGeneralChampionship } from './general-championship-projection.js';
+
+export { GeneralChampionshipError } from './general-championship.error.js';
 
 const DEFAULT_RULES: readonly GeneralScoringRule[] = [
   { label: 'Campeón', placement: 1, points: 100 },
@@ -20,13 +24,6 @@ const DEFAULT_RULES: readonly GeneralScoringRule[] = [
   { label: 'Tercer lugar', placement: 3, points: 50 },
   { label: 'Cuarto lugar', placement: 4, points: 25 },
 ];
-
-export class GeneralChampionshipError extends Error {
-  public constructor(public readonly code: 'CONCURRENCY_CONFLICT' | 'IDEMPOTENCY_CONFLICT' | 'IDEMPOTENCY_IN_PROGRESS' | 'INVALID', message: string) {
-    super(message);
-    this.name = 'GeneralChampionshipError';
-  }
-}
 
 interface MutationContext {
   readonly actorId: string;
@@ -108,11 +105,11 @@ export class GeneralChampionshipService {
 
   public async findByScope(editionId: string, eventId: string): Promise<GeneralChampionshipView | null> {
     const championship = await this.prisma.generalChampionship.findUnique({ where: { editionId_eventId: { editionId, eventId } } });
-    return championship === null ? null : this.view(championship.id);
+    return championship === null ? null : projectGeneralChampionship(this.prisma, championship.id);
   }
 
-  public async find(championshipId: string): Promise<GeneralChampionshipView> {
-    return this.view(championshipId);
+  public find(championshipId: string): Promise<GeneralChampionshipView> {
+    return projectGeneralChampionship(this.prisma, championshipId);
   }
 
   public create(input: MutationContext & Readonly<{ editionId: string; eventId: string; name: string; rules?: readonly GeneralScoringRule[] }>): Promise<GeneralChampionshipView> {
@@ -349,77 +346,6 @@ export class GeneralChampionshipService {
     });
   }
 
-  private async view(championshipId: string): Promise<GeneralChampionshipView> {
-    const championship = await this.prisma.generalChampionship.findUnique({
-      include: { contributions: { orderBy: [{ recordedAt: 'desc' }, { id: 'asc' }] }, scoringRules: { orderBy: { placement: 'asc' } } },
-      where: { id: championshipId },
-    });
-    if (championship === null) throw new GeneralChampionshipError('INVALID', 'General championship does not exist.');
-    const edition = await this.prisma.edition.findUnique({ select: { id: true, name: true, year: true }, where: { id: championship.editionId } });
-    const event = await this.prisma.event.findUnique({ select: { id: true, name: true }, where: { id: championship.eventId } });
-    if (edition === null || event === null) throw new GeneralChampionshipError('INVALID', 'General championship scope is invalid.');
-
-    const institutionIds = [...new Set([
-      ...championship.contributions.map((entry) => entry.institutionId),
-      ...(championship.championInstitutionId === null ? [] : [championship.championInstitutionId]),
-    ])];
-    const institutions = institutionIds.length === 0 ? [] : await this.prisma.institution.findMany({ select: { id: true, name: true }, where: { id: { in: institutionIds } } });
-    const institutionById = new Map(institutions.map((institution) => [institution.id, institution]));
-    const userIds = [...new Set(championship.contributions.flatMap((entry) => [entry.recordedById, entry.confirmedById].filter((id): id is string => id !== null)))];
-    const users = userIds.length === 0 ? [] : await this.prisma.user.findMany({ select: { displayName: true, id: true }, where: { id: { in: userIds } } });
-    const userById = new Map(users.map((user) => [user.id, user]));
-    const competitionIds = [...new Set(championship.contributions.flatMap((entry) => entry.sourceCompetitionId === null ? [] : [entry.sourceCompetitionId]))];
-    const competitions = competitionIds.length === 0 ? [] : await this.prisma.competition.findMany({ select: { id: true, modalityId: true, sportId: true }, where: { id: { in: competitionIds } } });
-    const sports = await this.prisma.sport.findMany({ select: { id: true, name: true }, where: { id: { in: [...new Set(competitions.map((entry) => entry.sportId))] } } });
-    const modalities = await this.prisma.modality.findMany({ select: { id: true, name: true }, where: { id: { in: [...new Set(competitions.map((entry) => entry.modalityId))] } } });
-    const sportById = new Map(sports.map((item) => [item.id, item.name]));
-    const modalityById = new Map(modalities.map((item) => [item.id, item.name]));
-    const competitionLabel = new Map(competitions.map((competition) => [competition.id, `${sportById.get(competition.sportId) ?? 'Deporte'} · ${modalityById.get(competition.modalityId) ?? 'Modalidad'}`]));
-
-    const standings = deriveGeneralStandings(championship.contributions.map((entry) => ({
-      id: entry.id,
-      institutionId: entry.institutionId,
-      points: entry.points,
-      sourceType: entry.sourceType as 'COMPETITION_PLACEMENT' | 'SPECIAL',
-      status: entry.status as 'ANNULLED' | 'CONFIRMED' | 'PENDING_CONFIRMATION',
-    })));
-
-    return {
-      champion: championship.championInstitutionId === null || championship.championPoints === null ? null : {
-        institutionId: championship.championInstitutionId,
-        institutionName: institutionById.get(championship.championInstitutionId)?.name ?? 'Institución',
-        points: championship.championPoints,
-      },
-      contributions: championship.contributions.map((entry) => ({
-        automatic: entry.automatic,
-        confirmedAt: entry.confirmedAt?.toISOString() ?? null,
-        confirmedBy: entry.confirmedById === null ? null : { id: entry.confirmedById, name: userById.get(entry.confirmedById)?.displayName ?? 'Autoridad' },
-        description: entry.description,
-        id: entry.id,
-        institution: { id: entry.institutionId, name: institutionById.get(entry.institutionId)?.name ?? 'Institución' },
-        points: entry.points,
-        recordedAt: entry.recordedAt.toISOString(),
-        recordedBy: entry.recordedById === null ? null : { id: entry.recordedById, name: userById.get(entry.recordedById)?.displayName ?? 'Sistema' },
-        revision: entry.revision,
-        source: entry.sourceCompetitionId === null || entry.sourcePlacement === null ? null : { competitionId: entry.sourceCompetitionId, label: competitionLabel.get(entry.sourceCompetitionId) ?? 'Competencia', placement: entry.sourcePlacement },
-        sourceType: entry.sourceType as 'COMPETITION_PLACEMENT' | 'SPECIAL',
-        status: entry.status as 'ANNULLED' | 'CONFIRMED' | 'PENDING_CONFIRMATION',
-        title: entry.title,
-      })),
-      edition,
-      event,
-      id: championship.id,
-      name: championship.name,
-      revision: championship.revision,
-      rules: championship.scoringRules,
-      standings: standings.map((row) => ({
-        ...row,
-        institution: { id: row.institutionId, name: institutionById.get(row.institutionId)?.name ?? 'Institución' },
-      })),
-      status: championship.status as 'ACTIVE' | 'DRAFT' | 'FINALIZED',
-    };
-  }
-
   private async mutableChampionship(tx: Prisma.TransactionClient, id: string, expectedRevision: number, expectedStatus: 'ACTIVE' | 'DRAFT') {
     const championship = await tx.generalChampionship.findUnique({ where: { id } });
     if (championship === null) throw new GeneralChampionshipError('INVALID', 'General championship does not exist.');
@@ -486,12 +412,11 @@ export class GeneralChampionshipService {
           status: 'PROCESSING',
         } });
         const id = await operation(tx);
-        const compact = { id };
         await tx.idempotencyRecord.update({ data: {
           completedAt: new Date(),
           resourceId: id,
           resourceType: 'GENERAL_CHAMPIONSHIP',
-          responseBody: compact,
+          responseBody: { id },
           responseStatus: 200,
           status: 'COMPLETED',
         }, where: { actorId_scope_idempotencyKeyHash: { actorId: input.actorId, idempotencyKeyHash: keyHash, scope } } });
@@ -502,6 +427,6 @@ export class GeneralChampionshipService {
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') throw new GeneralChampionshipError('INVALID', 'An equivalent General Championship record already exists.');
       throw error;
     }
-    return this.view(championshipId);
+    return projectGeneralChampionship(this.prisma, championshipId);
   }
 }
