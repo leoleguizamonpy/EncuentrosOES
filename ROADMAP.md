@@ -189,19 +189,20 @@ GENERAL-CHAMPIONSHIP-001
 ├── [x] Visual E2E #744 exact-head sobre `601d9fd2a9d30fdec501d9d8ddb76f892bd88df4`
 ├── [x] Evidencia visual — artifact `9594372267`
 ├── [x] Artifact digest `sha256:b6a71c55d16cb65ca4b25c9084b9901389f6c39d22b54309a7402391e45d1eb8`
-├── [ ] CI exact-head después del cierre documental
+├── [x] CI #746 exact-head documental sobre `139bf584fb80da64530b07f5dbce60498fe8f48e`
+├── [x] Quality + visual-e2e verdes en el head documental
 ├── [ ] PR #85 ready + merge
 └── [ ] CI exacto del SHA final de main
 ```
 
-El bloque **no se declarará 100% cerrado** hasta que el commit documental pase CI, PR #85 se integre y el SHA resultante de `main` pase nuevamente `quality` + `visual-e2e`.
+El bloque **no se declarará 100% cerrado** hasta que PR #85 se integre y el SHA resultante de `main` pase nuevamente `quality` + `visual-e2e`.
 
 ## UI-ARCH-001 — CERRADO — 100%
 
 ```text
 UI-ARCH-001
-├── [x] Tokens únicos
-├── [x] PageHeader / DataList / DataRow / DataTable / Toolbar / Drawer / formularios / feedback compartidos
+├── [x] Tokens y primitives compartidos
+├── [x] PageHeader / DataList / DataRow / DataTable / Toolbar / Drawer / formularios / feedback
 ├── [x] 0 inline layout styles por gate
 ├── [x] 0 `!important` por gate
 ├── [x] 0 fuentes CSS remotas
