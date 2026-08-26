@@ -21,18 +21,20 @@ INSERT INTO institutions (id, event_id, code, name, normalized_name, active, rev
 ('95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', 'FIL', 'Facultad de Filosofía UNA', 'facultad de filosofia una', true, 1, :'admin_id', now(), :'admin_id'),
 ('95000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000001', 'AGR', 'Facultad de Ciencias Agrarias UNA', 'facultad de ciencias agrarias una', true, 1, :'admin_id', now(), :'admin_id'),
 ('95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', 'DER', 'Facultad de Derecho y Ciencias Sociales UNA', 'facultad de derecho y ciencias sociales una', true, 1, :'admin_id', now(), :'admin_id'),
-('95000000-0000-4000-8000-000000000004', '92000000-0000-4000-8000-000000000001', 'CS', 'Facultad de Ciencias Veterinarias UNA', 'facultad de ciencias veterinarias una', true, 1, :'admin_id', now(), :'admin_id'),
-('95000000-0000-4000-8000-000000000005', '92000000-0000-4000-8000-000000000001', 'UTCD', 'UTCD San Ignacio', 'utcd san ignacio', true, 1, :'admin_id', now(), :'admin_id');
+('95000000-0000-4000-8000-000000000004', '92000000-0000-4000-8000-000000000001', 'CS', 'Facultad de Ciencias Veterinarias UNA', 'facultad de ciencias veterininarias una', true, 1, :'admin_id', now(), :'admin_id'),
+('95000000-0000-4000-8000-000000000005', '92000000-0000-4000-8000-000000000001', 'UTCD', 'UTCD San Ignacio', 'utcd san ignacio', true, 1, :'admin_id', now(), :'admin_id'),
+('95000000-0000-4000-8000-000000000006', '92000000-0000-4000-8000-000000000001', 'ECO', 'Facultad de Ciencias Económicas UNA', 'facultad de ciencias economicas una', true, 1, :'admin_id', now(), :'admin_id');
 
-INSERT INTO competitions (id, edition_id, event_id, sport_id, modality_id, status, format_code, revision, created_by, updated_at, updated_by)
-VALUES ('96000000-0000-4000-8000-000000000001', '91000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'DRAFT', 'KNOCKOUT', 7, :'admin_id', now(), :'admin_id');
+INSERT INTO competitions (id, edition_id, event_id, sport_id, modality_id, status, format_code, group_count, revision, created_by, updated_at, updated_by)
+VALUES ('96000000-0000-4000-8000-000000000001', '91000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'DRAFT', 'GROUP_STAGE', 2, 7, :'admin_id', now(), :'admin_id');
 
 INSERT INTO competition_participants (id, competition_id, event_id, institution_id, display_name, status, enabled_at, enabled_by, revision) VALUES
 ('97000000-0000-4000-8000-000000000001', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000001', 'Facultad de Filosofía UNA', 'ENABLED', now(), :'admin_id', 1),
 ('97000000-0000-4000-8000-000000000002', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000002', 'Facultad de Ciencias Agrarias UNA', 'ENABLED', now(), :'admin_id', 1),
 ('97000000-0000-4000-8000-000000000003', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000003', 'Facultad de Derecho y Ciencias Sociales UNA', 'ENABLED', now(), :'admin_id', 1),
 ('97000000-0000-4000-8000-000000000004', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000004', 'Facultad de Ciencias Veterinarias UNA', 'ENABLED', now(), :'admin_id', 1),
-('97000000-0000-4000-8000-000000000005', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000005', 'UTCD San Ignacio', 'ENABLED', now(), :'admin_id', 1);
+('97000000-0000-4000-8000-000000000005', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000005', 'UTCD San Ignacio', 'ENABLED', now(), :'admin_id', 1),
+('97000000-0000-4000-8000-000000000006', '96000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000006', 'Facultad de Ciencias Económicas UNA', 'ENABLED', now(), :'admin_id', 1);
 
 INSERT INTO competition_rule_sets (id, competition_id, schema_version, revision_number, result_profile, profile_config, knockout_resolution_code, status, canonical_hash, frozen_at, frozen_by, revision, created_by, updated_at, updated_by)
 VALUES (
