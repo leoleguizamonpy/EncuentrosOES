@@ -10,6 +10,7 @@ import type {
 } from '../lib/competition-history-api';
 import { DataTable, type DataTableColumn, SectionPanel } from '../ui';
 import styles from './competition-history-panel.module.css';
+import { PrintHistoryButton } from './print-history-button';
 
 type HistoryStanding = HistoryExecutionView['groups'][number]['standings'][number];
 
@@ -190,7 +191,13 @@ export function CompetitionHistoryPanel({ history }: { readonly history: Competi
   const groupExecutions = history.executions.filter(({ formatCode }) => formatCode === 'GROUP_STAGE').length;
   const knockoutExecutions = history.executions.filter(({ formatCode }) => formatCode === 'KNOCKOUT').length;
 
-  return <SectionPanel className={styles.panel ?? ''} id="competition-history" eyebrow="Historial" title="Recorrido completo" status={<Chip size="sm" variant="soft">{history.executions.length}</Chip>}>
+  return <SectionPanel className={styles.panel ?? ''} id="competition-history" eyebrow="Historial" title="Recorrido completo" status={<div className={styles.toolbar ?? ''}><Chip size="sm" variant="soft">{history.executions.length}</Chip>{history.executions.length === 0 ? null : <PrintHistoryButton />}</div>}>
+    <div className={styles.printHeader ?? ''} aria-hidden="true">
+      <span>OES · Competencia oficial</span>
+      <strong>Historial competitivo</strong>
+      <small>Recorrido verificable de fases, tablas, encuentros y resultados.</small>
+    </div>
+
     <div className={styles.intro ?? ''}>
       <p>El historial conserva la evidencia oficial de cada etapa. La clasificación de grupos y los resultados de partidos se presentan como conceptos distintos para evitar interpretaciones incorrectas.</p>
       <div className={styles.summary ?? ''} aria-label="Resumen del historial">
