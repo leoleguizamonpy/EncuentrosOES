@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { VerificationQr } from './verification-qr';
+
 interface PrintDocumentFooterProps {
   readonly documentId: string;
   readonly verificationCode?: string | undefined;
@@ -29,10 +31,13 @@ export function PrintDocumentFooter({ documentId, verificationCode }: PrintDocum
       <span>ID {documentId}</span>
       {verificationCode === undefined ? null : <code>SHA-256 {verificationCode}</code>}
     </div>
-    <div>
-      <span>Origen verificable</span>
-      <code>{sourceUrl || 'URL disponible al imprimir desde el navegador'}</code>
-      <span>Emitido {issuedAt || 'al abrir esta vista'}</span>
+    <div className="print-document-footer__origin">
+      <div>
+        <span>Origen verificable</span>
+        <code>{sourceUrl || 'URL disponible al imprimir desde el navegador'}</code>
+        <span>Emitido {issuedAt || 'al abrir esta vista'}</span>
+      </div>
+      {sourceUrl.length === 0 ? null : <VerificationQr value={sourceUrl} />}
     </div>
   </footer>;
 }
