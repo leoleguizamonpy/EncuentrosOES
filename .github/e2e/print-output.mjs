@@ -67,8 +67,8 @@ async function ensurePublished(page) {
 
 async function assertPrintSurface(page, expectedId, expectedVerificationCode, pathLabel) {
   await page.emulateMedia({ media: 'print' });
-  const footer = page.getByRole('contentinfo', { name: 'Identidad documental de impresión' });
-  await footer.waitFor();
+  const footer = page.locator('.print-document-footer[aria-label="Identidad documental de impresión"]');
+  await footer.waitFor({ state: 'attached' });
   await page.getByRole('img', { name: 'QR de verificación del origen público' }).waitFor();
   await page.getByText(`ID ${expectedId}`, { exact: true }).waitFor();
   if (expectedVerificationCode !== null) {
@@ -86,6 +86,8 @@ async function assertPrintSurface(page, expectedId, expectedVerificationCode, pa
     return {
       actionDisplay: getComputedStyle(action).display,
       clientWidth: root.clientWidth,
+      footerDisplay: getComputedStyle(footerElement).display,
+      footerHeight: footerRect.height,
       footerWidth: footerRect.width,
       qrHeight: qrRect.height,
       qrWidth: qrRect.width,
@@ -96,6 +98,7 @@ async function assertPrintSurface(page, expectedId, expectedVerificationCode, pa
 
   assert(metrics !== null, `${pathLabel}: print metrics must be measurable.`);
   assert(metrics.actionDisplay === 'none', `${pathLabel}: print action must be hidden under print media.`);
+  assert(metrics.footerDisplay !== 'none' && metrics.footerHeight > 0, `${pathLabel}: document footer must remain rendered under print media.`);
   assert(metrics.scrollWidth <= metrics.clientWidth + 1, `${pathLabel}: print layout has horizontal overflow.`);
   assert(metrics.footerWidth <= metrics.clientWidth + 1, `${pathLabel}: document footer exceeds printable width.`);
   assert(metrics.qrWidth >= 80 && metrics.qrHeight >= 80, `${pathLabel}: verification QR is too small to be operational.`);
