@@ -53,7 +53,10 @@ export function validateGeneralScoringRules(input: readonly GeneralScoringRule[]
   }).sort((a, b) => a.placement - b.placement);
 
   for (let index = 1; index < normalized.length; index += 1) {
-    if (normalized[index].points > normalized[index - 1].points) {
+    const current = normalized.at(index);
+    const previous = normalized.at(index - 1);
+    if (current === undefined || previous === undefined) continue;
+    if (current.points > previous.points) {
       throw new DomainError('GENERAL_SCORING_INVALID', 'A lower placement cannot award more points than a higher placement.');
     }
   }
@@ -89,12 +92,11 @@ export function deriveGeneralStandings(contributions: readonly GeneralStandingCo
     .sort((a, b) => b.total - a.total || a.institutionId.localeCompare(b.institutionId));
 
   return ordered.map((entry, index) => {
-    const previous = ordered[index - 1];
-    const next = ordered[index + 1];
+    const previous = ordered.at(index - 1);
+    const next = ordered.at(index + 1);
     const tied = previous?.total === entry.total || next?.total === entry.total;
-    const position = index === 0 ? 1 : previous?.total === entry.total
-      ? (ordered.findIndex((candidate) => candidate.total === entry.total) + 1)
-      : index + 1;
+    const firstSameTotalIndex = ordered.findIndex((candidate) => candidate.total === entry.total);
+    const position = firstSameTotalIndex + 1;
     return {
       contributionCount: entry.all,
       institutionId: entry.institutionId,
@@ -108,11 +110,11 @@ export function deriveGeneralStandings(contributions: readonly GeneralStandingCo
 }
 
 export function deriveGeneralChampion(standings: readonly GeneralStandingRow[]): GeneralStandingRow {
-  if (standings.length === 0) {
+  const first = standings.at(0);
+  if (first === undefined) {
     throw new DomainError('GENERAL_FINALIZATION_INVALID', 'The general championship cannot be finalized without confirmed contributions.');
   }
-  const first = standings[0];
-  const second = standings[1];
+  const second = standings.at(1);
   if (second !== undefined && second.totalPoints === first.totalPoints) {
     throw new DomainError('TIE_UNRESOLVED', 'The general championship cannot be finalized while first place is tied.');
   }
