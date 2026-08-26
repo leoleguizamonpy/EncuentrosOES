@@ -188,6 +188,55 @@ async function assertGroupStageGeometry(page) {
   }
 }
 
+async function assertSportsOperationsGeometry(page, label) {
+  const scoreboards = page.locator('[aria-label*=" contra "]');
+  const scoreboardCount = await scoreboards.count();
+  assert(scoreboardCount >= 4, `Sports workspace must expose multiple match scoreboards, received ${scoreboardCount}.`);
+
+  const scoreboardMetrics = await scoreboards.first().evaluate((scoreboard) => {
+    const rect = scoreboard.getBoundingClientRect();
+    const parent = scoreboard.parentElement;
+    return {
+      clientWidth: scoreboard.clientWidth,
+      parentWidth: parent instanceof HTMLElement ? parent.getBoundingClientRect().width : 0,
+      scrollWidth: scoreboard.scrollWidth,
+      width: rect.width,
+    };
+  });
+  assert(scoreboardMetrics.scrollWidth <= scoreboardMetrics.clientWidth + 1, `${label} scoreboard must not overflow horizontally.`);
+  assert(scoreboardMetrics.width <= scoreboardMetrics.parentWidth + 1, `${label} scoreboard must fit inside its match card.`);
+
+  const pendingCard = page.locator('.result-match').filter({ has: page.getByRole('button', { name: 'Cargar resultado' }) }).first();
+  await pendingCard.waitFor();
+  const scoreboard = pendingCard.locator('[aria-label*=" contra "]').first();
+  const matchLabel = await scoreboard.getAttribute('aria-label');
+  assert(matchLabel !== null && matchLabel.length > 0, `${label} pending match must expose a stable accessible identity.`);
+  const stableCard = page.locator('.result-match').filter({ has: page.getByLabel(matchLabel, { exact: true }) }).first();
+  const loadButton = stableCard.getByRole('button', { name: 'Cargar resultado' });
+  await loadButton.click();
+  const inputs = stableCard.locator('input[type="number"][aria-label^="Marcador de "]');
+  await inputs.first().waitFor();
+  const inputCount = await inputs.count();
+  assert(inputCount === 2, `${label} score editor must expose exactly two numeric score inputs, received ${inputCount}.`);
+  const inputMetrics = await inputs.evaluateAll((elements) => elements.map((input) => {
+    const rect = input.getBoundingClientRect();
+    return { height: rect.height, width: rect.width };
+  }));
+  for (const metrics of inputMetrics) {
+    assert(metrics.height >= 50, `${label} score input height is too small: ${metrics.height}px.`);
+    assert(metrics.width >= 44, `${label} score input width is too small: ${metrics.width}px.`);
+  }
+  await assertNoHorizontalOverflow(page, `${label} result entry`);
+}
+
+async function closeResultEntry(page) {
+  const openCard = page.locator('.result-match').filter({ has: page.locator('input[type="number"][aria-label^="Marcador de "]') }).first();
+  await openCard.waitFor();
+  const cancel = openCard.getByRole('button', { name: 'Cancelar' });
+  await cancel.waitFor();
+  await cancel.click();
+}
+
 async function screenshot(page, name) {
   await page.screenshot({ fullPage: true, path: `${outputDir}/${name}.png` });
 }
@@ -260,6 +309,9 @@ try {
   await assertCompetitionRulesGeometry(page);
   await assertGroupStageGeometry(page);
   await screenshot(page, 'desktop-group-stage-results');
+  await assertSportsOperationsGeometry(page, 'desktop');
+  await screenshot(page, 'desktop-result-entry');
+  await closeResultEntry(page);
   await screenshot(page, 'desktop-competition-detail');
 
   await page.setViewportSize({ height: 844, width: 390 });
@@ -267,6 +319,9 @@ try {
   await page.getByRole('heading', { name: 'Perfil de puntuación' }).waitFor();
   await page.getByRole('heading', { name: 'Orden de desempate' }).waitFor();
   await assertGroupStageGeometry(page);
+  await assertSportsOperationsGeometry(page, 'mobile');
+  await screenshot(page, 'mobile-result-entry');
+  await closeResultEntry(page);
   await screenshot(page, 'mobile-group-stage-results');
   await screenshot(page, 'mobile-competition-detail');
 } finally {

@@ -35,12 +35,15 @@ describe('ResultsWorkspacePanel', () => {
   it('shows persisted matches and the automatically calculated table', () => {
     render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
     expect(screen.getByText('Resultados y fase de grupos')).toBeInTheDocument();
-    expect(screen.getByText('3 — 1')).toBeInTheDocument();
-    expect(screen.getByText('Resultado confirmado')).toBeInTheDocument();
-    expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
+    const match = screen.getByLabelText('Colegio A contra Colegio B');
+    const matchCard = match.closest('.result-match');
+    expect(matchCard).not.toBeNull();
+    expect(match).toHaveTextContent('3—1');
+    expect(screen.getByText('Confirmado')).toBeInTheDocument();
+    expect(matchCard).toHaveTextContent('Registrado por Autoridad Uno · confirmado por Autoridad Dos');
     const table = screen.getByRole('table', { name: 'Tabla del grupo A' });
     expect(within(table).getByText('Colegio A')).toBeInTheDocument();
-    expect(within(table).getByText('Pts.')).toBeInTheDocument();
+    expect(within(table).getByText('PTS')).toBeInTheDocument();
     expect(screen.getByText('Tabla parcial')).toBeInTheDocument();
   });
 
@@ -77,6 +80,25 @@ describe('ResultsWorkspacePanel', () => {
     expect(within(groupATable).getByText('Colegio A')).toBeInTheDocument();
     expect(within(groupBTable).getByText('Colegio C')).toBeInTheDocument();
     expect(within(stage).getAllByText('Encuentros del grupo')).toHaveLength(2);
+  });
+
+  it('keeps long participant names attached to the scoreboard and score-entry fields', () => {
+    const longA = { displayName: 'Colegio Nacional Doctor Víctor Natalicio Vasconsellos', id: 'participant-long-a' };
+    const longB = { displayName: 'Colegio Nacional Monseñor Lasagna de San Juan Bautista', id: 'participant-long-b' };
+    const sourceMatch = workspace.matches[0];
+    const sourceGroup = workspace.groups[0];
+    if (sourceMatch === undefined || sourceGroup === undefined) throw new Error('Expected base fixtures');
+    const pending: ResultsWorkspace = {
+      ...workspace,
+      groups: [{ ...sourceGroup, standings: [] }],
+      matches: [{ ...sourceMatch, participantA: longA, participantB: longB, result: null, status: 'PENDING_RESULT', winnerParticipantId: null }],
+    };
+
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={pending} />);
+    expect(screen.getByLabelText(`${longA.displayName} contra ${longB.displayName}`)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar resultado' }));
+    expect(screen.getByLabelText(`Marcador de ${longA.displayName}`)).toHaveAttribute('inputmode', 'numeric');
+    expect(screen.getByLabelText(`Marcador de ${longB.displayName}`)).toHaveAttribute('inputmode', 'numeric');
   });
 
   it('explains why there are no matches before draw confirmation', () => {

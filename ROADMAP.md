@@ -28,6 +28,7 @@ EncuentrosOES — PERFIL LOCAL — 100%
 ├── [x] UI-ARCH-001 — 100%
 ├── [x] UI-SHELL-UX-001 — 100%
 ├── [x] COMPETITION-DETAIL-UX-001 — 100%
+├── [x] SPORTS-OPERATIONS-UX-001 — 100%
 ├── [x] Auditoría y seguridad
 ├── [x] Backup local + SHA-256
 ├── [x] Restore drill aislado
@@ -237,6 +238,51 @@ COMPETITION-DETAIL-UX-001
 └── [x] Integración gobernada por PR #83
 ```
 
+## SPORTS-OPERATIONS-UX-001 — CERRADO — 100%
+
+Refinamiento de la operación deportiva real sobre la arquitectura UI vigente. Los encuentros priorizan institución y marcador; la carga de resultados queda ligada visual y semánticamente al partido correcto; tablas y grupos preservan lectura responsive sin modificar las reglas de negocio.
+
+```text
+SPORTS-OPERATIONS-UX-001
+├── [x] Sidebar navy refinada con señal activa OES
+├── [x] Navegación secundaria con menor ruido visual
+├── [x] Partido convertido en unidad deportiva
+├── [x] Participante A / B diferenciados
+├── [x] Marcador central como foco visual
+├── [x] Nombres institucionales largos controlados
+├── [x] Estados de encuentro compactos
+├── [x] Autoridad de registro y confirmación preservada
+├── [x] Carga de resultados rediseñada
+├── [x] Inputs numéricos grandes y asociados a cada institución
+├── [x] Sets mantienen identidad de participantes
+├── [x] Penales separados del marcador reglamentario
+├── [x] Resoluciones administrativas sin marcador ficticio
+├── [x] Tabla prioriza institución, PTS y diferencia
+├── [x] Grupo A → Grupo B permanece vertical
+├── [x] Desktop compone tabla + resultados dentro del mismo grupo
+├── [x] Tablet/mobile apilan contenido sin scroll horizontal
+├── [x] Test de nombres largos
+├── [x] Test institución ↔ campo de marcador
+├── [x] Test de autoridad confirmado dentro del mismo partido
+├── [x] E2E usa identidad accesible estable del encuentro
+├── [x] Chromium valida exactamente 2 inputs SCORE_BASED
+├── [x] Chromium exige inputs >= 50 px de alto y >= 44 px de ancho
+├── [x] Sin overflow horizontal durante carga de resultado
+├── [x] Desktop 1440 px revisado visualmente
+├── [x] Mobile 390 px revisado visualmente
+├── [x] Architecture Gate
+├── [x] UI Architecture Gate
+├── [x] Lint
+├── [x] Typecheck
+├── [x] PostgreSQL integration
+├── [x] Backup / restore / storage guards
+├── [x] Coverage
+├── [x] Build de producción
+├── [x] Chromium responsive
+├── [x] Evidencia visual E2E — artifact `9592109241`
+└── [x] CI #711 exact-head sobre `89e05cfdc3109fc63cff98823b2f71de70556132`
+```
+
 ## COMPETITION-HISTORY-001 — CERRADO
 
 ```text
@@ -382,6 +428,7 @@ Prueba final LOCAL
 ├── [x] UI-ARCH-001 protegido por CI y Chromium
 ├── [x] UI-SHELL-UX-001 protegido por CI y geometría Chromium
 ├── [x] COMPETITION-DETAIL-UX-001 protegido por CI y geometría real de grupos
+├── [x] SPORTS-OPERATIONS-UX-001 protegido por CI, Chromium y evidencia visual
 └── [x] PERFIL LOCAL — 100%
 ```
 
