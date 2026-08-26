@@ -119,7 +119,7 @@ function GeneralChampionshipWorkspace({ actorId, role }: { readonly actorId: str
       </div>
     </Panel>
 
-    {error === null ? null : <Notice description={error} title="La operación no pudo completarse" tone="error" />}
+    {error === null ? null : <Notice description={error} title="La operación no pudo completarse" tone="danger" />}
     {championship === undefined ? <WorkspaceState detail="Recuperando el ledger oficial de puntos." title="Actualizando tabla general…" /> : championship === null ? <EmptyChampionship canCreate={role !== 'OPERATOR'} edition={selectedEdition?.name ?? 'Edición'} event={selectedEvent?.name ?? 'Categoría'} loading={busy === 'create'} onCreate={() => void apply('create', () => createGeneralChampionship({ editionId, eventId, name: `Campeonato General ${selectedEvent?.name ?? ''} ${selectedEdition === undefined ? '' : String(selectedEdition.year)}`.trim() }))} /> : <>
       <section aria-label="Resumen del Campeonato General" className={styles.hero}>
         <div><span className={styles.heroEyebrow}>{championship.status === 'FINALIZED' ? 'Campeonato cerrado' : 'Tabla oficial acumulada'}</span><h2>{championship.name}</h2><p>{championship.edition.name} · {championship.event.name}</p></div>
@@ -164,7 +164,7 @@ function ScoringEditor({ busy, onActivate, onChange, onSave, readOnly, rules }: 
 }
 
 function OperationCard({ children, description, label, title }: { readonly children: React.ReactNode; readonly description: string; readonly label: string; readonly title: string }): React.JSX.Element {
-  return <Card className={styles.operationCard}><Card.Content><span>{label}</span><strong>{title}</strong><p>{description}</p>{children}</Card.Content></Card>;
+  return <Card className={styles.operationCard ?? ''}><Card.Content><span>{label}</span><strong>{title}</strong><p>{description}</p>{children}</Card.Content></Card>;
 }
 
 function PlacementForm({ championship, loading, onCancel, onSubmit, options }: { readonly championship: GeneralChampionshipView; readonly loading: boolean; readonly onCancel: () => void; readonly onSubmit: (input: { competitionId: string; description: string; institutionId: string; placement: number }) => void; readonly options: GeneralChampionshipOptionsView | null }): React.JSX.Element {
