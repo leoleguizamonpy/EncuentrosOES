@@ -49,7 +49,8 @@ describe('ResultsWorkspacePanel', () => {
     const participantD = { displayName: 'Colegio D', id: 'participant-d' };
     const groupA = workspace.groups[0];
     const matchA = workspace.matches[0];
-    if (groupA === undefined || matchA === undefined) throw new Error('Expected base group fixture');
+    const firstStanding = groupA?.standings[0];
+    if (groupA === undefined || matchA === undefined || firstStanding === undefined) throw new Error('Expected base group fixture');
     const twoGroups: ResultsWorkspace = {
       ...workspace,
       groups: [
@@ -59,7 +60,7 @@ describe('ResultsWorkspacePanel', () => {
           id: 'group-b',
           label: 'B',
           ordinal: 2,
-          standings: [{ ...groupA.standings[0]!, participant: participantC }],
+          standings: [{ ...firstStanding, participant: participantC }],
         },
       ],
       matches: [
