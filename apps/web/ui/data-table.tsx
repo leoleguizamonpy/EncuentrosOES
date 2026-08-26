@@ -16,7 +16,7 @@ interface DataTableProps<T> {
   readonly getRowKey: (row: T) => string;
   readonly label: string;
   readonly rows: readonly T[];
-  readonly width?: 'medium' | 'wide';
+  readonly width?: 'compact' | 'medium' | 'wide';
 }
 
 function columnClassName<T>(column: DataTableColumn<T>): string | undefined {
@@ -24,9 +24,15 @@ function columnClassName<T>(column: DataTableColumn<T>): string | undefined {
   return classes.length === 0 ? undefined : classes.join(' ');
 }
 
+function widthClassName(width: NonNullable<DataTableProps<unknown>['width']>): string {
+  if (width === 'wide') return styles.tableWide;
+  if (width === 'compact') return styles.tableCompact;
+  return styles.tableMedium;
+}
+
 export function DataTable<T>({ className, columns, getRowKey, label, rows, width = 'medium' }: DataTableProps<T>): React.JSX.Element {
   return <div className={[styles.tableScroller, className].filter(Boolean).join(' ')}>
-    <table aria-label={label} className={`${styles.dataTable} ${width === 'wide' ? styles.tableWide : styles.tableMedium}`}>
+    <table aria-label={label} className={`${styles.dataTable} ${widthClassName(width)}`}>
       <thead><tr>{columns.map((column) => <th className={columnClassName(column)} key={column.id} scope="col">{column.label}</th>)}</tr></thead>
       <tbody>{rows.map((row) => <tr key={getRowKey(row)}>{columns.map((column) => <td className={columnClassName(column)} key={column.id}>{column.render(row)}</td>)}</tr>)}</tbody>
     </table>
