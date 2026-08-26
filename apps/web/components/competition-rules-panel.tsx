@@ -132,7 +132,7 @@ export function CompetitionRulesPanel({
   const stateLabel = detail.ruleSet === null ? 'Sin configurar' : detail.ruleSet.status === 'FROZEN' ? 'Congelada' : 'Borrador';
   const stateColor = detail.ruleSet?.status === 'FROZEN' ? 'success' : detail.ruleSet === null ? 'default' : 'warning';
 
-  return <SectionPanel className={styles.panel ?? ''} eyebrow="Paso 3" title="Puntuación y desempates" status={<Chip color={stateColor} size="sm" variant="soft">{stateLabel}</Chip>}>
+  return <SectionPanel className={styles.panel ?? ''} eyebrow="Paso 3" id="competition-rules" title="Puntuación y desempates" status={<Chip color={stateColor} size="sm" variant="soft">{stateLabel}</Chip>}>
     <div className={styles.intro ?? ''}>
       <strong>Reglas deportivas de {detail.sport.name}</strong>
       <p>La puntuación, la clasificación y los desempates se calculan exclusivamente desde esta plantilla. Una vez congelada queda como evidencia inmutable de la competencia.</p>
