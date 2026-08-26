@@ -716,3 +716,19 @@
     width: 100%;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .scopeBar select,
+  .formGrid select,
+  .formGrid input,
+  .formGrid textarea,
+  .ruleRow input,
+  .operationCard,
+  .ledgerRow {
+    transition: none;
+  }
+
+  .operationCard:hover {
+    transform: none;
+  }
+}
