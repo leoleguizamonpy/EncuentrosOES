@@ -25,9 +25,9 @@ function columnClassName<T>(column: DataTableColumn<T>): string | undefined {
 }
 
 function widthClassName(width: NonNullable<DataTableProps<unknown>['width']>): string {
-  if (width === 'wide') return styles.tableWide;
-  if (width === 'compact') return styles.tableCompact;
-  return styles.tableMedium;
+  if (width === 'wide') return styles.tableWide ?? '';
+  if (width === 'compact') return styles.tableCompact ?? '';
+  return styles.tableMedium ?? '';
 }
 
 export function DataTable<T>({ className, columns, getRowKey, label, rows, width = 'medium' }: DataTableProps<T>): React.JSX.Element {
