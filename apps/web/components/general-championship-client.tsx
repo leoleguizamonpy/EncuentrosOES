@@ -128,7 +128,7 @@ function GeneralChampionshipWorkspace({ actorId, role }: { readonly actorId: str
 
       {championship.status === 'DRAFT' ? <ScoringEditor busy={busy} onActivate={() => void apply('activate', () => activateGeneralChampionship(championship.id, championship.revision))} onChange={setRules} onSave={() => void apply('rules', () => saveGeneralScoring(championship.id, championship.revision, rules))} readOnly={role === 'OPERATOR'} rules={rules} /> : <>
         <Panel header={<><div className={styles.panelIdentity}><span>Clasificación transversal</span><strong>Tabla general</strong></div><StatusBadge label={`${String(championship.standings.length)} instituciones con puntos`} tone="default" /></>}>
-          {championship.standings.length === 0 ? <div className={styles.emptyBlock}><strong>Aún no existen puntos confirmados.</strong><small>Sincroniza competencias finalizadas o registra un aporte oficial.</small></div> : <DataTable columns={standingColumns} getRowKey={(row) => row.institution.id} label="Tabla del Campeonato General" rows={championship.standings} width="medium" />}
+          {championship.standings.length === 0 ? <div className={styles.emptyBlock}><strong>Aún no existen puntos confirmados.</strong><small>Sincroniza competencias finalizadas o registra un aporte oficial.</small></div> : <DataTable columns={standingColumns} getRowKey={(row) => row.institution.id} label="Tabla del Campeonato General" rows={championship.standings} width="compact" />}
         </Panel>
 
         {role === 'OPERATOR' || championship.status === 'FINALIZED' ? null : <Panel header={<><div className={styles.panelIdentity}><span>Operación</span><strong>Incorporar puntuaciones</strong></div><Chip size="sm" variant="soft">Total derivado, no editable</Chip></>}>
