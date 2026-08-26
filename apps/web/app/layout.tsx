@@ -6,6 +6,7 @@ import './heroui.css';
 import './globals.css';
 import './public-accessibility.css';
 import './public-history.css';
+import './print-output.css';
 
 const bodyFont = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const displayFont = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
