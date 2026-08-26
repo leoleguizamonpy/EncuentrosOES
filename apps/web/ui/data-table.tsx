@@ -4,14 +4,14 @@ import styles from './system.module.css';
 
 export interface DataTableColumn<T> {
   readonly align?: 'left' | 'right';
-  readonly className?: string;
+  readonly className?: string | undefined;
   readonly id: string;
   readonly label: ReactNode;
   readonly render: (row: T) => ReactNode;
 }
 
 interface DataTableProps<T> {
-  readonly className?: string;
+  readonly className?: string | undefined;
   readonly columns: readonly DataTableColumn<T>[];
   readonly getRowKey: (row: T) => string;
   readonly label: string;
