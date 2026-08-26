@@ -228,6 +228,7 @@ jobs:
         run: |
           node .github/e2e/admin-responsive.mjs
           node .github/e2e/general-championship-responsive.mjs
+          node .github/e2e/competition-history-print.mjs
 
       - name: Upload visual E2E evidence
         if: always()
