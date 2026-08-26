@@ -42,6 +42,7 @@ const competition: readonly NavEntry[] = [
   { href: '/draws', icon: 'draw', id: 'draws', label: 'Sorteos' },
   { href: '/matches', icon: 'match', id: 'matches', label: 'Encuentros' },
   { href: '/standings', icon: 'standings', id: 'standings', label: 'Clasificación' },
+  { href: '/general-championship', icon: 'competition', id: 'general-championship', label: 'Campeonato General' },
 ];
 
 const control: readonly NavEntry[] = [
