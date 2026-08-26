@@ -34,13 +34,48 @@ describe('ResultsWorkspacePanel', () => {
 
   it('shows persisted matches and the automatically calculated table', () => {
     render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate onChange={vi.fn()} onError={vi.fn()} workspace={workspace} />);
+    expect(screen.getByText('Resultados y fase de grupos')).toBeInTheDocument();
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('Resultado confirmado')).toBeInTheDocument();
     expect(screen.getByText(/confirmado por Autoridad Dos/)).toBeInTheDocument();
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', { name: 'Tabla del grupo A' });
     expect(within(table).getByText('Colegio A')).toBeInTheDocument();
     expect(within(table).getByText('Pts.')).toBeInTheDocument();
-    expect(screen.getByText('Parcial')).toBeInTheDocument();
+    expect(screen.getByText('Tabla parcial')).toBeInTheDocument();
+  });
+
+  it('keeps groups in vertical document order with their own matches and standings', () => {
+    const participantC = { displayName: 'Colegio C', id: 'participant-c' };
+    const participantD = { displayName: 'Colegio D', id: 'participant-d' };
+    const groupA = workspace.groups[0];
+    const matchA = workspace.matches[0];
+    if (groupA === undefined || matchA === undefined) throw new Error('Expected base group fixture');
+    const twoGroups: ResultsWorkspace = {
+      ...workspace,
+      groups: [
+        groupA,
+        {
+          ...groupA,
+          id: 'group-b',
+          label: 'B',
+          ordinal: 2,
+          standings: [{ ...groupA.standings[0]!, participant: participantC }],
+        },
+      ],
+      matches: [
+        matchA,
+        { ...matchA, group: { id: 'group-b', label: 'B' }, id: 'match-2', participantA: participantC, participantB: participantD, result: null, status: 'PENDING_RESULT', winnerParticipantId: null },
+      ],
+    };
+
+    render(<ResultsWorkspacePanel actorId="actor-1" canAnnul={false} canOperate={false} onChange={vi.fn()} onError={vi.fn()} workspace={twoGroups} />);
+    const stage = screen.getByLabelText('Fase de grupos');
+    const groupATable = within(stage).getByRole('table', { name: 'Tabla del grupo A' });
+    const groupBTable = within(stage).getByRole('table', { name: 'Tabla del grupo B' });
+    expect(groupATable.compareDocumentPosition(groupBTable) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(groupATable).getByText('Colegio A')).toBeInTheDocument();
+    expect(within(groupBTable).getByText('Colegio C')).toBeInTheDocument();
+    expect(within(stage).getAllByText('Encuentros del grupo')).toHaveLength(2);
   });
 
   it('explains why there are no matches before draw confirmation', () => {
