@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Card, Chip } from '@heroui/react';
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type SyntheticEvent, useEffect, useMemo, useState } from 'react';
 
 import {
   activateGeneralChampionship,
@@ -98,7 +98,6 @@ function GeneralChampionshipWorkspace({ actorId, role }: { readonly actorId: str
   const selectedEdition = catalog?.editions.find((entry) => entry.id === editionId);
   const selectedEvent = catalog?.events.find((entry) => entry.id === eventId);
   const pending = championship?.contributions.filter((entry) => entry.status === 'PENDING_CONFIRMATION') ?? [];
-  const confirmed = championship?.contributions.filter((entry) => entry.status === 'CONFIRMED') ?? [];
   const uniqueLeader = championship !== null && championship !== undefined && championship.standings.length > 0 && (championship.standings[1]?.totalPoints ?? -1) !== championship.standings[0]?.totalPoints;
 
   if (catalog === null && error === null) return <WorkspaceState detail="Recuperando ediciones, categorías y tabla general." title="Cargando Campeonato General…" />;
@@ -116,19 +115,19 @@ function GeneralChampionshipWorkspace({ actorId, role }: { readonly actorId: str
       <div className={styles.scopeBar}>
         <label>Edición<select aria-label="Edición del Campeonato General" onChange={(event) => void changeScope(event.target.value, eventId)} value={editionId}>{catalog.editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.name}</option>)}</select></label>
         <label>Categoría / evento<select aria-label="Categoría del Campeonato General" onChange={(event) => void changeScope(editionId, event.target.value)} value={eventId}>{catalog.events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
-        <div className={styles.scopeContext}><span>Tabla independiente</span><strong>{selectedEdition?.year ?? '—'} · {selectedEvent?.name ?? 'Selecciona una categoría'}</strong></div>
+        <div className={styles.scopeContext}><span>Tabla independiente</span><strong>{selectedEdition === undefined ? '—' : String(selectedEdition.year)} · {selectedEvent?.name ?? 'Selecciona una categoría'}</strong></div>
       </div>
     </Panel>
 
     {error === null ? null : <Notice description={error} title="La operación no pudo completarse" tone="error" />}
-    {championship === undefined ? <WorkspaceState detail="Recuperando el ledger oficial de puntos." title="Actualizando tabla general…" /> : championship === null ? <EmptyChampionship canCreate={role !== 'OPERATOR'} edition={selectedEdition?.name ?? 'Edición'} event={selectedEvent?.name ?? 'Categoría'} loading={busy === 'create'} onCreate={() => void apply('create', () => createGeneralChampionship({ editionId, eventId, name: `Campeonato General ${selectedEvent?.name ?? ''} ${selectedEdition?.year ?? ''}`.trim() }))} /> : <>
+    {championship === undefined ? <WorkspaceState detail="Recuperando el ledger oficial de puntos." title="Actualizando tabla general…" /> : championship === null ? <EmptyChampionship canCreate={role !== 'OPERATOR'} edition={selectedEdition?.name ?? 'Edición'} event={selectedEvent?.name ?? 'Categoría'} loading={busy === 'create'} onCreate={() => void apply('create', () => createGeneralChampionship({ editionId, eventId, name: `Campeonato General ${selectedEvent?.name ?? ''} ${selectedEdition === undefined ? '' : String(selectedEdition.year)}`.trim() }))} /> : <>
       <section aria-label="Resumen del Campeonato General" className={styles.hero}>
         <div><span className={styles.heroEyebrow}>{championship.status === 'FINALIZED' ? 'Campeonato cerrado' : 'Tabla oficial acumulada'}</span><h2>{championship.name}</h2><p>{championship.edition.name} · {championship.event.name}</p></div>
         <div className={styles.heroStatus}><StatusBadge label={championship.status === 'DRAFT' ? 'Configuración' : championship.status === 'ACTIVE' ? 'En curso' : 'Finalizado'} tone={statusTone(championship.status)} />{championship.champion === null ? <small>{championship.standings[0] === undefined ? 'Sin puntuaciones confirmadas' : `Líder provisional · ${championship.standings[0].institution.name}`}</small> : <><strong>{championship.champion.institutionName}</strong><small>Campeón General · {championship.champion.points} pts</small></>}</div>
       </section>
 
       {championship.status === 'DRAFT' ? <ScoringEditor busy={busy} onActivate={() => void apply('activate', () => activateGeneralChampionship(championship.id, championship.revision))} onChange={setRules} onSave={() => void apply('rules', () => saveGeneralScoring(championship.id, championship.revision, rules))} readOnly={role === 'OPERATOR'} rules={rules} /> : <>
-        <Panel header={<><div className={styles.panelIdentity}><span>Clasificación transversal</span><strong>Tabla general</strong></div><StatusBadge label={`${championship.standings.length} instituciones con puntos`} tone="default" /></>}>
+        <Panel header={<><div className={styles.panelIdentity}><span>Clasificación transversal</span><strong>Tabla general</strong></div><StatusBadge label={`${String(championship.standings.length)} instituciones con puntos`} tone="default" /></>}>
           {championship.standings.length === 0 ? <div className={styles.emptyBlock}><strong>Aún no existen puntos confirmados.</strong><small>Sincroniza competencias finalizadas o registra un aporte oficial.</small></div> : <DataTable columns={standingColumns} getRowKey={(row) => row.institution.id} label="Tabla del Campeonato General" rows={championship.standings} width="medium" />}
         </Panel>
 
@@ -139,13 +138,13 @@ function GeneralChampionshipWorkspace({ actorId, role }: { readonly actorId: str
             <OperationCard description="Mejor Hinchada, Fair Play u otra actividad que aporta al Campeonato General sin ser una competencia deportiva." label="Puntuación adicional" title="Agregar aporte"><Button isDisabled={busy !== null} onPress={() => setSpecialOpen((value) => !value)} variant="secondary">Agregar especial</Button></OperationCard>
           </div>
           {placementOpen ? <PlacementForm championship={championship} loading={busy === 'placement'} onCancel={() => setPlacementOpen(false)} onSubmit={(input) => void apply('placement', () => addGeneralPlacementContribution(championship.id, { ...input, expectedRevision: championship.revision })).then(() => setPlacementOpen(false))} options={options} /> : null}
-          {specialOpen ? <SpecialForm championship={championship} loading={busy === 'special'} onCancel={() => setSpecialOpen(false)} onSubmit={(input) => void apply('special', () => addGeneralSpecialContribution(championship.id, { ...input, expectedRevision: championship.revision })).then(() => setSpecialOpen(false))} options={options} /> : null}
+          {specialOpen ? <SpecialForm loading={busy === 'special'} onCancel={() => setSpecialOpen(false)} onSubmit={(input) => void apply('special', () => addGeneralSpecialContribution(championship.id, { ...input, expectedRevision: championship.revision })).then(() => setSpecialOpen(false))} options={options} /> : null}
         </Panel>}
 
         <ContributionLedger actorId={actorId} busy={busy} championship={championship} onApply={apply} role={role} />
 
-        {championship.status === 'ACTIVE' && role === 'SUPERADMIN' ? <Panel header={<><div className={styles.panelIdentity}><span>Cierre oficial</span><strong>Campeón General</strong></div><StatusBadge label={pending.length > 0 ? `${pending.length} aportes pendientes` : uniqueLeader ? 'Listo para cerrar' : 'Revisión necesaria'} tone={pending.length > 0 || !uniqueLeader ? 'warning' : 'success'} /></>}>
-          <div className={styles.finalizeRow}><div><strong>{championship.standings[0]?.institution.name ?? 'Sin líder todavía'}</strong><small>{championship.standings[0] === undefined ? 'Necesitas al menos una contribución confirmada.' : uniqueLeader ? `${championship.standings[0].totalPoints} puntos · líder único.` : 'Existe empate en el primer puesto. No se aplicará un desempate oculto.'}</small></div><Button isDisabled={busy !== null || pending.length > 0 || !uniqueLeader} onPress={() => void apply('finalize', () => finalizeGeneralChampionship(championship.id, championship.revision))} variant="primary">{busy === 'finalize' ? 'Finalizando…' : 'Confirmar Campeón General'}</Button></div>
+        {championship.status === 'ACTIVE' && role === 'SUPERADMIN' ? <Panel header={<><div className={styles.panelIdentity}><span>Cierre oficial</span><strong>Campeón General</strong></div><StatusBadge label={pending.length > 0 ? `${String(pending.length)} aportes pendientes` : uniqueLeader ? 'Listo para cerrar' : 'Revisión necesaria'} tone={pending.length > 0 || !uniqueLeader ? 'warning' : 'success'} /></>}>
+          <div className={styles.finalizeRow}><div><strong>{championship.standings[0]?.institution.name ?? 'Sin líder todavía'}</strong><small>{championship.standings[0] === undefined ? 'Necesitas al menos una contribución confirmada.' : uniqueLeader ? `${String(championship.standings[0].totalPoints)} puntos · líder único.` : 'Existe empate en el primer puesto. No se aplicará un desempate oculto.'}</small></div><Button isDisabled={busy !== null || pending.length > 0 || !uniqueLeader} onPress={() => void apply('finalize', () => finalizeGeneralChampionship(championship.id, championship.revision))} variant="primary">{busy === 'finalize' ? 'Finalizando…' : 'Confirmar Campeón General'}</Button></div>
         </Panel> : null}
       </>}
     </>}
@@ -173,16 +172,16 @@ function PlacementForm({ championship, loading, onCancel, onSubmit, options }: {
   const [institutionId, setInstitutionId] = useState(options?.institutions[0]?.id ?? '');
   const [placement, setPlacement] = useState(championship.rules[0]?.placement ?? 1);
   const [description, setDescription] = useState('Ubicación oficial validada por la organización de la OES.');
-  function submit(event: FormEvent): void { event.preventDefault(); onSubmit({ competitionId, description, institutionId, placement }); }
+  function submit(event: SyntheticEvent<HTMLFormElement>): void { event.preventDefault(); onSubmit({ competitionId, description, institutionId, placement }); }
   return <form className={styles.inlineForm} onSubmit={submit}><div className={styles.formHeader}><span>Ubicación oficial</span><strong>Aporte deportivo manual</strong></div><div className={styles.formGrid}><label>Competencia<select onChange={(event) => setCompetitionId(event.target.value)} required value={competitionId}>{options?.competitions.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</select></label><label>Institución<select onChange={(event) => setInstitutionId(event.target.value)} required value={institutionId}>{options?.institutions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label><label>Puesto<select onChange={(event) => setPlacement(Number(event.target.value))} value={placement}>{championship.rules.map((rule) => <option key={rule.placement} value={rule.placement}>{rule.placement}.º · {rule.label} · {rule.points} pts</option>)}</select></label><label className={styles.wideField}>Descripción<textarea maxLength={500} minLength={5} onChange={(event) => setDescription(event.target.value)} value={description}/></label></div><InlineActions><Button isDisabled={loading} type="submit" variant="primary">{loading ? 'Registrando…' : 'Enviar a confirmación'}</Button><Button isDisabled={loading} onPress={onCancel} type="button" variant="ghost">Cancelar</Button></InlineActions></form>;
 }
 
-function SpecialForm({ loading, onCancel, onSubmit, options }: { readonly championship: GeneralChampionshipView; readonly loading: boolean; readonly onCancel: () => void; readonly onSubmit: (input: { description: string; institutionId: string; points: number; title: string }) => void; readonly options: GeneralChampionshipOptionsView | null }): React.JSX.Element {
+function SpecialForm({ loading, onCancel, onSubmit, options }: { readonly loading: boolean; readonly onCancel: () => void; readonly onSubmit: (input: { description: string; institutionId: string; points: number; title: string }) => void; readonly options: GeneralChampionshipOptionsView | null }): React.JSX.Element {
   const [institutionId, setInstitutionId] = useState(options?.institutions[0]?.id ?? '');
   const [title, setTitle] = useState('Mejor Hinchada');
   const [description, setDescription] = useState('Reconocimiento oficial que suma al Campeonato General.');
   const [points, setPoints] = useState(50);
-  function submit(event: FormEvent): void { event.preventDefault(); onSubmit({ description, institutionId, points, title }); }
+  function submit(event: SyntheticEvent<HTMLFormElement>): void { event.preventDefault(); onSubmit({ description, institutionId, points, title }); }
   return <form className={styles.inlineForm} onSubmit={submit}><div className={styles.formHeader}><span>Aporte adicional</span><strong>Actividad o reconocimiento especial</strong></div><div className={styles.formGrid}><label>Institución<select onChange={(event) => setInstitutionId(event.target.value)} required value={institutionId}>{options?.institutions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label><label>Concepto<input maxLength={120} minLength={2} onChange={(event) => setTitle(event.target.value)} required value={title}/></label><label>Puntos<input min="1" onChange={(event) => setPoints(Number(event.target.value))} required type="number" value={points}/></label><label className={styles.wideField}>Descripción<textarea maxLength={500} minLength={5} onChange={(event) => setDescription(event.target.value)} required value={description}/></label></div><InlineActions><Button isDisabled={loading} type="submit" variant="primary">{loading ? 'Registrando…' : 'Enviar a confirmación'}</Button><Button isDisabled={loading} onPress={onCancel} type="button" variant="ghost">Cancelar</Button></InlineActions></form>;
 }
 
