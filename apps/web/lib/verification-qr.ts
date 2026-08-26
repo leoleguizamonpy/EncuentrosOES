@@ -30,8 +30,9 @@ function reedSolomonGenerator(degree: number): number[] {
   for (let index = 0; index < degree; index += 1) {
     const next = Array<number>(polynomial.length + 1).fill(0);
     for (let coefficient = 0; coefficient < polynomial.length; coefficient += 1) {
-      next[coefficient] ^= polynomial[coefficient] ?? 0;
-      next[coefficient + 1] ^= gfMultiply(polynomial[coefficient] ?? 0, root);
+      const current = polynomial[coefficient] ?? 0;
+      next[coefficient] = (next[coefficient] ?? 0) ^ current;
+      next[coefficient + 1] = (next[coefficient + 1] ?? 0) ^ gfMultiply(current, root);
     }
     polynomial = next;
     root = gfMultiply(root, 2);
