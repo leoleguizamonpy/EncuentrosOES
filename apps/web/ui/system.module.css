@@ -261,6 +261,11 @@
   width: 100%;
 }
 
+.tableCompact {
+  min-width: 0;
+  table-layout: fixed;
+}
+
 .tableMedium {
   min-width: 680px;
 }
