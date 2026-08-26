@@ -29,17 +29,17 @@ const base: CompetitionDetail = {
 };
 
 const draftRuleSet = {
-    allowDraws: true,
-    canonicalHash: null,
-    drawPoints: 1,
-    frozenAt: null,
-    id: 'rule-set-1',
-    lossPoints: 0,
-    resultProfile: 'SCORE_BASED',
-    revision: 1,
-    status: 'DRAFT',
-    tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'],
-    winPoints: 3,
+  allowDraws: true,
+  canonicalHash: null,
+  drawPoints: 1,
+  frozenAt: null,
+  id: 'rule-set-1',
+  lossPoints: 0,
+  resultProfile: 'SCORE_BASED',
+  revision: 1,
+  status: 'DRAFT',
+  tieBreakCriteria: ['TABLE_POINTS', 'WINS', 'SCORE_DIFFERENCE'],
+  winPoints: 3,
 } satisfies CompetitionRuleSet;
 
 const draft: CompetitionDetail = {
@@ -49,6 +49,15 @@ const draft: CompetitionDetail = {
 
 describe('CompetitionRulesPanel', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('exposes scoring and tie-break configuration as distinct semantic zones', () => {
+    render(<CompetitionRulesPanel canEdit detail={base} onChange={vi.fn()} onError={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Perfil de puntuación' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Orden de desempate' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Tipo de resultado' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Prioridad de criterios de desempate' })).toBeInTheDocument();
+  });
 
   it('saves an explicit scoring template with ordered criteria', async () => {
     const onChange = vi.fn();
@@ -86,6 +95,7 @@ describe('CompetitionRulesPanel', () => {
     render(<CompetitionRulesPanel canEdit={false} detail={frozen} onChange={vi.fn()} onError={vi.fn()} />);
 
     expect(screen.getByText('Plantilla inmutable')).toBeInTheDocument();
+    expect(screen.getByText('Ver hash verificable')).toBeInTheDocument();
     expect(screen.getByText('b'.repeat(64))).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Actualizar borrador' })).not.toBeInTheDocument();
   });

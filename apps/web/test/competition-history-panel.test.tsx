@@ -60,18 +60,26 @@ const history: CompetitionHistoryView = {
 };
 
 describe('CompetitionHistoryPanel', () => {
-  it('keeps group tables and previous knockout rounds visible together', () => {
+  it('separates group standings from match results while preserving previous knockout rounds', () => {
     render(<CompetitionHistoryPanel history={history} />);
+
     expect(screen.getByText('Recorrido completo')).toBeInTheDocument();
-    expect(screen.getByText('Fase de grupos')).toBeInTheDocument();
-    expect(screen.getByText('Eliminación directa · Ronda 1')).toBeInTheDocument();
-    expect(screen.getByText(/Clasificados: Colegio A · Colegio B/)).toBeInTheDocument();
+    expect(screen.getAllByText('Fase de grupos')).toHaveLength(2);
+    expect(screen.getAllByText('Eliminación directa · Ronda 1')).toHaveLength(2);
+    expect(screen.getByText('Tabla final de grupos')).toBeInTheDocument();
+    expect(screen.getByText('Resultados de la fase')).toBeInTheDocument();
+    expect(screen.getByText('Resultados eliminatorios')).toBeInTheDocument();
+    const qualifierLabel = screen.getByText('Clasificados:');
+    expect(qualifierLabel.parentElement).toHaveTextContent('Clasificados: Colegio A · Colegio B');
     expect(screen.getByText(/BYE:/)).toBeInTheDocument();
     expect(screen.getByText('3 — 1')).toBeInTheDocument();
     expect(screen.getByText('2 — 0')).toBeInTheDocument();
+
     const tables = screen.getAllByRole('table');
-    const firstTable = tables[0];
-    if (firstTable === undefined) throw new Error('Expected group history table.');
-    expect(within(firstTable).getByText('6')).toBeInTheDocument();
+    expect(tables).toHaveLength(3);
+    const standings = screen.getByRole('table', { name: 'Tabla final del grupo A' });
+    expect(within(standings).getByText('6')).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Resultados históricos del grupo A' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Resultados históricos de la ronda 1' })).toBeInTheDocument();
   });
 });

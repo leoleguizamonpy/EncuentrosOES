@@ -189,6 +189,13 @@ jobs:
           OES_BOOTSTRAP_PASSWORD: e2e-superadmin-password-2026
         run: pnpm --filter @oes/api bootstrap:superadmin
 
+      - name: Seed competition detail fixture
+        shell: bash
+        run: |
+          LIBPQ_URL="${DATABASE_URL%%\?*}"
+          docker run --rm --network host -v "${{ github.workspace }}:/workspace:ro" postgres:17-alpine \
+            psql "$LIBPQ_URL" --file=/workspace/.github/e2e/seed-competition-detail.sql
+
       - name: Build application for browser drill
         run: pnpm build
 
