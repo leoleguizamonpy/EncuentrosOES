@@ -71,7 +71,7 @@ export function CompetitionHistoryPrintClient({ competitionId }: { readonly comp
       <div><span>Última evidencia SHA-256</span><code>{latestVerificationCode ?? 'Sin publicación verificable'}</code></div>
     </section>
 
-    {champion?.status === 'CONFIRMED' ? <Card className={styles.champion}>
+    {champion?.status === 'CONFIRMED' ? <Card className={styles.champion ?? ''}>
       <Card.Content>
         <span>Campeón confirmado</span>
         <strong>{champion.participantDisplayName}</strong>
