@@ -1,4 +1,4 @@
-import { DomainError, type AuthorityRole } from '@oes/domain';
+import type { AuthorityRole, DomainError } from '@oes/domain';
 
 import type { DrawMutationInput } from './draw-idempotency.js';
 import { DrawStoreError } from './draw-store.js';
