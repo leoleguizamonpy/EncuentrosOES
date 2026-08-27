@@ -1,0 +1,48 @@
+name: Branch Cleanup Once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all remote branches except main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mapfile -t branches < <(gh api --paginate "repos/${REPOSITORY}/branches?per_page=100" --jq '.[].name')
+          for branch in "${branches[@]}"; do
+            if [ "$branch" = "main" ]; then
+              continue
+            fi
+            echo "Deleting $branch"
+            gh api --method DELETE "repos/${REPOSITORY}/git/refs/heads/${branch}"
+          done
+
+          remaining="$(gh api --paginate "repos/${REPOSITORY}/branches?per_page=100" --jq '.[].name')"
+          if [ "$remaining" != "main" ]; then
+            echo "Unexpected remaining branches:"
+            printf '%s\n' "$remaining"
+            exit 1
+          fi
+
+      - name: Remove this one-shot workflow from main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW_PATH: .github/workflows/branch-cleanup-once.yml
+        run: |
+          set -euo pipefail
+          workflow_sha="$(gh api "repos/${REPOSITORY}/contents/${WORKFLOW_PATH}?ref=main" --jq '.sha')"
+          gh api --method DELETE "repos/${REPOSITORY}/contents/${WORKFLOW_PATH}" \
+            -f message='chore(repo): remove one-shot branch cleanup workflow' \
+            -f sha="$workflow_sha" \
+            -f branch='main'
