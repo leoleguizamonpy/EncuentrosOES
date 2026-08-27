@@ -29,15 +29,106 @@ function digest(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || isNumber(value);
+}
+
+function isCatalogItem(value: unknown): boolean {
+  return isRecord(value) && isString(value.code) && isString(value.id) && isString(value.name);
+}
+
+function isEdition(value: unknown): boolean {
+  return isRecord(value) && isString(value.id) && isString(value.name) && isNumber(value.year);
+}
+
+function isCompetitionStatus(value: unknown): boolean {
+  return value === 'DRAFT' || value === 'FINALIZED' || value === 'LOCKED' || value === 'OPEN';
+}
+
+function isFormatCode(value: unknown): boolean {
+  return value === null || value === 'GROUP_STAGE' || value === 'KNOCKOUT';
+}
+
+function isCompetitionSummary(value: unknown): value is CompetitionSummary {
+  if (!isRecord(value)) return false;
+  return isString(value.createdAt)
+    && isEdition(value.edition)
+    && isCatalogItem(value.event)
+    && isFormatCode(value.formatCode)
+    && isNullableNumber(value.groupCount)
+    && isString(value.id)
+    && isCatalogItem(value.modality)
+    && isNumber(value.participantCount)
+    && isNumber(value.revision)
+    && isCatalogItem(value.sport)
+    && isCompetitionStatus(value.status);
+}
+
+function isInstitution(value: unknown): boolean {
+  return isRecord(value)
+    && isString(value.code)
+    && isString(value.id)
+    && isString(value.name)
+    && typeof value.selected === 'boolean';
+}
+
+function isParticipant(value: unknown): boolean {
+  return isRecord(value)
+    && isString(value.displayName)
+    && isString(value.enabledAt)
+    && isString(value.id)
+    && isString(value.institutionId)
+    && (value.status === 'ENABLED' || value.status === 'WITHDRAWN');
+}
+
+function isRuleSet(value: unknown): boolean {
+  if (value === null) return true;
+  if (!isRecord(value)) return false;
+  return isString(value.id)
+    && isNumber(value.revision)
+    && (value.status === 'DRAFT' || value.status === 'FROZEN' || value.status === 'REPLACED')
+    && (value.resultProfile === 'SCORE_BASED' || value.resultProfile === 'SET_BASED');
+}
+
+function isCompetitionDetail(value: unknown): value is CompetitionDetail {
+  if (!isCompetitionSummary(value) || !isRecord(value)) return false;
+  return Array.isArray(value.institutions)
+    && value.institutions.every(isInstitution)
+    && Array.isArray(value.participants)
+    && value.participants.every(isParticipant)
+    && isRuleSet(value.ruleSet)
+    && Array.isArray(value.validGroupCounts)
+    && value.validGroupCounts.every(isNumber);
+}
+
+function invalidReplay(): CompetitionStoreError {
+  return new CompetitionStoreError('IDEMPOTENCY_CONFLICT', 'The stored idempotent response is not valid.');
+}
+
 function parseSummaryReplay(value: unknown): CompetitionSummary {
-  if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
-    throw new CompetitionStoreError('IDEMPOTENCY_CONFLICT', 'The stored idempotent response is not valid.');
-  }
-  return value as CompetitionSummary;
+  if (!isCompetitionSummary(value)) throw invalidReplay();
+  return value;
 }
 
 function parseDetailReplay(value: unknown): CompetitionDetail {
-  return parseSummaryReplay(value) as CompetitionDetail;
+  if (!isCompetitionDetail(value)) throw invalidReplay();
+  return value;
+}
+
+function toInputJson(value: CompetitionDetail): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 export class CompetitionIdempotencyCoordinator {
@@ -143,7 +234,7 @@ export class CompetitionIdempotencyCoordinator {
         completedAt: new Date(),
         resourceId: input.competitionId,
         resourceType: 'COMPETITION',
-        responseBody: response as unknown as Prisma.InputJsonValue,
+        responseBody: toInputJson(response),
         responseStatus: 200,
         status: 'COMPLETED',
       },

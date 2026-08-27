@@ -62,4 +62,42 @@ describe('CompetitionIdempotencyCoordinator', () => {
     expect(capturedError(() => coordinator.summaryResponse('hash', 'PROCESSING', response, 'hash')).code)
       .toBe('IDEMPOTENCY_IN_PROGRESS');
   });
+
+  it('rejects malformed stored summaries instead of trusting persisted JSON', () => {
+    const coordinator = new CompetitionIdempotencyCoordinator(client());
+    const malformed = {
+      id: 'competition',
+      participantCount: 'not-a-number',
+      status: 'DRAFT',
+    };
+
+    const error = capturedError(() => coordinator.summaryResponse('hash', 'COMPLETED', malformed, 'hash'));
+
+    expect(error.code).toBe('IDEMPOTENCY_CONFLICT');
+    expect(error.message).toContain('not valid');
+  });
+
+  it('rejects malformed detail replays before returning them to competition mutations', () => {
+    const coordinator = new CompetitionIdempotencyCoordinator(client());
+    const malformedDetail = {
+      createdAt: '2026-08-24T00:00:00.000Z',
+      edition: { id: 'edition', name: 'OES 2026', year: 2026 },
+      event: { code: 'COL', id: 'event', name: 'Colegiales' },
+      formatCode: null,
+      groupCount: null,
+      id: 'competition',
+      institutions: [],
+      modality: { code: 'M', id: 'modality', name: 'Masculina' },
+      participantCount: 0,
+      participants: [{ id: 'participant' }],
+      revision: 1,
+      ruleSet: null,
+      sport: { code: 'FUTSAL', id: 'sport', name: 'Futsal' },
+      status: 'DRAFT',
+      validGroupCounts: [],
+    };
+
+    expect(capturedError(() => coordinator.detailResponse('hash', 'COMPLETED', malformedDetail, 'hash')).code)
+      .toBe('IDEMPOTENCY_CONFLICT');
+  });
 });
