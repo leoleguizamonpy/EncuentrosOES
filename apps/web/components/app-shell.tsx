@@ -95,7 +95,7 @@ export function AppShell({ actor, active, children, eyebrow = 'OES Workspace', t
     <aside className={`sidebar ${styles.sidebar ?? ''}${navigationOpen ? ` ${styles.sidebarOpen ?? ''}` : ''}`} id="workspace-navigation">
       <OesMark />
       <nav aria-label="Navegación principal"><a className={`nav-item${active === 'dashboard' ? ' nav-item--active' : ''}`} href="/dashboard"><NavLabel icon="dashboard" label="Inicio"/></a>{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={organization} label="Organización" role={actor.role} />}<NavGroup active={active} entries={competition} label="Competencia" role={actor.role} />{actor.role === 'OPERATOR' ? null : <NavGroup active={active} entries={control} label="Control" role={actor.role} />}</nav>
-      <div className="sidebar__footer">Sistema oficial · OES</div>
+      <div className="sidebar__footer"><a aria-current={active === 'developer' ? 'page' : undefined} href="/developer">Desarrollador</a><span> · OES</span></div>
     </aside>
     <main className={`dashboard-main ${styles.main ?? ''}`} id="main-content">
       <header className={`topbar ${styles.topbar ?? ''}`}><div className={styles.titleBlock}><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><div className={`account-menu ${styles.accountMenu ?? ''}`}><span className="account-avatar" aria-hidden="true">{actor.displayName.charAt(0)}</span><span className={styles.accountIdentity}><strong>{actor.displayName}</strong><small>{roleLabels[actor.role]}</small></span><Button className={styles.logoutButton ?? ''} onPress={() => void closeSession()} size="sm" variant="ghost">Salir</Button></div></header>
