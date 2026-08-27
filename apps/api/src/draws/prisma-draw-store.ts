@@ -8,16 +8,11 @@ import {
   type PrismaClient,
 } from '@oes/database';
 import {
-  CompetitionRuleSet,
   DomainError,
   DrawConfiguration,
   generateOfficialSeed,
-  type AuthorityRole,
-  type CompetitionRuleSetSnapshot,
   type DrawEvidence,
-  type MetricCode,
   type PublicDrawAct,
-  type TieBreakCriterion,
 } from '@oes/domain';
 
 import { PRISMA_CLIENT } from '../persistence/database.module.js';
@@ -28,9 +23,9 @@ import {
   EXECUTE_SCOPE,
   PREPARE_SCOPE,
   PUBLISH_SCOPE,
-  type DrawMutationInput,
 } from './draw-idempotency.js';
 import { DrawReadModel } from './draw-read-model.js';
+import { DrawRuleSetLoader } from './draw-rule-set-loader.js';
 import {
   DrawStoreError,
   type AnnulDrawInput,
@@ -42,29 +37,7 @@ import {
   type PublicDrawPublicationView,
   type PublishDrawInput,
 } from './draw-store.js';
-
-function isJsonObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function authorityRole(role: DrawMutationInput['actorRole']): AuthorityRole {
-  if (role === 'ADMIN' || role === 'SUPERADMIN') return role;
-  throw new DrawStoreError('DRAW_EXECUTION_INVALID', 'An administrator authority is required.');
-}
-
-function mappedDomainError(
-  error: DomainError,
-  fallback:
-    | 'DRAW_ANNULMENT_INVALID'
-    | 'DRAW_CONFIGURATION_INVALID'
-    | 'DRAW_CONFIRMATION_INVALID'
-    | 'DRAW_EXECUTION_INVALID',
-): DrawStoreError {
-  return new DrawStoreError(
-    error.code === 'CONCURRENCY_CONFLICT' ? 'CONCURRENCY_CONFLICT' : fallback,
-    error.message,
-  );
-}
+import { authorityRole, mappedDomainError } from './draw-store-validation.js';
 
 @Injectable()
 export class PrismaDrawStore implements DrawStore {
@@ -72,12 +45,14 @@ export class PrismaDrawStore implements DrawStore {
   readonly #idempotency: DrawIdempotencyCoordinator;
   readonly #officialDrawService: PrismaOfficialDrawService;
   readonly #reads: DrawReadModel;
+  readonly #ruleSets: DrawRuleSetLoader;
 
   public constructor(@Inject(PRISMA_CLIENT) private readonly client: PrismaClient) {
     this.#configurationRepository = new PrismaDrawConfigurationRepository(client);
     this.#idempotency = new DrawIdempotencyCoordinator(client);
     this.#officialDrawService = new PrismaOfficialDrawService(client);
     this.#reads = new DrawReadModel(client);
+    this.#ruleSets = new DrawRuleSetLoader();
   }
 
   public workspace(competitionId: string): Promise<DrawWorkspace> {
@@ -105,7 +80,7 @@ export class PrismaDrawStore implements DrawStore {
             'The competition must have an editable format before preparing the draw.',
           );
         }
-        const ruleSet = await this.#latestFrozenRuleSet(transaction, input.competitionId);
+        const ruleSet = await this.#ruleSets.latestFrozen(transaction, input.competitionId);
         if (ruleSet === null) {
           throw new DrawStoreError('DRAW_CONFIGURATION_INVALID', 'Freeze the scoring rules before preparing the draw.');
         }
@@ -495,61 +470,6 @@ export class PrismaDrawStore implements DrawStore {
   async #configuration(transaction: Prisma.TransactionClient, id: string): Promise<DrawConfiguration | null> {
     try {
       return await this.#configurationRepository.findByIdInTransaction(transaction, id);
-    } catch (error: unknown) {
-      if (error instanceof DomainError) throw mappedDomainError(error, 'DRAW_CONFIGURATION_INVALID');
-      throw error;
-    }
-  }
-
-  async #latestFrozenRuleSet(
-    transaction: Prisma.TransactionClient,
-    competitionId: string,
-  ): Promise<CompetitionRuleSet | null> {
-    const record = await transaction.competitionRuleSet.findFirst({
-      include: {
-        metrics: { orderBy: { metricCode: 'asc' } },
-        outcomes: { orderBy: { outcomeCode: 'asc' } },
-        tiebreaks: { orderBy: { position: 'asc' } },
-      },
-      orderBy: { revisionNumber: 'desc' },
-      where: { competitionId, status: 'FROZEN' },
-    });
-    if (record === null || !isJsonObject(record.profileConfig)) return null;
-    const config = record.profileConfig;
-    const profile = config.profile === 'SCORE_BASED' && typeof config.allowDraws === 'boolean'
-      ? { allowDraws: config.allowDraws, profile: 'SCORE_BASED' as const }
-      : config.profile === 'SET_BASED' && typeof config.setsToWin === 'number'
-        ? { profile: 'SET_BASED' as const, setsToWin: config.setsToWin }
-        : null;
-    if (profile === null) {
-      throw new DrawStoreError('DRAW_CONFIGURATION_INVALID', 'The frozen scoring profile is invalid.');
-    }
-    try {
-      return CompetitionRuleSet.rehydrate({
-        canonicalHash: record.canonicalHash,
-        competitionId: record.competitionId,
-        createdAt: record.createdAt,
-        createdBy: record.createdById,
-        frozenAt: record.frozenAt,
-        frozenBy: record.frozenById,
-        id: record.id,
-        knockoutResolutionCode: record.knockoutResolutionCode as CompetitionRuleSetSnapshot['knockoutResolutionCode'],
-        metrics: record.metrics.map(({ metricCode }) => metricCode as MetricCode),
-        outcomes: record.outcomes.map(({ description, outcomeCode, tablePoints }) => ({
-          code: outcomeCode,
-          description,
-          tablePoints,
-        })),
-        profileConfig: profile,
-        resultProfile: record.resultProfile as CompetitionRuleSetSnapshot['resultProfile'],
-        revision: record.revision,
-        revisionNumber: record.revisionNumber,
-        schemaVersion: record.schemaVersion,
-        status: 'FROZEN',
-        tieBreakCriteria: record.tiebreaks.map(({ criterionCode }) => criterionCode as TieBreakCriterion),
-        updatedAt: record.updatedAt,
-        updatedBy: record.updatedById,
-      });
     } catch (error: unknown) {
       if (error instanceof DomainError) throw mappedDomainError(error, 'DRAW_CONFIGURATION_INVALID');
       throw error;
